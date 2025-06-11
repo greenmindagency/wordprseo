@@ -1,6 +1,16 @@
 <?php
+/**
+ * Theme functions file.
+ *
+ * Provides custom filters, navigation helpers, admin tweaks and
+ * other functionality used by the theme.
+ */
 
-// remove "Private: " from titles
+// -------------------------
+// Archive title cleanup
+// -------------------------
+// Removes the "Private:" prefix and handles titles for custom taxonomies
+// and archives.
     add_filter( 'get_the_archive_title', function ($title) {    
         if ( is_category() ) {    
                 $title = single_cat_title( '', false );    
@@ -18,7 +28,10 @@
       
     
 
-// better pagination
+// -------------------------
+// Pagination helper
+// -------------------------
+// Outputs a numbered pagination list using paginate_links
 function bittersweet_pagination() {
 
 global $wp_query;
@@ -45,10 +58,12 @@ $pages = paginate_links( array(
        echo '</ul></div>';
         }
 }
-// better pagination
 
 
-//qt_custom_breadcrumbs()
+// -------------------------
+// Breadcrumb generator
+// -------------------------
+// Creates a Bootstrap friendly breadcrumb trail for the current page
 function custom_breadcrumbs()
 {
     // Set variables for later use
@@ -266,7 +281,9 @@ function custom_breadcrumbs()
     return $breadcrumb_output_link;
 }
 add_shortcode('custom_breadcrumbs','custom_breadcrumbs');
-// qt_custom_breadcrumbs()
+// -------------------------
+// Featured image support
+// -------------------------
 
 
 // Add theme support for Featured Images
@@ -283,7 +300,9 @@ add_theme_support('post-thumbnails', array(
 
 
 
-/*********************************   set custom image sizes  *********************************/
+// -------------------------
+// Custom image sizes
+// -------------------------
 
 function set_custom_image_sizes() {
     // Set thumbnail size
@@ -314,7 +333,9 @@ Full size (full/original image size you uploaded)
 
 
 
-/*********************************   allow menu and custome structure *********************************/
+// -------------------------
+// Register custom menu
+// -------------------------
 function wpb_custom_new_menu() {
   register_nav_menu('my-custom-menu',__( 'primary' ));
 }
@@ -935,7 +956,10 @@ endif;
 
 
 
-/////////////////Category Template Based on Category Level
+// -------------------------
+// Helpers for category hierarchy
+// -------------------------
+// Returns true if the current category matches the provided depth
 function is_category_level($depth){
 $current_category = get_query_var('cat');
 $my_category  = get_categories('include='.$current_category);
@@ -955,7 +979,7 @@ $cat_depth=0;
 }
 
 
-// ** hide category column in the wp-admin
+// Removes description column from category list in admin
 function removecategorydescrption($columns)
 {
 
@@ -966,7 +990,7 @@ add_filter('manage_edit-category_columns','removecategorydescrption');
 
 
 
-//get the category Parent ID function
+// Helper to fetch parent category ID
 function getParentCatID(){
 $thiscat =  get_query_var('cat'); // The id of the current category
 $catobject = get_category($thiscat,false); // Get the Category object by the id of current category
@@ -974,7 +998,7 @@ $parentcat = $catobject->category_parent; // the id of the parent category
 }
 
 
-// Remove category base
+// Remove category base from URLs
 add_filter('category_link', 'no_category_parents',1000,2);
 function no_category_parents($catlink, $category_id) {
     $category = &get_category( $category_id );
@@ -986,7 +1010,7 @@ function no_category_parents($catlink, $category_id) {
     return $catlink;
 }
 
-// Add our custom category rewrite rules
+// Custom category rewrite rules
 add_filter('category_rewrite_rules', 'no_category_parents_rewrite_rules');
 function no_category_parents_rewrite_rules($category_rewrite) {
     //print_r($category_rewrite); // For Debugging
@@ -1030,11 +1054,11 @@ function no_category_parents_request($query_vars) {
 }
 
 
-//this code is giving a new permlink fresh every refresh
+// Force rewrite rules on every page load (may impact performance)
 
 flush_rewrite_rules(true);
 
-/* this code will only flush when category updated
+/* This code will only flush when a category is updated
 
 add_action('create_category', 'my_theme_do_something', 10, 2);
 
@@ -1047,14 +1071,16 @@ function my_theme_do_something($term_id, $taxonomy_term_id){
 
 //this code is giving a new permlink fresh every refresh
 
-/////////////////Category Template Based on Category Level
+// -------------------------
+// Category template helpers
+// -------------------------
 
 
 
 
 
-// add editor the privilege to edit theme
-// get the the role object
+// Allow editors to access theme options
+// Get the role object
 $role_object = get_role( 'editor' );
 // add $cap capability to this role object
 $role_object->add_cap( 'edit_theme_options' );
@@ -1062,7 +1088,9 @@ $role_object->add_cap( 'edit_theme_options' );
 
 
 
-/*********************************   replace css on the admin panel  *********************************/
+// -------------------------
+// Custom admin panel CSS
+// -------------------------
 add_action('admin_head', 'my_custom_style');
 
 function my_custom_style() {
@@ -1074,9 +1102,7 @@ function my_custom_style() {
 /*********************************   replace css on the admin panel  *********************************/
 
 
-/**
- * Include the comments list walker class
- */
+// Include the custom comments walker
 require get_template_directory() . '/class-msbdtcp-walker-comment.php';
 
 
@@ -1086,7 +1112,7 @@ require get_template_directory() . '/class-msbdtcp-walker-comment.php';
 
 
 
-/************   adding class to posts_link_attributes to make infinite loop work   ******************/
+// Add class to previous/next posts links for infinite scroll
 
 add_filter('next_posts_link_attributes', 'posts_link_attributes');
 add_filter('previous_posts_link_attributes', 'posts_link_attributes');
@@ -1095,12 +1121,15 @@ function posts_link_attributes() {
   return 'class="pagination__next"';
 }
 
-/************   adding class to posts_link_attributes to make infinite loop work   ******************/
+// End posts_link_attributes helper
 
 
 
 
-/**remove_core_updates
+/**
+ * Disable WordPress core, plugin and theme update checks
+ * (commented out for security reasons)
+ */
 
 
 function remove_core_updates(){
@@ -1119,10 +1148,10 @@ function hide_update_notice() {
 }
 add_action( 'admin_menu', 'hide_update_notice' );
 
-remove_core_updates**/
+/* End disable updates */
 
 
-/**show empty categories or tags in loops by default**/
+// Show empty categories or tags in loops by default
 
 function include_empty_taxonomies_in_queries($args, $taxonomy) {
     // Modify only if 'hide_empty' is set to true
@@ -1132,11 +1161,10 @@ function include_empty_taxonomies_in_queries($args, $taxonomy) {
     return $args;
 }
 add_filter('get_terms_args', 'include_empty_taxonomies_in_queries', 10, 2);
+// End show empty categories helper
 
-/**show empty categories or tags in loops by default**/
 
-
-/**Redirects attachment pages to their parent post or homepage, ensuring media files are not accessible as standalone pages.**/
+// Redirect attachment pages to the parent post or home page
 
 function redirect_attachment_page() {
     if (is_attachment()) {
@@ -1151,7 +1179,7 @@ function redirect_attachment_page() {
     }
 }
 add_action('template_redirect', 'redirect_attachment_page');
-/**Redirects attachment pages to their parent post or homepage, ensuring media files are not accessible as standalone pages.**/
+// End attachment redirect
 
 /**
  * Automatically adds an alt tag to images upon upload if not already provided.
@@ -1177,19 +1205,11 @@ function add_default_alt_text($post_ID) {
 }
 add_action('add_attachment', 'add_default_alt_text');
 
-/**
- * Automatically adds an alt tag to images upon upload if not already provided.
- * The alt tag is set to the image title, or a default text if the title is empty.
- */
 
-
-//block new editor for posts and pages/
-
+// Disable block editor for posts and pages
 add_filter('use_block_editor_for_post', '__return_false', 10);
 
-//block new editor for posts and pages/
-
-//control the width of the #edittag div using CSS/
+// Style adjustments for category edit screen
 
 function custom_admin_styles() {
 echo '<style>
@@ -1201,16 +1221,16 @@ max-width: none !important;
 }
 add_action('admin_head', 'custom_admin_styles');
 
-//control the width of the #edittag div using CSS/
+// Style adjustments for category edit screen
 
-//modify the script output and remove the type attribute
+// Remove type="text/javascript" from script tags
 
 function remove_script_type_attribute( $tag, $handle, $src ) {
     // Remove 'type="text/javascript"' from the script tag
     return str_replace( ' type="text/javascript"', '', $tag );
 }
 add_filter( 'script_loader_tag', 'remove_script_type_attribute', 10, 3 );
-//modify the script output and remove the type attribute
+// End script tag cleanup
 
 
 
