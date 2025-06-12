@@ -497,7 +497,7 @@ blockquote p {margin:1rem 0}
 	
 	
 	
-	//////////////* infinite scroll  
+        /* infinite scroll */
   
   .scroller-status{ position: fixed;  bottom: 0; display:none; z-index:1 }
   /* reveal grid after images loaded */
@@ -526,7 +526,7 @@ blockquote p {margin:1rem 0}
   float: left;
 }
 
-*/
+
   
   /* loader-ellips
 ------------------------- */
@@ -581,7 +581,7 @@ blockquote p {margin:1rem 0}
   animation-name: reveal;
   animation-direction: reverse;
 }
- //////////////* infinite scroll */  
+/* infinite scroll */
  
   .imgcarousel .carousel img {       -webkit-mask-image: none !important;
     mask-image: none !important; }
@@ -853,7 +853,7 @@ blockquote p {margin:1rem 0}
     bottom: 8rem  !important ;
     left: 15%  !important ;
         text-align: left !important;
-    width: 60%; !important
+    width: 60% !important;
 }
 
 .slider .carousel-indicators {
@@ -867,7 +867,7 @@ blockquote p {margin:1rem 0}
 .dropdown-menu {
     border-radius: 0 !important;  /* Removes curvy edges, making them sharp */
     box-shadow: none !important; /* Removes any shadow for a flat look */
-    border: 0px      /* Optional: Add a subtle border for definition */
+    border: 0px;     /* Optional: Add a subtle border for definition */
 }
 
 
@@ -969,7 +969,7 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-//* isotop *//  
+/* isotop */
 	
 	
 	
