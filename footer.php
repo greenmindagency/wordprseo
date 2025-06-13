@@ -268,6 +268,9 @@ if ( !empty($tags) && !is_wp_error($tags) ) {
 <style>
 
 
+/*--------------------------------------------------------------
+# Base Styling
+--------------------------------------------------------------*/
 body { <?php 
 
     $menu_color = get_field('menu_color'); // Retrieve the value of the 'menu_color' field
@@ -286,6 +289,9 @@ body { <?php
 
 
 
+/*--------------------------------------------------------------
+# Theme Colors
+--------------------------------------------------------------*/
 
 :root {
   --bs-primary: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important;
@@ -309,6 +315,9 @@ body { <?php
 
 
 
+/*--------------------------------------------------------------
+# Typography & Links
+--------------------------------------------------------------*/
 
 a:link { text-decoration: none;}
 a:visited { text-decoration: none;}
@@ -348,7 +357,9 @@ h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
 }
 
   
-/*fix jarallax for pasgecotnet3 */
+/*--------------------------------------------------------------
+# Jarallax Fix for Page Content 3
+--------------------------------------------------------------*/
 
 
 .jarallax-content .jarallax{
@@ -366,11 +377,15 @@ h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
 	opacity: 1
 }
 
-/*fix jarallax for pasgecotnet3 */
+/*--------------------------------------------------------------
+# Jarallax Fix for Page Content 3
+--------------------------------------------------------------*/
 
 
 
-/*fix image height for cat,post,tag connections */
+/*--------------------------------------------------------------
+# Post/Tag Image Height Fix
+--------------------------------------------------------------*/
 
 
 .image-cover-container {
@@ -403,7 +418,9 @@ h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
     }
 }
 
-/*fix image height for cat,post,tag connections */
+/*--------------------------------------------------------------
+# Post/Tag Image Height Fix
+--------------------------------------------------------------*/
 
 
 
@@ -412,20 +429,66 @@ h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
 
 .carousel-item img { width: 100%; }
        
-       /*coloring*/
-      body .bg-primary, body .btn-outline-primary:hover, body .btn-primary { color: #fff !important; background-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important; border-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important;}
-       .btn-primary:hover, .btn-primary:active, .btn-primary:focus { color: #fff !important; background-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important; border-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important; box-shadow:none !important}
-       .btn-outline-primary {border-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important; color:<?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important}
-	   
-	   body .bg-secondary, body .btn-outline-secondary:hover, body .btn-secondary { color: #fff !important; background-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important; border-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important;}
-       .btn-secondary:hover, .btn-secondary:active, .btn-secondary:focus { color: #fff !important; background-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important; border-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important; box-shadow:none !important}
-       .btn-outline-secondary {border-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important; color:<?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?>}
-       
-	   
-	   .btn-light { color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important;}
-	   
-       
-      a, .page-link, .text-primary, .dropdown .text-primary, .dropdown button, div .text-primary { color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important;}
+/*--------------------------------------------------------------
+# Color Styling
+--------------------------------------------------------------*/
+      body .bg-primary,
+      body .btn-outline-primary:hover,
+      body .btn-primary {
+        color: #fff !important;
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-secondary) !important;
+      }
+
+      .btn-primary:hover,
+      .btn-primary:active,
+      .btn-primary:focus {
+        color: #fff !important;
+        background-color: var(--bs-secondary) !important;
+        border-color: var(--bs-secondary) !important;
+        box-shadow: none !important;
+      }
+
+      .btn-outline-primary {
+        border-color: var(--bs-primary) !important;
+        color: var(--bs-secondary) !important;
+      }
+
+      body .bg-secondary,
+      body .btn-outline-secondary:hover,
+      body .btn-secondary {
+        color: #fff !important;
+        background-color: var(--bs-secondary) !important;
+        border-color: var(--bs-secondary) !important;
+      }
+
+      .btn-secondary:hover,
+      .btn-secondary:active,
+      .btn-secondary:focus {
+        color: #fff !important;
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-secondary) !important;
+        box-shadow: none !important;
+      }
+
+      .btn-outline-secondary {
+        border-color: var(--bs-primary) !important;
+        color: var(--bs-secondary);
+      }
+
+      .btn-light {
+        color: var(--bs-secondary) !important;
+      }
+
+
+      a,
+      .page-link,
+      .text-primary,
+      .dropdown .text-primary,
+      .dropdown button,
+      div .text-primary {
+        color: var(--bs-primary) !important;
+      }
       
   
   
@@ -435,13 +498,15 @@ h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
     body .bg-dark {background-color:#000 !important}
   .navbar-light  {background-color:#fff !important}
   
-  .dropdown-item.active, .dropdown-item:active { color: #fff  !important; background-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important; }
+  .dropdown-item.active, .dropdown-item:active { color: #fff  !important; background-color: var(--bs-primary) !important; }
   
-   /*nav coloring*/
+/*--------------------------------------------------------------
+# Nav Coloring
+--------------------------------------------------------------*/
   .bg-dark .nav-link, .bg-transparent .nav-link { color:#fff!important }
   .bg-light .nav-link { color:#000!important }
   a.nav-link:hover {background-color: var(--bs-primary) !important; color: #fff !important}
- /*nav coloring*/
+
  
 .accordion-button::after {
   display: none !important; /* Completely remove Bootstrap's default arrow */
@@ -497,7 +562,9 @@ blockquote p {margin:1rem 0}
 	
 	
 	
-	//////////////* infinite scroll  
+/*--------------------------------------------------------------
+# Infinite Scroll
+--------------------------------------------------------------*/
   
   .scroller-status{ position: fixed;  bottom: 0; display:none; z-index:1 }
   /* reveal grid after images loaded */
@@ -528,8 +595,9 @@ blockquote p {margin:1rem 0}
 
 */
   
-  /* loader-ellips
-------------------------- */
+/*--------------------------------------------------------------
+# Loader Ellips
+--------------------------------------------------------------*/
 
 .loader-ellips {
 	
@@ -581,7 +649,9 @@ blockquote p {margin:1rem 0}
   animation-name: reveal;
   animation-direction: reverse;
 }
- //////////////* infinite scroll */  
+/*--------------------------------------------------------------
+# Infinite Scroll
+--------------------------------------------------------------*/
  
   .imgcarousel .carousel img {       -webkit-mask-image: none !important;
     mask-image: none !important; }
@@ -652,7 +722,7 @@ blockquote p {margin:1rem 0}
   right: 15px;
   bottom: -15px;
   z-index: 99999;
-  background-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important;
+  background-color: var(--bs-secondary) !important;
   width: 44px;
   height: 44px;
   transition: all 0.4s;
@@ -665,7 +735,7 @@ blockquote p {margin:1rem 0}
 }
 
 .scroll-top:hover {
-  background-color: <?php $Color = get_field('Color', 2); if ($Color) echo esc_html($Color); ?> !important;
+  background-color: var(--bs-primary) !important;
   color: #fff;
 }
 
@@ -695,84 +765,12 @@ blockquote p {margin:1rem 0}
     --bs-aspect-ratio: 177.78%; /* (16/9) * 100 */
 }
 	
-	/* page content8 */	
-	
-	.pagecontent8 .accordion-button {border: 1px solid #fff !important;}
-	
-		/* page content8 */
-	
-	/* page content9 */
-	
-	.pagecontent9 .hover-opacity {
-      transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
-    }
-    .pagecontent9 .hover-box:hover .hover-opacity {
-      transform: translateX(10px);
-    }
-    .pagecontent9 .parallax-card {
-      height: auto;
-      position: relative;
-      overflow: hidden;
-    }
-    .pagecontent9 .jarallax {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-    }
-    .pagecontent9 .jarallax-img {
-      object-fit: cover;
-      width: 100%;
-      height: 100%;
-    }
-    .pagecontent9 .hover-box .card-overlay {
-      position: relative;
-      z-index: 1;
-      background-color: var(--bs-secondary);
-      opacity: 0.85;
-      transition: opacity 0.3s ease-in-out;
-    }
-    .pagecontent9 .hover-box:hover .card-overlay {
-      opacity: 0.95;
-    }
-    .pagecontent9 .hover-paragraph {
-      opacity: 0;
-      max-height: 0;
-      overflow: hidden;
-      transition: all 0.5s ease-in-out;
-    }
-    .pagecontent9 .hover-box:hover .hover-paragraph {
-      opacity: 1;
-      max-height: 1000px;
-      margin-top: 0.5rem;
-    }
-    .pagecontent9 .hover-link-container {
-      position: relative;
-      margin-top: auto;
-    }
-    .pagecontent9 .divider-line {
-      width: 0;
-      height: 5px;
-      background: var(--bs-primary);
-      transition: width 0.5s ease;
-      margin: 0.75rem 0;
-    }
-    .pagecontent9 .hover-box:hover .divider-line {
-      width: 60px;
-    }
-    .pagecontent9 .logo-overlay {
-      position: relative;
-      z-index: 2;
-      display: block;
-    }
-    .pagecontent9 a.text-warning {
-      color: var(--primary) !important;
-    }
-	
-	/* page content9 */
 	
 	
 	
-/* Dynamic slider  Animations */
+/*--------------------------------------------------------------
+# Dynamic Slider Animations
+--------------------------------------------------------------*/
         .slider-animation .carousel-item img {
             animation: var(--animation) 7s ease-in-out forwards;
         }
@@ -845,7 +843,9 @@ blockquote p {margin:1rem 0}
             }
         }
 		
-/* Dynamic slider  Animations */	
+/*--------------------------------------------------------------
+# Dynamic Slider Animations
+--------------------------------------------------------------*/
 
 
 .carousel-caption {
@@ -862,7 +862,9 @@ blockquote p {margin:1rem 0}
     
 }
 
-/* styling the dropdown */
+/*--------------------------------------------------------------
+# Dropdown Styling
+--------------------------------------------------------------*/
 
 .dropdown-menu {
     border-radius: 0 !important;  /* Removes curvy edges, making them sharp */
@@ -879,13 +881,19 @@ blockquote p {margin:1rem 0}
     padding: 5px 5px;
 }
 
-/* styling the dropdown */
+/*--------------------------------------------------------------
+# Dropdown Styling
+--------------------------------------------------------------*/
 
-/* card styling */	
+/*--------------------------------------------------------------
+# Card Styling
+--------------------------------------------------------------*/
 
 .card, .card img {border: 0px !important; border-radius: 0px !important; }
 
-/* card styling */
+/*--------------------------------------------------------------
+# Card Styling
+--------------------------------------------------------------*/
 
 	/* CSS for hover dropdown on desktop */
 @media (min-width: 992px) {
@@ -907,7 +915,7 @@ blockquote p {margin:1rem 0}
 /* CSS for toggling dropdown on mobile */
 
   .verticaltabs .nav-pills .active {
-    background-color: <?php $darkercolor = get_field('darker-color', 2); if ($darkercolor) echo esc_html($darkercolor); ?> !important;
+    background-color: var(--bs-secondary) !important;
     color: white !important;
   }
   
@@ -923,7 +931,9 @@ blockquote p {margin:1rem 0}
   .navbar-toggler {border-radius: 0 !important;}
   
   
-  /** footer **/
+/*--------------------------------------------------------------
+# Footer
+--------------------------------------------------------------*/
   
   footer {position: relative; overflow: hidden;}
   
@@ -939,10 +949,14 @@ blockquote p {margin:1rem 0}
     }
 
   
-  /** footer **/
+/*--------------------------------------------------------------
+# Footer
+--------------------------------------------------------------*/
   
 	
-/** isotop **/
+/*--------------------------------------------------------------
+# Isotope
+--------------------------------------------------------------*/
 
   .filter-sidebar {
 	overflow-y: auto;
@@ -970,8 +984,90 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-/** isotop **/
+/*--------------------------------------------------------------
+# Isotope
+--------------------------------------------------------------*/
 	
+/*--------------------------------------------------------------
+# Page Content 8
+--------------------------------------------------------------*/
+	
+	.pagecontent8 .accordion-button {border: 1px solid #fff !important;}
+	
+
+	
+/*--------------------------------------------------------------
+# Page Content 9
+--------------------------------------------------------------*/
+	
+	.pagecontent9 .hover-opacity {
+      transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    }
+    .pagecontent9 .hover-box:hover .hover-opacity {
+      transform: translateX(10px);
+    }
+    .pagecontent9 .parallax-card {
+      height: auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .pagecontent9 .jarallax {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .pagecontent9 .jarallax-img {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
+    .pagecontent9 .hover-box .card-overlay {
+      position: relative;
+      z-index: 1;
+      background-color: var(--bs-secondary);
+      opacity: 0.85;
+      transition: opacity 0.3s ease-in-out;
+    }
+    .pagecontent9 .hover-box:hover .card-overlay {
+      opacity: 0.95;
+    }
+    .pagecontent9 .hover-paragraph {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.5s ease-in-out;
+    }
+    .pagecontent9 .hover-box:hover .hover-paragraph {
+      opacity: 1;
+      max-height: 1000px;
+      margin-top: 0.5rem;
+    }
+    .pagecontent9 .hover-link-container {
+      position: relative;
+      margin-top: auto;
+    }
+    .pagecontent9 .divider-line {
+      width: 0;
+      height: 5px;
+      background: var(--bs-primary);
+      transition: width 0.5s ease;
+      margin: 0.75rem 0;
+    }
+    .pagecontent9 .hover-box:hover .divider-line {
+      width: 60px;
+    }
+    .pagecontent9 .logo-overlay {
+      position: relative;
+      z-index: 2;
+      display: block;
+    }
+    .pagecontent9 a.text-warning {
+      color: var(--primary) !important;
+    }
+	
+/*--------------------------------------------------------------
+# Page Content 9
+--------------------------------------------------------------*/
 	
 	
 
@@ -1233,7 +1329,9 @@ $(document).ready(function() {
   
   
              
-    /****** progress-bar	******/	
+/*--------------------------------------------------------------
+# Progress Bar
+--------------------------------------------------------------*/
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1251,9 +1349,9 @@ document.addEventListener('DOMContentLoaded', function() {
       progressBar.style.width = widthPercentage + '%';
     });
   });
-
-/****** progress-bar	******/	
-
+/*--------------------------------------------------------------
+# Progress Bar
+--------------------------------------------------------------*/
 
 // Adds spacing classes for white background content
 
@@ -1321,7 +1419,9 @@ document.addEventListener("DOMContentLoaded", () => {
       
 /** Dynamic slider  Animations */
 
-/** Isotope Filtering with Active Button Styling */
+/*--------------------------------------------------------------
+# Isotope Filtering with Active Button Styling
+--------------------------------------------------------------*/
 jQuery(document).ready(function($) {
     var $container = $('.posts-container').isotope({
         itemSelector: '.post-item',
@@ -1384,9 +1484,13 @@ jQuery(document).ready(function($) {
   //insure masonry 
   
   
-/** Isotope Filtering with Active Button Styling */
+/*--------------------------------------------------------------
+# Isotope Filtering with Active Button Styling
+--------------------------------------------------------------*/
 
-/** add the highlight effect for transperent nav bar */
+/*--------------------------------------------------------------
+# Transparent Navbar Highlight
+--------------------------------------------------------------*/
 
 <?php 
     $menu_color = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
@@ -1508,10 +1612,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ?>
 
-/** add the highlight effect for transperent nav bar */
+/*--------------------------------------------------------------
+# Transparent Navbar Highlight
+--------------------------------------------------------------*/
 
 
-/** submenu items open when hover */
+/*--------------------------------------------------------------
+# Submenu Hover Open
+--------------------------------------------------------------*/
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1537,11 +1645,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-/** submenu items open when hover */
+/*--------------------------------------------------------------
+# Submenu Hover Open
+--------------------------------------------------------------*/
 		
 
 
-/** AOS (Animate On Scroll) */
+/*--------------------------------------------------------------
+# AOS (Animate On Scroll)
+--------------------------------------------------------------*/
 
 AOS.init({
   
@@ -1549,22 +1661,30 @@ AOS.init({
 
 });
 
-/** AOS (Animate On Scroll) */
+/*--------------------------------------------------------------
+# AOS (Animate On Scroll)
+--------------------------------------------------------------*/
 	
 
 
-/** Lenis */
+/*--------------------------------------------------------------
+# Lenis
+--------------------------------------------------------------*/
 
 // Initialize Lenis
 const lenis = new Lenis({
   autoRaf: true,
 });
 
-/** Lenis */
+/*--------------------------------------------------------------
+# Lenis
+--------------------------------------------------------------*/
 
 
 
-/** google maps */
+/*--------------------------------------------------------------
+# Google Maps
+--------------------------------------------------------------*/
 
 
 (g => {
@@ -1685,7 +1805,9 @@ maps.forEach(mapElement => {
 
     window.addEventListener("load", waitForGoogleMaps);
 
-/** google maps */
+/*--------------------------------------------------------------
+# Google Maps
+--------------------------------------------------------------*/
 
 
     </script>
