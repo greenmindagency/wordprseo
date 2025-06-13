@@ -980,7 +980,7 @@ blockquote p {margin:1rem 0}
 <?php if ( is_user_logged_in() ) { // Fixes the top bar position for logged-in users ?>
    
   <style>
-    body { padding-top: 55px; }
+    
     .navbar { margin-top: 30px; }
     #wpadminbar { height: 30px !important; min-width: auto !important; position: fixed !important;  }
 #wpadminbar a {color: white !important;}
