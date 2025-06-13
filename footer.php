@@ -941,7 +941,7 @@ blockquote p {margin:1rem 0}
   /** footer **/
   
 	
-/* isotop */  
+/** isotop **/
 
   .filter-sidebar {
 	  	   overflow-y: auto;
@@ -969,7 +969,7 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-/* isotop */  
+//* isotop *//  
 	
 	
 	
