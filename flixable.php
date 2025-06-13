@@ -144,7 +144,7 @@ $total_slides = ceil(count($images) / $imagecolumn);
             class="img-fluid imgwidthfull lazyload<?php if ($style) echo ' ' . esc_attr($style); ?>" 
             src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" 
             data-src="<?php echo esc_url($image['sizes'][$imagesize]); ?>" 
-            alt="<?php echo esc_attr( $image['alt'] ); ?>"
+            alt="<?php echo !empty($image['alt']) ? esc_attr($image['alt']) : get_the_title(); ?>" 
             width="<?php echo esc_attr($image['sizes'][$imagesize . '-width']); ?>" 
             height="<?php echo esc_attr($image['sizes'][$imagesize . '-height']); ?>" 
           />
@@ -173,7 +173,7 @@ $total_slides = ceil(count($images) / $imagecolumn);
           class="img-fluid imgwidthfull lazyload<?php if ($style) echo ' ' . esc_attr($style); ?>" 
           src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" 
           data-src="<?php echo esc_url($image['sizes'][$imagesize]); ?>" 
-          alt="<?php echo esc_attr( $image['alt'] ); ?>"
+          alt="<?php echo !empty($image['alt']) ? esc_attr($image['alt']) : get_the_title(); ?>" 
           width="<?php echo esc_attr($image['sizes'][$imagesize . '-width']); ?>" 
           height="<?php echo esc_attr($image['sizes'][$imagesize . '-height']); ?>" 
         />
@@ -220,7 +220,7 @@ $imagecolumn = get_sub_field('imagecolumn');
         <img class="m-0 p-0 img-fluid imgwidthfull lazyload<?php $style = get_sub_field('style'); if ($style) { echo ' ' . $style; } ?>" 
              src="<?php echo $svg_placeholder; ?>" 
              data-src="<?php echo $image['sizes'][$imagesize]; ?>" 
-             alt="<?php echo esc_attr( $image['alt'] ); ?>"
+             alt="<?php echo !empty($image['alt']) ? $image['alt'] : the_title(); ?>" 
              width="<?php echo $width; ?>" 
              height="<?php echo $height; ?>">
     </a>
@@ -376,7 +376,7 @@ if ($verticaltabs_title): ?>
                 height="<?php echo $height; ?>" 
                 src="<?php echo $svg_placeholder; ?>" 
                 data-src="<?php echo $image_url; ?>" 
-                alt="<?php echo esc_attr( $verticaltabsitemimage['alt'] ); ?>" />
+                alt="<?php echo $verticaltabsitemimage['alt']; ?>" />
           <?php endif; ?>
 
           <!-- CONTENT WITH BG -->
@@ -559,7 +559,7 @@ endif;
 	
                 <img loading="lazy" 
                      src="<?php echo $image_url; ?>" 
-                     alt="<?php echo esc_attr( $image['alt'] ); ?>"
+                     alt="<?php echo $image['alt']; ?>" 
                      class="jarallax-img" 
                      width="<?php echo $width; ?>" 
                      height="<?php echo $height; ?>">
@@ -652,7 +652,7 @@ if( have_rows('squareimgwithdesc') ): ?>
              height="<?php echo $height; ?>" 
              src="<?php echo $svg_placeholder; ?>" 
              data-src="<?php echo $image_url; ?>" 
-               alt="<?php echo esc_attr( $image['alt'] ); ?>" />
+             alt="<?php echo $image['alt']; ?>" />
     <?php endif; ?>
 </div>
 
@@ -747,7 +747,7 @@ endif;
 			
         if( !empty($image) ): ?>
 
-            <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo esc_attr( $image['alt'] ); ?>" />
+            <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo $image['alt']; ?>" />
 
     <?php endif; ?>
 
@@ -910,7 +910,7 @@ $subtitle = get_sub_field('subtitle');
 			
         if( !empty($image) ): ?>
 
-            <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo esc_attr( $image['alt'] ); ?>" />
+            <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo $image['alt']; ?>" />
 
     <?php endif; ?>
 
@@ -2200,7 +2200,7 @@ if (!empty($related_tags)) {
                  height="<?php echo $height; ?>" 
                  src="<?php echo $svg_placeholder; ?>" 
                  data-src="<?php echo $image_url; ?>" 
-                 alt="<?php echo esc_attr( $image['alt'] ); ?>" />
+                 alt="<?php echo $image['alt']; ?>" />
     <?php } ?>
 </a>
 </div>
@@ -2275,7 +2275,7 @@ if (!empty($related_tags)) {
                  height="<?php echo $height; ?>" 
                  src="<?php echo $svg_placeholder; ?>" 
                  data-src="<?php echo $image_url; ?>" 
-                 alt="<?php echo esc_attr( $image['alt'] ); ?>" />
+                 alt="<?php echo $image['alt']; ?>" />
     <?php } ?>
 </a>
 </div>
