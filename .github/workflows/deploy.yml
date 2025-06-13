@@ -20,4 +20,4 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           local-dir: ./   # current repo root
-          server-dir: /public_html/websites/wordprseo/wp-content/themes
+          server-dir: /public_html/websites/wordprseo/wp-content/themes/wordprseo
