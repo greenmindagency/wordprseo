@@ -941,14 +941,14 @@ blockquote p {margin:1rem 0}
   /** footer **/
   
 	
-/* isotop */  
+/* isotope mobile filter sidebar */
 
   .filter-sidebar {
-	  	   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     position: fixed;
     top: 80px;
-    right: -1000px;
+    right: -250px;
     width: 250px;
     height: 100%;
     background: #fff;
@@ -958,7 +958,7 @@ blockquote p {margin:1rem 0}
   }
 
   .filter-sidebar.active {
-    right: -50px;
+    right: 0;
   }
 
   .filter-sidebar .close-btn {
@@ -969,7 +969,7 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-/* isotop */  
+/* isotope mobile filter sidebar */
 	
 	
 	
