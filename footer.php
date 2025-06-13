@@ -1445,7 +1445,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function handleMouseLeave() {
+
         navbarHovered = false;
+
         if (window.scrollY <= 50 && !collapse.classList.contains('show')) {
             navbar.classList.remove('shadow', 'bg-light');
             navbar.classList.add('text-white', 'bg-transparent');
@@ -1462,12 +1464,14 @@ document.addEventListener('DOMContentLoaded', function () {
     navbar.addEventListener('mouseenter', handleMouseEnter);
     navbar.addEventListener('mouseleave', handleMouseLeave);
 
+
     // Ensure dropdowns also toggle the navbar style
     const dropdowns = document.querySelectorAll('.navbar .dropdown');
     dropdowns.forEach(function(dd) {
         dd.addEventListener('show.bs.dropdown', handleMouseEnter);
         dd.addEventListener('hide.bs.dropdown', handleMouseLeave);
     });
+
 
     // Adjust styles when the mobile menu is opened or closed
     if (collapse) {
@@ -1490,8 +1494,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+
     // Initialize state based on current scroll position
     handleScroll();
+
 });
 
 

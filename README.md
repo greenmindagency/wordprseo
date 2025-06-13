@@ -1,3 +1,6 @@
+![WordprSEO Logo](https://wordprseo.greenmindagency.com/wp-content/uploads/2021/10/WordprSEO-Logo.png)
+
+
 # WordprSEO - Wordpress / SEO Theme
 Green Mind Agency - https://greenmindagency.com
 
