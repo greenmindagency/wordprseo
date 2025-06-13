@@ -1,6 +1,2 @@
-# wordprseo
-WordprSEO
-
-Green Mind Agency - WordprSEO Theme
-
-
+# WordprSEO - Wordpress / SEO Theme
+Green Mind Agency - https://greenmindagency.com
