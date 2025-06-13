@@ -944,7 +944,7 @@ blockquote p {margin:1rem 0}
 /** isotop **/
 
   .filter-sidebar {
-	  	   overflow-y: auto;
+	overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     position: fixed;
     top: 80px;
@@ -969,7 +969,7 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-//* isotop *//
+/** isotop **/
 	
 	
 	
