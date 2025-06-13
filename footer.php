@@ -920,6 +920,7 @@ blockquote p {margin:1rem 0}
   
   
   .btn, .form-control {border-radius: 0 !important; }
+  .navbar-toggler {border-radius: 0 !important;}
   
   
   /** footer **/
