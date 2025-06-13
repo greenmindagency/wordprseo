@@ -1398,6 +1398,7 @@ jQuery(document).ready(function($) {
 document.addEventListener('DOMContentLoaded', function () {
     const navbar = document.querySelector('.navbar');
     const logo = document.querySelector('.logo');
+    const collapse = document.getElementById('navbarSupportedContent');
 
     // Define the URLs directly using PHP
     const lightLogoSrc = "<?php $logolight = get_field('logo_light', 2); echo $logolight['sizes']['medium']; ?>";
@@ -1440,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function handleMouseLeave() {
-        if (window.scrollY <= 50) {
+        if (window.scrollY <= 50 && !collapse.classList.contains('show')) {
             navbar.classList.remove('shadow', 'bg-light');
             navbar.classList.add('text-white', 'bg-transparent');
             if (logo.src !== lightLogoImg.src) {
@@ -1455,6 +1456,27 @@ document.addEventListener('DOMContentLoaded', function () {
     // Attach hover event listeners
     navbar.addEventListener('mouseenter', handleMouseEnter);
     navbar.addEventListener('mouseleave', handleMouseLeave);
+
+    // Adjust styles when the mobile menu is opened or closed
+    if (collapse) {
+        collapse.addEventListener('show.bs.collapse', function () {
+            navbar.classList.add('shadow', 'bg-light');
+            navbar.classList.remove('bg-dark', 'text-white', 'bg-transparent');
+            if (logo.src !== blackLogoImg.src) {
+                logo.src = blackLogoImg.src;
+            }
+        });
+
+        collapse.addEventListener('hide.bs.collapse', function () {
+            if (window.scrollY <= 50) {
+                navbar.classList.remove('shadow', 'bg-light');
+                navbar.classList.add('text-white', 'bg-transparent');
+                if (logo.src !== lightLogoImg.src) {
+                    logo.src = lightLogoImg.src;
+                }
+            }
+        });
+    }
 });
 
 
