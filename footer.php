@@ -969,7 +969,7 @@ blockquote p {margin:1rem 0}
     cursor: pointer;
   }
 
-//* isotop *//  
+//* isotop *//
 	
 	
 	
