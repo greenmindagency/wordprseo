@@ -1,6 +1,6 @@
 # wordprseo
-wordprseo
+WordprSEO
 
-Test of updating a file from notepad++
+Green Mind Agency - WordprSEO Theme
 
-Test deployment commit to server 2
+
