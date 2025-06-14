@@ -1215,40 +1215,4 @@ add_filter( 'script_loader_tag', 'remove_script_type_attribute', 10, 3 );
 
 
 
-// Display images for each flexible content layout option in the ACF popup.
-function gm_acf_flexible_layout_images_script() {
-    $base = get_template_directory_uri() . '/acf-images/';
-    ?>
-    <script type="text/javascript">
-    (function($){
-        var base = <?php echo json_encode( $base ); ?>;
-
-        function addImages($popup){
-            $popup.find('a[data-layout]').each(function(){
-                var $link = $(this);
-                if( $link.find('img.acf-layout-thumb').length ){
-                    return;
-                }
-                var layout = $link.data('layout');
-                $('<img>',{
-                    class:'acf-layout-thumb',
-                    src:base + layout + '.jpg',
-                    style:'width:100px;margin-right:5px;vertical-align:middle'
-                }).on('error',function(){
-                    $(this).remove();
-                }).prependTo($link);
-            });
-        }
-
-        acf.addAction('append', function($el){
-            var $popup = $el.hasClass('acf-fc-popup') ? $el : $el.find('.acf-fc-popup');
-            if($popup.length){
-                addImages($popup);
-            }
-        });
-    })(jQuery);
-    </script>
-    <?php
-}
-add_action('acf/input/admin_footer', 'gm_acf_flexible_layout_images_script');
 ?>
