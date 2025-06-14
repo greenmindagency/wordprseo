@@ -1210,8 +1210,40 @@ function remove_script_type_attribute( $tag, $handle, $src ) {
     return str_replace( ' type="text/javascript"', '', $tag );
 }
 add_filter( 'script_loader_tag', 'remove_script_type_attribute', 10, 3 );
+
 //modify the script output and remove the type attribute
 
 
 
+// Display images for each flexible content layout option in the ACF popup.
+function gm_acf_flexible_layout_images_script() {
+    $base = get_template_directory_uri() . '/acf-images/';
+    ?>
+    <script type="text/javascript">
+    (function($){
+        function addLayoutImages(){
+            $('.acf-fc-popup:visible a[data-layout]').each(function(){
+                var $link = $(this);
+                if($link.find('img.acf-layout-thumb').length){
+                    return;
+                }
+                var layout = $link.data('layout');
+                var img = $('<img>', {
+                    class: 'acf-layout-thumb',
+                    src: '<?php echo $base; ?>' + layout + '.jpg',
+                    css: { width: '100px', 'margin-right': '5px', 'vertical-align': 'middle' }
+                }).on('error', function(){
+                    $(this).attr('src', '<?php echo $base; ?>' + layout + '.png');
+                });
+                $link.prepend(img);
+            });
+        }
+        $(document).on('click', '.acf-flexible-content [data-name="add-layout"]', function(){
+            setTimeout(addLayoutImages, 1);
+        });
+    })(jQuery);
+    </script>
+    <?php
+}
+add_action('acf/input/admin_footer', 'gm_acf_flexible_layout_images_script');
 ?>
