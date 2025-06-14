@@ -1221,30 +1221,25 @@ function gm_acf_flexible_layout_images_script() {
     ?>
     <script type="text/javascript">
     (function($){
-        var base = <?php echo json_encode( $base ); ?>;
-
-        function addImages($popup){
-            $popup.find('a[data-layout]').each(function(){
+        function addLayoutImages(){
+            $('.acf-fc-popup:visible a[data-layout]').each(function(){
                 var $link = $(this);
-                if( $link.find('img.acf-layout-thumb').length ){
+                if($link.find('img.acf-layout-thumb').length){
                     return;
                 }
                 var layout = $link.data('layout');
-                $('<img>',{
-                    class:'acf-layout-thumb',
-                    src:base + layout + '.jpg',
-                    style:'width:100px;margin-right:5px;vertical-align:middle'
-                }).on('error',function(){
-                    $(this).remove();
-                }).prependTo($link);
+                var img = $('<img>', {
+                    class: 'acf-layout-thumb',
+                    src: '<?php echo $base; ?>' + layout + '.jpg',
+                    css: { width: '100px', 'margin-right': '5px', 'vertical-align': 'middle' }
+                }).on('error', function(){
+                    $(this).attr('src', '<?php echo $base; ?>' + layout + '.png');
+                });
+                $link.prepend(img);
             });
         }
-
-        acf.addAction('append', function($el){
-            var $popup = $el.hasClass('acf-fc-popup') ? $el : $el.find('.acf-fc-popup');
-            if($popup.length){
-                addImages($popup);
-            }
+        $(document).on('click', '.acf-flexible-content [data-name="add-layout"]', function(){
+            setTimeout(addLayoutImages, 1);
         });
     })(jQuery);
     </script>
