@@ -1226,30 +1226,26 @@ function gm_acf_flexible_layout_images_script() {
         function addImages($popup){
             $popup.find('a[data-layout]').each(function(){
                 var $link = $(this);
-                if( $link.find('img.acf-layout-thumb').length ) {
+                if( $link.find('img.acf-layout-thumb').length ){
                     return;
                 }
                 var layout = $link.data('layout');
-                $('<img>', {
-                    class: 'acf-layout-thumb',
-                    src: base + layout + '.jpg',
-                    style: 'width:100px;margin-right:5px;vertical-align:middle'
-                }).on('error', function(){
+                $('<img>',{
+                    class:'acf-layout-thumb',
+                    src:base + layout + '.jpg',
+                    style:'width:100px;margin-right:5px;vertical-align:middle'
+                }).on('error',function(){
                     $(this).remove();
                 }).prependTo($link);
             });
         }
 
-        new MutationObserver(function(mutations){
-            mutations.forEach(function(m){
-                $(m.addedNodes).each(function(){
-                    var $popup = $(this).find('.acf-fc-popup').addBack('.acf-fc-popup');
-                    if($popup.length){
-                        addImages($popup);
-                    }
-                });
-            });
-        }).observe(document.body, {childList: true, subtree: true});
+        acf.addAction('append', function($el){
+            var $popup = $el.hasClass('acf-fc-popup') ? $el : $el.find('.acf-fc-popup');
+            if($popup.length){
+                addImages($popup);
+            }
+        });
     })(jQuery);
     </script>
     <?php
