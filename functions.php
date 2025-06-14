@@ -1221,26 +1221,35 @@ function gm_acf_flexible_layout_images_script() {
     ?>
     <script type="text/javascript">
     (function($){
-        function addLayoutImages(){
-            $('.acf-fc-popup:visible a[data-layout]').each(function(){
+        var base = <?php echo json_encode( $base ); ?>;
+
+        function addImages($popup){
+            $popup.find('a[data-layout]').each(function(){
                 var $link = $(this);
-                if($link.find('img.acf-layout-thumb').length){
+                if( $link.find('img.acf-layout-thumb').length ) {
                     return;
                 }
                 var layout = $link.data('layout');
-                var img = $('<img>', {
+                $('<img>', {
                     class: 'acf-layout-thumb',
-                    src: '<?php echo $base; ?>' + layout + '.jpg',
-                    css: { width: '100px', 'margin-right': '5px', 'vertical-align': 'middle' }
+                    src: base + layout + '.jpg',
+                    style: 'width:100px;margin-right:5px;vertical-align:middle'
                 }).on('error', function(){
-                    $(this).attr('src', '<?php echo $base; ?>' + layout + '.png');
-                });
-                $link.prepend(img);
+                    $(this).remove();
+                }).prependTo($link);
             });
         }
-        $(document).on('click', '.acf-flexible-content [data-name="add-layout"]', function(){
-            setTimeout(addLayoutImages, 1);
-        });
+
+        new MutationObserver(function(mutations){
+            mutations.forEach(function(m){
+                $(m.addedNodes).each(function(){
+                    var $popup = $(this).find('.acf-fc-popup').addBack('.acf-fc-popup');
+                    if($popup.length){
+                        addImages($popup);
+                    }
+                });
+            });
+        }).observe(document.body, {childList: true, subtree: true});
     })(jQuery);
     </script>
     <?php
