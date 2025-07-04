@@ -30,9 +30,4 @@ https://yourdomain.com/wp-content/themes/wordprseo/theme-updater.php
 2. The script will:
 - Download the latest ZIP from GitHub
 - Extract and replace current theme files
-- Clean up after itself
-
-**Warnings
-- This will overwrite all theme files.
-- Do not modify theme files directly on the server unless synced to GitHub.
-- For security, protect the `theme-updater.php` script (e.g., delete after use or limit by IP/token).
+- Clean up after itself, This will overwrite all theme files.
