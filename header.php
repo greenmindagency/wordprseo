@@ -186,8 +186,8 @@ if (!empty($image) && isset($image['sizes'][$size])) {
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
 	
 	
-	<?php wp_nav_menu( array(
-  
+        <?php wp_nav_menu( array(
+    'theme_location'  => 'my-custom-menu',
     'depth'           => 2, // 1 = no dropdowns, 2 = with dropdowns.
     'container'       => 'ul',
     'container_class' => 'collapse navbar-collapse',
