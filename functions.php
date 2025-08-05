@@ -316,7 +316,7 @@ Full size (full/original image size you uploaded)
 
 /*********************************   allow menu and custome structure *********************************/
 function wpb_custom_new_menu() {
-  register_nav_menu('my-custom-menu', __( 'primary' ));
+  register_nav_menu('primary', __( 'primary' ));
   register_nav_menu('footer-menu', __( 'Footer Menu' ));
 }
 add_action( 'init', 'wpb_custom_new_menu' );
