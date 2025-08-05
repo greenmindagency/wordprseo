@@ -316,7 +316,8 @@ Full size (full/original image size you uploaded)
 
 /*********************************   allow menu and custome structure *********************************/
 function wpb_custom_new_menu() {
-  register_nav_menu('my-custom-menu',__( 'primary' ));
+  register_nav_menu('my-custom-menu', __( 'primary' ));
+  register_nav_menu('footer-menu', __( 'Footer Menu' ));
 }
 add_action( 'init', 'wpb_custom_new_menu' );
 
@@ -1246,4 +1247,34 @@ function gm_acf_flexible_layout_images_script() {
     <?php
 }
 add_action('acf/input/admin_footer', 'gm_acf_flexible_layout_images_script');
+
+if ( ! class_exists( 'Footer_Menu_Walker' ) ) {
+    class Footer_Menu_Walker extends Walker_Nav_Menu {
+        public function start_lvl( &$output, $depth = 0, $args = null ) {
+            if ( 0 === $depth ) {
+                $output .= "<ul class=\"list-unstyled text-small mb-5\">\n";
+            } else {
+                $output .= "<ul>\n";
+            }
+        }
+
+        public function end_lvl( &$output, $depth = 0, $args = null ) {
+            $output .= "</ul>\n";
+        }
+
+        public function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
+            if ( 0 === $depth ) {
+                $output .= '<p class="h5 fw-bold pb-2 text-white">' . esc_html( $item->title ) . "</p>\n";
+            } else {
+                $output .= '<li><i class="text-light fa-solid fa-caret-right me-2"></i> <a class="link-light" href="' . esc_url( $item->url ) . '">' . esc_html( $item->title ) . '</a>';
+            }
+        }
+
+        public function end_el( &$output, $item, $depth = 0, $args = null ) {
+            if ( $depth > 0 ) {
+                $output .= "</li>\n";
+            }
+        }
+    }
+}
 ?>

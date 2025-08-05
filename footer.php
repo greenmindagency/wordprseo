@@ -193,55 +193,16 @@ echo esc_html($page_title);
 	  
 
       <div class="col-md-4 col-sm-4">
-        <p class="h5 fw-bold pb-2 text-white">Links</p>
-<ul class="list-unstyled text-small">
-    <?php $categories = get_categories(array('orderby' => 'id', 'hide_empty' => 0)); ?>
-    <?php foreach ($categories as $category) : ?>
-        <?php query_posts(array('category_name' => $category->slug, 'showposts' => '5')); ?>
-        <li>
-            <i class="text-light fa-solid fa-caret-right me-2"></i> <a class="link-light" href="<?php echo get_category_link($category->term_id); ?>">
-                
-                <?php echo $category->name; ?>
-            </a>
-        </li>
-    <?php endforeach; ?>
-    <?php wp_reset_query(); ?>
-</ul>
-
-
-        <p class="mt-5 h5 fw-bold pb-2 text-white"><?php
-// Replace 1 with the actual category ID you want to get the name for
-$category_id = 1;
-
-$category_name = get_cat_name( $category_id );
-
-if ( $category_name ) {
-  echo "" . $category_name;
-} else {
-  echo "Category not found.";
-}
-?></p>
-       
-          
-<?php
-
-$tags = get_terms( array(
-    'taxonomy' => 'post_tag',
-    'hide_empty' => false,
-) );
-
-if ( !empty($tags) && !is_wp_error($tags) ) {
-    echo '<ul class="list-unstyled">';
-    foreach ( $tags as $tag ) {
-        echo '<li><i class="text-light fa-solid fa-caret-right me-2"></i> <a class="link-light" href="' . get_tag_link( $tag->term_id ) . '">' . $tag->name . '</a></li>';
-    }
-    echo '</ul>';
-}
-?>
-
-      
-	  
-	  
+        <?php
+        wp_nav_menu( array(
+            'theme_location' => 'footer-menu',
+            'depth'          => 2,
+            'container'      => false,
+            'items_wrap'     => '%3$s',
+            'fallback_cb'    => false,
+            'walker'         => new Footer_Menu_Walker(),
+        ) );
+        ?>
       </div>
 
     </div>
