@@ -126,7 +126,7 @@ echo esc_html($page_title);
       <?php if ($country = get_sub_field('country')): ?>
       <p class="mt-4 mb-2 fw-bold">
 	  
-        <?php echo esc_attr($country); ?>
+        <?php echo esc_attr($country); ?> - <?php if ($city = get_sub_field('city')): ?><?php echo esc_attr($city); ?><?php endif; ?>
       </p>
     <?php endif; ?>
 	
