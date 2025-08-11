@@ -1377,6 +1377,13 @@ if ($locations):
       </h4>
     <?php endif; ?>
 	
+		      <?php if ($city = get_sub_field('city')): ?>
+      <h5 class="mb-3">
+	  
+        <?php echo esc_attr($city); ?>
+      </h5>
+    <?php endif; ?>
+	
 	 
     <?php if ($telephone = get_sub_field('telephone', false)): ?>
       <p>
