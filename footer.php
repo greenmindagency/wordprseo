@@ -1666,7 +1666,7 @@ const lenis = new Lenis({
         m.head.append(a);
       }));
       d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
-    })({ key: "AIzaSyB2oKnoBeDDRxl3hqwuoyx7k8lKrjPRf0w", v: "weekly" });
+    })({ key: "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao", v: "weekly" });
 
     async function initMap() {
       try {
