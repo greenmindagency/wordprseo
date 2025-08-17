@@ -472,7 +472,7 @@ if( have_rows('columns') ): ?>
 // Check rows exists.
 if( have_rows('columns') ): ?>
 
-<div class="row">
+<div class="row justify-content-center">
 
 <?php
 
@@ -623,52 +623,51 @@ if( have_rows('squareimgwithdesc') ): ?>
  
         // Load sub field value.
         $title = get_sub_field('title');
-		$subtitle = get_sub_field('subtitle');
-		$description = get_sub_field('description');
-		$linkedin = get_sub_field('linkedin');
+        $subtitle = get_sub_field('subtitle');
+        $description = get_sub_field('description');
+        $linkedin = get_sub_field('linkedin');
+        $image = get_sub_field('image');
+
+        $col_class = !empty($image) ? 'col-md-9' : 'col-md-12';
         ?>
-		
+
 <div class="row mb-4">
 
+<?php if (!empty($image)):
+    $size = 'thumbnail'; // The selected image size
+    $image_url = $image['sizes'][$size];
+    $width = $image['sizes'][$size . '-width'];
+    $height = $image['sizes'][$size . '-height'];
 
-<div class="col-md-3 mb-4">
-    <?php 
-    $image = get_sub_field('image');
-    if (!empty($image)):
-        $size = 'thumbnail'; // The selected image size
-        $image_url = $image['sizes'][$size];
-        $width = $image['sizes'][$size . '-width'];
-        $height = $image['sizes'][$size . '-height'];
-
-        // Generate SVG placeholder
-        $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="' . $width . '" height="' . $height . '" viewBox="0 0 ' . $width . ' ' . $height . '">
+    // Generate SVG placeholder
+    $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="' . $width . '" height="' . $height . '" viewBox="0 0 ' . $width . ' ' . $height . '">
                 <rect width="100%" height="100%" fill="#f8f9fb"/>
             </svg>'
-        );
+    );
     ?>
-        <img class="lazyload img-full img-fluid border" 
-             width="<?php echo $width; ?>" 
-             height="<?php echo $height; ?>" 
-             src="<?php echo $svg_placeholder; ?>" 
-             data-src="<?php echo $image_url; ?>" 
+    <div class="col-md-3 mb-4">
+        <img class="lazyload img-full img-fluid border"
+             width="<?php echo $width; ?>"
+             height="<?php echo $height; ?>"
+             src="<?php echo $svg_placeholder; ?>"
+             data-src="<?php echo $image_url; ?>"
              alt="<?php echo $image['alt']; ?>" />
-    <?php endif; ?>
-</div>
+    </div>
+<?php endif; ?>
 
 
-<div class="col-md-9 mb-4">
+<div class="<?php echo $col_class; ?> mb-4">
 
 <div class="ps-3">
 
 <h4 class="fw-bolder fs-2 mt-2" ><?php echo $title ?></h4>
 <p><?php echo $subtitle ?></p>
 
-
-<?php $description = get_sub_field('description'); if ($description) : ?>
+<?php if ($description) : ?>
 <p><?php echo ($description); ?></p><?php endif; ?>
 
-<?php $linkedin = get_sub_field('linkedin'); if ($linkedin) : ?>
+<?php if ($linkedin) : ?>
 
 
 <a target="_blank" href="<?php echo ($linkedin); ?>">
@@ -677,12 +676,12 @@ if( have_rows('squareimgwithdesc') ): ?>
 
 <?php endif; ?>
 
-</div>	
-</div>	
+</div>
+</div>
 
-</div>		
+</div>
 
-    
+
 <?php   endwhile;  ?>
 
 </div>
