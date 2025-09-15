@@ -1164,6 +1164,9 @@ if (!empty($image)): ?>
 <?php
 $pagecontent9_slider = get_sub_field('slider'); // Checkbox
 $pagecontent9_cards = get_sub_field('cards');
+$pagecontent9_columns = get_sub_field('columns');
+$pagecontent9_columns = $pagecontent9_columns ? intval($pagecontent9_columns) : 3;
+$sameheight = get_sub_field('sameheight');
 global $sliderCounter;
 if (!isset($sliderCounter)) {
     $sliderCounter = 1;
@@ -1184,12 +1187,12 @@ if ($pagecontent9_cards):
   <?php if ($pagecontent9_slider && in_array('slider', $pagecontent9_slider)) : ?>
     <div id="slider<?php echo $sliderCounter; ?>" class="carousel slide">
       <div class="carousel-inner">
-        <?php foreach ((wp_is_mobile() ? array_chunk($pagecontent9_cards, 1) : array_chunk($pagecontent9_cards, 3)) as $group_index => $card_group): ?>
+        <?php $grouped_cards = wp_is_mobile() ? array_chunk($pagecontent9_cards, 1) : array_chunk($pagecontent9_cards, $pagecontent9_columns); foreach ($grouped_cards as $group_index => $card_group): ?>
           <div class="carousel-item <?php if ($group_index == 0) echo 'active'; ?>">
-            <div class="row g-4 mb-5 pb-5 px-3">
+            <div class="row g-4 mb-5 pb-5 px-3<?php if($sameheight) echo ' align-items-stretch'; ?>">
               <?php foreach ($card_group as $card): ?>
-                <div class="col-md-4">
-                  <div class="hover-box bg-secondary text-white shadow-sm parallax-card">
+                <div class="col-md-<?php echo intval(12 / $pagecontent9_columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
+                  <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' h-100'; ?>">
                     <?php 
                       $image = $card['top_image'];
                       if (!empty($image)):
@@ -1250,7 +1253,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
 
       <div class="carousel-indicators mt-4">
         <ul class="list-unstyled d-flex justify-content-center m-0 p-0">
-          <?php for ($i = 0; $i < (wp_is_mobile() ? count($pagecontent9_cards) : ceil(count($pagecontent9_cards) / 3)); $i++): ?>
+          <?php for ($i = 0; $i < (wp_is_mobile() ? count($pagecontent9_cards) : ceil(count($pagecontent9_cards) / $pagecontent9_columns)); $i++): ?>
             <li data-bs-target="#slider<?php echo $sliderCounter; ?>" data-bs-slide-to="<?php echo $i; ?>" <?php if ($i == 0) echo 'class="active"'; ?>></li>
           <?php endfor; ?>
         </ul>
@@ -1260,10 +1263,10 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
     </div>
     <?php $sliderCounter++; ?>
   <?php else: ?>
-    <div class="row g-4 px-3">
+    <div class="row g-4 px-3<?php if($sameheight) echo ' align-items-stretch'; ?>">
       <?php foreach ($pagecontent9_cards as $card): ?>
-        <div class="col-md-4">
-          <div class="hover-box bg-secondary text-white shadow-sm parallax-card">
+        <div class="col-md-<?php echo intval(12 / $pagecontent9_columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
+          <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' h-100'; ?>">
 		  
 		  
             <?php 
@@ -1612,6 +1615,7 @@ $infinite = get_sub_field('infinite'); // Replace 'infinite' with your actual ch
 $columns = get_sub_field('columns');
 $postscount = get_sub_field('postscount');
 $addmore = get_sub_field('addmore');
+$sameheight = get_sub_field('sameheight');
 
 
 // Check if the checkbox is checked
@@ -1655,7 +1659,7 @@ if( $infinite ) {
     <div class="container-fluid p-0">
       <div class="row p-0">
         <div class="col-md-12 mb-5">
-          <div class="grid row" data-masonry='{"percentPosition": true }'>
+            <div class="grid row<?php if($sameheight) echo ' align-items-stretch'; ?>" <?php if(!$sameheight) echo "data-masonry='{\"percentPosition\": true }'"; ?>>
 
             <?php
               // 2) Setup $paged the same for front page or other
@@ -1695,8 +1699,8 @@ if ( is_front_page() && ! is_home() ) {
             ?>
 
             <!-- Single Post Layout -->
-            <div class="grid-item mb-4 col-md-<?php echo intval(12 / $columns); ?>">
-              <div class="shadow card">
+            <div class="grid-item mb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
+              <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
 
                 <?php
                   if (has_post_thumbnail()) {
@@ -1872,7 +1876,7 @@ if ( is_front_page() && ! is_home() ) {
 
 
 		  
-<div class="row mt-3" data-masonry='{"percentPosition": true }'>
+<div class="row mt-3<?php if($sameheight) echo ' align-items-stretch'; ?>" <?php if(!$sameheight) echo "data-masonry='{\"percentPosition\": true }'"; ?>>
 
 
     <?php 
@@ -1904,8 +1908,8 @@ if ($posts)  { // define if to start counting
 	
 foreach ($posts as $post) : ?>
 
-<div class="pb-4 col-md-<?php echo intval(12 / $columns); ?>" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
-    <div class="shadow card">
+<div class="pb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
+    <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
       <?php
                   if (has_post_thumbnail()) {
                       $image_data   = wp_get_attachment_image_src(get_post_thumbnail_id($post->ID), $imagesize);

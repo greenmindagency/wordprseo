@@ -30,7 +30,7 @@
 	  
 	  
         
-<?php 
+<?php
 $logolight = get_field('logo_light' , 2);
 
 
@@ -38,12 +38,15 @@ $logolight = get_field('logo_light' , 2);
 $image = $logolight;
 $size = 'medium';
 
+// Allow logo height to be controlled via ACF
+$footer_logo_height = get_field('footer_logo_height', 2);
+$fixed_height = $footer_logo_height ? intval($footer_logo_height) : 50;
+
 // Ensure image data exists
 if (!empty($image) && isset($image['sizes'][$size])) {
     $image_url = $image['sizes'][$size];
     $width = isset($image['sizes'][$size . '-width']) ? $image['sizes'][$size . '-width'] : null;
     $height = isset($image['sizes'][$size . '-height']) ? $image['sizes'][$size . '-height'] : null;
-    $fixed_height = 50;
 
     // Calculate proportional width if dimensions are valid
     if ($width && $height) {

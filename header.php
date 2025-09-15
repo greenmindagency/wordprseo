@@ -135,12 +135,15 @@ $logolight = get_field('logo_light' , 2);
 $image = $logoblack;
 $size = 'medium';
 
+// Allow logo height to be controlled via ACF
+$header_logo_height = get_field('header_logo_height', 2);
+$fixed_height = $header_logo_height ? intval($header_logo_height) : 40;
+
 // Ensure image data exists
 if (!empty($image) && isset($image['sizes'][$size])) {
     $image_url = $image['sizes'][$size];
     $width = isset($image['sizes'][$size . '-width']) ? $image['sizes'][$size . '-width'] : null;
     $height = isset($image['sizes'][$size . '-height']) ? $image['sizes'][$size . '-height'] : null;
-    $fixed_height = 40;
 
     // Calculate proportional width if dimensions are valid
     if ($width && $height) {
