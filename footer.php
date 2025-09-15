@@ -39,8 +39,8 @@ $image = $logolight;
 $size = 'medium';
 
 // Allow logo height to be controlled via ACF
-$footer_logo_height = get_field('footer_logo_height', 2);
-$fixed_height = $footer_logo_height ? intval($footer_logo_height) : 50;
+$header_logo_height = get_field('header_logo_height', 2);
+$fixed_height = $header_logo_height ? intval($header_logo_height) : 50;
 
 // Ensure image data exists
 if (!empty($image) && isset($image['sizes'][$size])) {
