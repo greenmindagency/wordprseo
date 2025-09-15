@@ -1225,37 +1225,50 @@ $('.articleslideshowgroup').colorbox({rel:'articleslideshowgroup', transition:"f
 
 
 ///infinite scroll
-   
-// Initialize Masonry
-let $grid = $('.grid').masonry({
-  itemSelector: '.grid-item',
-  percentPosition: true,
-  visibleStyle: { transform: 'translateY(0)', opacity: 1 },
-  hiddenStyle: { transform: 'translateY(100px)', opacity: 0 },
-});
 
-// Initial items reveal
-$grid.imagesLoaded(function () {
-  $grid.masonry('layout'); // Ensure the initial layout is correct
-});
+$('.grid').each(function () {
+  let $grid = $(this);
+  let useMasonry = $grid.is('[data-masonry]');
 
-// Initialize Infinite Scroll
-$grid.infiniteScroll({
-  path: '.pagination__next', // Define pagination path
-  append: '.grid-item',      // Define appended items
-  outlayer: $grid.data('masonry'), // Pass the Masonry instance
-  status: '.scroller-status', // Add loading status
-  history: false              // Disable browser history updates
-});
+  if (useMasonry) {
+    // Initialize Masonry when data-masonry attribute is present
+    $grid.masonry({
+      itemSelector: '.grid-item',
+      percentPosition: true,
+      visibleStyle: { transform: 'translateY(0)', opacity: 1 },
+      hiddenStyle: { transform: 'translateY(100px)', opacity: 0 },
+    });
 
-// Fix layout after appending new items
-$grid.on('append.infiniteScroll', function (event, response, path, items) {
-  // Ensure images are loaded before layout
-  $(items).imagesLoaded(function () {
-    $grid.masonry('appended', items); // Notify Masonry of new items
-  });
-});
+    // Initial items reveal
+    $grid.imagesLoaded(function () {
+      $grid.masonry('layout');
+    });
 
+    // Initialize Infinite Scroll with Masonry outlayer
+    $grid.infiniteScroll({
+      path: '.pagination__next',
+      append: '.grid-item',
+      outlayer: $grid.data('masonry'),
+      status: '.scroller-status',
+      history: false,
+    });
+
+    // Fix layout after appending new items
+    $grid.on('append.infiniteScroll', function (event, response, path, items) {
+      $(items).imagesLoaded(function () {
+        $grid.masonry('appended', items);
+      });
+    });
+  } else {
+    // Initialize Infinite Scroll without Masonry
+    $grid.infiniteScroll({
+      path: '.pagination__next',
+      append: '.grid-item',
+      status: '.scroller-status',
+      history: false,
+    });
+  }
+});
 
 ///infinite scroll
 

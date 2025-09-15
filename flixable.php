@@ -1662,7 +1662,7 @@ if( $infinite ) {
     <div class="container-fluid p-0">
       <div class="row p-0">
         <div class="col-md-12 mb-5">
-            <div class="row<?php if(!$sameheight) echo ' grid'; ?><?php if($sameheight) echo ' align-items-stretch'; ?>"<?php if(!$sameheight) echo ' data-masonry=\'{"percentPosition": true }\''; ?>>
+            <div class="row grid<?php if($sameheight) echo ' align-items-stretch'; ?>"<?php if(!$sameheight) echo ' data-masonry=\'{"percentPosition": true }\''; ?>>
 
             <?php
               // 2) Setup $paged the same for front page or other
@@ -1702,7 +1702,7 @@ if ( is_front_page() && ! is_home() ) {
             ?>
 
             <!-- Single Post Layout -->
-            <div class="mb-4 col-md-<?php echo intval(12 / $columns); ?><?php if(!$sameheight) echo ' grid-item'; ?><?php if($sameheight) echo ' d-flex'; ?>">
+            <div class="mb-4 col-md-<?php echo intval(12 / $columns); ?> grid-item<?php if($sameheight) echo ' d-flex'; ?>">
               <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
 
                 <?php
