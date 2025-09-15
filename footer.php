@@ -39,8 +39,8 @@ $image = $logolight;
 $size = 'medium';
 
 // Allow logo height to be controlled via ACF
-$header_logo_height = get_field('header_logo_height', 2);
-$fixed_height = $header_logo_height ? intval($header_logo_height) : 50;
+$logo_height = get_field('logo_height', 2);
+$fixed_height = $logo_height ? intval($logo_height) : 50;
 
 // Ensure image data exists
 if (!empty($image) && isset($image['sizes'][$size])) {
@@ -986,7 +986,8 @@ blockquote p {margin:1rem 0}
       height: 100%;
     }
     .pagecontent9 .hover-box .card-overlay {
-      position: relative;
+      position: absolute;
+      inset: 0;
       z-index: 1;
       background-color: var(--bs-secondary);
       opacity: 0.85;

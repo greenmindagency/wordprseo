@@ -136,8 +136,8 @@ $image = $logoblack;
 $size = 'medium';
 
 // Allow logo height to be controlled via ACF
-$header_logo_height = get_field('header_logo_height', 2);
-$fixed_height = $header_logo_height ? intval($header_logo_height) : 40;
+$logo_height = get_field('logo_height', 2);
+$fixed_height = $logo_height ? intval($logo_height) : 40;
 
 // Ensure image data exists
 if (!empty($image) && isset($image['sizes'][$size])) {

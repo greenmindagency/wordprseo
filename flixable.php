@@ -1229,8 +1229,10 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
                       <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo esc_attr($image['alt']); ?>" />
                     </div>
                     <?php endif; ?>
-                    
-                    <div class="d-flex flex-column justify-content-start p-4 card-overlay">
+
+                    <div class="card-overlay"></div>
+
+                    <div class="d-flex flex-column justify-content-start p-4 position-relative z-2">
                       <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
                       <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
                       <div class="divider-line"></div>
@@ -1309,7 +1311,8 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
               <img loading="lazy" class="lazyload jarallax-img" width="<?php echo $width; ?>" height="<?php echo $height; ?>" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-src="<?php echo $image_url; ?>" alt="<?php echo esc_attr($image['alt']); ?>" />
             </div>
             <?php endif; ?>
-            <div class="d-flex flex-column justify-content-start p-4 card-overlay">
+            <div class="card-overlay"></div>
+            <div class="d-flex flex-column justify-content-start p-4 position-relative z-2">
               <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
               <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
               <div class="divider-line"></div>
@@ -1659,7 +1662,7 @@ if( $infinite ) {
     <div class="container-fluid p-0">
       <div class="row p-0">
         <div class="col-md-12 mb-5">
-            <div class="grid row<?php if($sameheight) echo ' align-items-stretch'; ?>" <?php if(!$sameheight) echo "data-masonry='{\"percentPosition\": true }'"; ?>>
+            <div class="row<?php if(!$sameheight) echo ' grid'; ?><?php if($sameheight) echo ' align-items-stretch'; ?>"<?php if(!$sameheight) echo ' data-masonry=\'{"percentPosition": true }\''; ?>>
 
             <?php
               // 2) Setup $paged the same for front page or other
@@ -1699,7 +1702,7 @@ if ( is_front_page() && ! is_home() ) {
             ?>
 
             <!-- Single Post Layout -->
-            <div class="grid-item mb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
+            <div class="mb-4 col-md-<?php echo intval(12 / $columns); ?><?php if(!$sameheight) echo ' grid-item'; ?><?php if($sameheight) echo ' d-flex'; ?>">
               <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
 
                 <?php
