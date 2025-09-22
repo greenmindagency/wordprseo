@@ -1244,7 +1244,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
                       <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
                       <div class="pagecontent9-footer d-flex flex-column mt-auto pt-2 gap-2 w-100">
                         <?php if ($has_cta): ?>
-                          <div class="pagecontent9-cta-wrapper">
+                          <div class="pagecontent9-cta-wrapper mt-2">
                             <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity pagecontent9-cta">
                               <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
                             </a>
