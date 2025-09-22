@@ -1237,22 +1237,27 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
                       if ($sameheight) {
                         $card_content_classes .= ' h-100';
                       }
-                      $card_footer_classes = 'hover-link-container d-flex flex-column';
-                      $card_footer_classes .= $sameheight ? ' mt-auto pt-3' : ' mt-3';
+                      $has_cta = !empty($card['read_more_link']) && !empty($card['read_more']);
                     ?>
                     <div class="<?php echo esc_attr($card_content_classes); ?>">
                       <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
                       <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
-                      <div class="<?php echo esc_attr($card_footer_classes); ?>">
-                        <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-                          <div class="pagecontent9-cta-wrapper">
-                            <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity pagecontent9-cta">
-                              <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
-                            </a>
-                          </div>
-                        <?php endif; ?>
+                      <?php if ($has_cta): ?>
+                        <div class="pagecontent9-cta-wrapper mt-2">
+                          <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity pagecontent9-cta">
+                            <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
+                          </a>
+                        </div>
+                      <?php endif; ?>
+                      <?php
+                        $reveal_classes = 'pagecontent9-reveal';
+                        if (!$has_cta) {
+                          $reveal_classes .= ' pagecontent9-reveal--spaced';
+                        }
+                      ?>
+                      <div class="<?php echo esc_attr($reveal_classes); ?>">
                         <div class="divider-line"></div>
-                        <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
+                        <p class="hover-paragraph mb-0"><?php echo esc_html($card['content']); ?></p>
                       </div>
                     </div>
                   </div>
@@ -1327,22 +1332,27 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
               if ($sameheight) {
                 $card_content_classes .= ' h-100';
               }
-              $card_footer_classes = 'hover-link-container d-flex flex-column';
-              $card_footer_classes .= $sameheight ? ' mt-auto pt-3' : ' mt-3';
+              $has_cta = !empty($card['read_more_link']) && !empty($card['read_more']);
             ?>
             <div class="<?php echo esc_attr($card_content_classes); ?>">
               <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
               <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
-              <div class="<?php echo esc_attr($card_footer_classes); ?>">
-                <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-                  <div class="pagecontent9-cta-wrapper">
-                    <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity pagecontent9-cta">
-                      <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
-                    </a>
-                  </div>
-                <?php endif; ?>
+              <?php if ($has_cta): ?>
+                <div class="pagecontent9-cta-wrapper mt-2">
+                  <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity pagecontent9-cta">
+                    <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
+                  </a>
+                </div>
+              <?php endif; ?>
+              <?php
+                $reveal_classes = 'pagecontent9-reveal';
+                if (!$has_cta) {
+                  $reveal_classes .= ' pagecontent9-reveal--spaced';
+                }
+              ?>
+              <div class="<?php echo esc_attr($reveal_classes); ?>">
                 <div class="divider-line"></div>
-                <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
+                <p class="hover-paragraph mb-0"><?php echo esc_html($card['content']); ?></p>
               </div>
             </div>
           </div>

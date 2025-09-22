@@ -1000,18 +1000,13 @@ blockquote p {margin:1rem 0}
       opacity: 0;
       max-height: 0;
       overflow: hidden;
+      margin-top: 0;
       transition: all 0.5s ease-in-out;
     }
     .pagecontent9 .hover-box:hover .hover-paragraph {
       opacity: 1;
       max-height: 1000px;
       margin-top: 0.5rem;
-    }
-    .pagecontent9 .hover-link-container {
-      position: relative;
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
     }
     .pagecontent9 .pagecontent9-cta-wrapper {
       max-height: 5rem;
@@ -1022,6 +1017,24 @@ blockquote p {margin:1rem 0}
       max-height: 0;
       opacity: 0;
       pointer-events: none;
+    }
+    .pagecontent9 .pagecontent9-reveal {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin-top: 0;
+      transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+    }
+    .pagecontent9 .pagecontent9-reveal--spaced {
+      margin-top: 0;
+    }
+    .pagecontent9 .hover-box:hover .pagecontent9-reveal {
+      opacity: 1;
+      max-height: 1000px;
+      margin-top: 0;
+    }
+    .pagecontent9 .hover-box:hover .pagecontent9-reveal--spaced {
+      margin-top: 0.5rem;
     }
     .pagecontent9 .divider-line {
       width: 0;
