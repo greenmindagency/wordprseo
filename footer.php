@@ -1010,6 +1010,18 @@ blockquote p {margin:1rem 0}
     .pagecontent9 .hover-link-container {
       position: relative;
       margin-top: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .pagecontent9 .pagecontent9-cta-wrapper {
+      max-height: 5rem;
+      overflow: hidden;
+      transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out;
+    }
+    .pagecontent9 .hover-box:hover .pagecontent9-cta-wrapper {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
     }
     .pagecontent9 .divider-line {
       width: 0;
