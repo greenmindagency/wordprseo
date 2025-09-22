@@ -1232,14 +1232,22 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
 
                     <div class="card-overlay"></div>
 
-                    <div class="d-flex flex-column justify-content-start p-4 position-relative z-2 h-100">
+                    <?php
+                      $card_content_classes = 'd-flex flex-column justify-content-start p-4 position-relative z-2';
+                      if ($sameheight) {
+                        $card_content_classes .= ' h-100';
+                      }
+                      $card_cta_wrapper = 'hover-opacity hover-link-container';
+                      $card_cta_wrapper .= $sameheight ? ' mt-auto pt-3' : ' mt-3';
+                    ?>
+                    <div class="<?php echo esc_attr($card_content_classes); ?>">
                       <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
                       <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
                       <div class="divider-line"></div>
                       <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
                       <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-                      <div class="hover-opacity hover-link-container mt-auto pt-3">
-                        <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity hover-link-container">
+                      <div class="<?php echo esc_attr($card_cta_wrapper); ?>">
+                        <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity">
   <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
 </a>
                       </div>
@@ -1312,14 +1320,22 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
             </div>
             <?php endif; ?>
             <div class="card-overlay"></div>
-            <div class="d-flex flex-column justify-content-start p-4 position-relative z-2 h-100">
+            <?php
+              $card_content_classes = 'd-flex flex-column justify-content-start p-4 position-relative z-2';
+              if ($sameheight) {
+                $card_content_classes .= ' h-100';
+              }
+              $card_cta_wrapper = 'hover-opacity hover-link-container';
+              $card_cta_wrapper .= $sameheight ? ' mt-auto pt-3' : ' mt-3';
+            ?>
+            <div class="<?php echo esc_attr($card_content_classes); ?>">
               <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
               <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
               <div class="divider-line"></div>
               <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
               <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-              <div class="hover-opacity hover-link-container mt-auto pt-3">
-                <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity hover-link-container">
+              <div class="<?php echo esc_attr($card_cta_wrapper); ?>">
+                <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity">
   <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
 </a>
               </div>
@@ -1703,7 +1719,7 @@ if ( is_front_page() && ! is_home() ) {
 
             <!-- Single Post Layout -->
             <div class="mb-4 col-md-<?php echo intval(12 / $columns); ?> grid-item<?php if($sameheight) echo ' d-flex'; ?>">
-              <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
+              <div class="shadow card d-flex flex-column<?php if($sameheight) echo ' h-100'; ?>">
 
                 <?php
                   if (has_post_thumbnail()) {
@@ -1730,7 +1746,7 @@ if ( is_front_page() && ! is_home() ) {
                     </a>
                 <?php } ?>
 
-                <div class="card-body pb-4">
+                <div class="card-body pb-4 d-flex flex-column flex-grow-1">
                   <small class="lh-lg text-muted">
                     <a href="<?php
                       foreach((get_the_category()) as $category) {
@@ -1762,15 +1778,18 @@ if ( is_front_page() && ! is_home() ) {
                   </small>
 
                   <?php
-                    $description = get_field('description'); 
+                    $description = get_field('description');
                     if ($description):
                       echo '<p class="my-3 card-text">' . esc_html($description) . '</p>';
                     endif;
                   ?>
 
-                  <a href="<?php echo get_permalink($post->ID); ?>" class="btn btn-primary mt-3" aria-label="<?php the_title(); ?>">
-                    <i class="text-white fa-solid fa-arrow-right-long"></i>
-                  </a>
+                  <?php $cta_classes = $sameheight ? 'mt-auto pt-3' : 'mt-3'; ?>
+                  <div class="<?php echo esc_attr($cta_classes); ?>">
+                    <a href="<?php echo get_permalink($post->ID); ?>" class="btn btn-primary" aria-label="<?php the_title(); ?>">
+                      <i class="text-white fa-solid fa-arrow-right-long"></i>
+                    </a>
+                  </div>
                 </div>
               </div><!-- /.card -->
             </div><!-- /.grid-item -->
@@ -1955,8 +1974,9 @@ if ($description): ?>
     <p class="my-3 card-text"><?php echo $description; ?></p>
 <?php endif; ?>
         
-        <div class="mt-auto pt-3">
-                <a href="<?php echo get_permalink($post->ID) ?>" class="btn btn-primary" aria-label="<?php the_title(); ?>"><i class="text-white fa-solid fa-arrow-right-long"></i></a>
+        <?php $cta_classes = $sameheight ? 'mt-auto pt-3' : 'mt-3'; ?>
+        <div class="<?php echo esc_attr($cta_classes); ?>">
+                <a href="<?php echo get_permalink($post->ID); ?>" class="btn btn-primary" aria-label="<?php the_title(); ?>"><i class="text-white fa-solid fa-arrow-right-long"></i></a>
         </div>
 		
          </div>
@@ -3064,12 +3084,12 @@ if (!isset($testimonialSliderCounter)) {
                   <?php echo get_the_time('jS', $post->ID); ?> <?php echo get_the_time('M, Y', $post->ID); ?>
                 </small>
 
-                <?php
-                  $description = get_field('description'); 
-                  if ($description):
-                    echo '<p class="my-3 card-text">' . esc_html($description) . '</p>';
-                  endif;
-                ?>
+                  <?php
+                    $description = get_field('description');
+                    if ($description):
+                      echo '<p class="my-3 card-text">' . esc_html($description) . '</p>';
+                    endif;
+                  ?>
 
                 <a href="<?php echo get_permalink($post->ID); ?>" class="btn btn-primary mt-3">
                   <i class="text-white fa-solid fa-arrow-right-long"></i>
