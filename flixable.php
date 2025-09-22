@@ -1232,14 +1232,14 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
 
                     <div class="card-overlay"></div>
 
-                    <div class="d-flex flex-column justify-content-start p-4 position-relative z-2">
+                    <div class="d-flex flex-column justify-content-start p-4 position-relative z-2 h-100">
                       <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
                       <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
                       <div class="divider-line"></div>
                       <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
                       <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-                      <div class="hover-opacity hover-link-container">
-                        <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary mt-3 me-auto hover-opacity hover-link-container">
+                      <div class="hover-opacity hover-link-container mt-auto pt-3">
+                        <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity hover-link-container">
   <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
 </a>
                       </div>
@@ -1312,14 +1312,14 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
             </div>
             <?php endif; ?>
             <div class="card-overlay"></div>
-            <div class="d-flex flex-column justify-content-start p-4 position-relative z-2">
+            <div class="d-flex flex-column justify-content-start p-4 position-relative z-2 h-100">
               <h4 class="mt-3 fw-bold fs-4"><?php echo esc_html($card['title']); ?></h4>
               <p class="mb-0 lead"><?php echo esc_html($card['subtitle']); ?></p>
               <div class="divider-line"></div>
               <p class="hover-paragraph"><?php echo esc_html($card['content']); ?></p>
               <?php if (!empty($card['read_more_link']) && !empty($card['read_more'])): ?>
-              <div class="hover-opacity hover-link-container">
-                <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary mt-3 me-auto hover-opacity hover-link-container">
+              <div class="hover-opacity hover-link-container mt-auto pt-3">
+                <a href="<?php echo esc_url($card['read_more_link']); ?>" class="btn btn-primary me-auto hover-opacity hover-link-container">
   <?php echo esc_html($card['read_more']); ?> <i class="fas fa-angle-double-right"></i>
 </a>
               </div>
@@ -1912,7 +1912,7 @@ if ($posts)  { // define if to start counting
 foreach ($posts as $post) : ?>
 
 <div class="pb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
-    <div class="shadow card<?php if($sameheight) echo ' h-100'; ?>">
+    <div class="shadow card d-flex flex-column<?php if($sameheight) echo ' h-100'; ?>">
       <?php
                   if (has_post_thumbnail()) {
                       $image_data   = wp_get_attachment_image_src(get_post_thumbnail_id($post->ID), $imagesize);
@@ -1940,7 +1940,7 @@ foreach ($posts as $post) : ?>
             
       
       
-      <div class="card-body pb-4">
+      <div class="card-body pb-4 d-flex flex-column flex-grow-1">
         
         <small class="lh-lg text-muted"><a href="<?php foreach((get_the_category()) as $category) { if($category->parent != 1){  //load category?> <?php echo get_category_link($category->cat_ID) //echo the link?><?php } } ?>"><?php foreach((get_the_category()) as $category) { if($category->parent != 1){ echo $category->cat_name . ' '; } } //echo the first category name ?></a></small>
         
@@ -1955,7 +1955,9 @@ if ($description): ?>
     <p class="my-3 card-text"><?php echo $description; ?></p>
 <?php endif; ?>
         
-		<a href="<?php echo get_permalink($post->ID) ?>" class="btn btn-primary mt-3" aria-label="<?php the_title(); ?>"><i class="text-white fa-solid fa-arrow-right-long"></i></a>
+        <div class="mt-auto pt-3">
+                <a href="<?php echo get_permalink($post->ID) ?>" class="btn btn-primary" aria-label="<?php the_title(); ?>"><i class="text-white fa-solid fa-arrow-right-long"></i></a>
+        </div>
 		
          </div>
     </div>
