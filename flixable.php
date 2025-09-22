@@ -1192,7 +1192,7 @@ if ($pagecontent9_cards):
             <div class="row g-4 mb-5 pb-5 px-3<?php if($sameheight) echo ' align-items-stretch'; ?>">
               <?php foreach ($card_group as $card): ?>
                 <div class="col-md-<?php echo intval(12 / $pagecontent9_columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
-                  <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' h-100'; ?>">
+                  <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' d-flex flex-column flex-fill'; ?>">
                     <?php 
                       $image = $card['top_image'];
                       if (!empty($image)):
@@ -1235,7 +1235,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
                     <?php
                       $card_content_classes = 'd-flex flex-column justify-content-start p-4 position-relative z-2';
                       if ($sameheight) {
-                        $card_content_classes .= ' h-100';
+                        $card_content_classes .= ' flex-fill';
                       }
                       $has_cta = !empty($card['read_more_link']) && !empty($card['read_more']);
                     ?>
@@ -1285,7 +1285,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
     <div class="row g-4 px-3<?php if($sameheight) echo ' align-items-stretch'; ?>">
       <?php foreach ($pagecontent9_cards as $card): ?>
         <div class="col-md-<?php echo intval(12 / $pagecontent9_columns); ?><?php if($sameheight) echo ' d-flex'; ?>">
-          <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' h-100'; ?>">
+          <div class="hover-box bg-secondary text-white shadow-sm parallax-card<?php if($sameheight) echo ' d-flex flex-column flex-fill'; ?>">
 		  
 		  
             <?php 
@@ -1332,7 +1332,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
             <?php
               $card_content_classes = 'd-flex flex-column justify-content-start p-4 position-relative z-2';
               if ($sameheight) {
-                $card_content_classes .= ' h-100';
+                $card_content_classes .= ' flex-fill';
               }
               $has_cta = !empty($card['read_more_link']) && !empty($card['read_more']);
             ?>
