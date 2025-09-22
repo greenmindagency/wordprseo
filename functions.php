@@ -1,20 +1,67 @@
 <?php
 
 // remove "Private: " from titles
-    add_filter( 'get_the_archive_title', function ($title) {    
-        if ( is_category() ) {    
-                $title = single_cat_title( '', false );    
-            } elseif ( is_tag() ) {    
-                $title = single_tag_title( '', false );    
-            } elseif ( is_author() ) {    
-                $title = '<span class="vcard">' . get_the_author() . '</span>' ;    
+    add_filter( 'get_the_archive_title', function ($title) {
+        if ( is_category() ) {
+                $title = single_cat_title( '', false );
+            } elseif ( is_tag() ) {
+                $title = single_tag_title( '', false );
+            } elseif ( is_author() ) {
+                $title = '<span class="vcard">' . get_the_author() . '</span>' ;
             } elseif ( is_tax() ) { //for custom post types
                 $title = sprintf( __( '%1$s' ), single_term_title( '', false ) );
             } elseif (is_post_type_archive()) {
                 $title = post_type_archive_title( '', false );
             }
-        return $title;    
+        return $title;
     });
+
+if ( ! function_exists( 'qt_should_display_breadcrumbs' ) ) {
+    /**
+     * Determines whether the breadcrumb bar should be shown on the current view.
+     *
+     * Relies on an ACF checkbox called "hide_breadcrumbs" that can be attached to
+     * posts, pages or taxonomy terms. When the checkbox is checked the breadcrumb
+     * bar is suppressed for that specific object.
+     *
+     * @return bool
+     */
+    function qt_should_display_breadcrumbs() {
+        $show_breadcrumbs = true;
+
+        if ( function_exists( 'get_field' ) ) {
+            if ( is_singular() ) {
+                $post_id = get_queried_object_id();
+
+                if ( $post_id ) {
+                    $hide_breadcrumbs = get_field( 'hide_breadcrumbs', $post_id );
+
+                    if ( ! empty( $hide_breadcrumbs ) ) {
+                        $show_breadcrumbs = false;
+                    }
+                }
+            } else {
+                $term = get_queried_object();
+
+                if ( $term instanceof WP_Term ) {
+                    $term_key          = $term->taxonomy . '_' . $term->term_id;
+                    $hide_breadcrumbs  = get_field( 'hide_breadcrumbs', $term_key );
+
+                    if ( ! empty( $hide_breadcrumbs ) ) {
+                        $show_breadcrumbs = false;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Filter whether breadcrumbs should be displayed.
+         *
+         * @param bool $show_breadcrumbs Whether the breadcrumb bar is visible.
+         */
+        return apply_filters( 'qt_should_display_breadcrumbs', $show_breadcrumbs );
+    }
+}
       
     
 

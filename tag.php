@@ -80,6 +80,7 @@ if( $image ) {
     <!-- jarallax image --> 
 
 
+<?php if ( qt_should_display_breadcrumbs() ) : ?>
 <div class="border-bottom container-fluid bg-light">
 <div class="container">
 <div class="row">
@@ -89,14 +90,14 @@ if( $image ) {
 
 <nav class="my-3 d-none d-sm-none d-md-block" aria-label="breadcrumb">
   <div class="d-flex justify-content-between align-items-center">
-    
+
     <!-- Breadcrumb on the left -->
     <div>
       <?php echo do_shortcode('[custom_breadcrumbs]'); ?>
     </div>
 
     <!-- Share on the right -->
-	
+
 <?php
 global $wp;
 
@@ -148,6 +149,7 @@ $share_title =  YoastSEO()->meta->for_current_page()->title;
 
 </div>
 </div>
+<?php endif; ?>
 
 
 <!-- flixable content -->
