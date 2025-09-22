@@ -1,4 +1,12 @@
-<?php get_header(); // This fxn gets the header.php file and renders it ?>
+<?php 
+
+/**
+ * Template Name: Home Page
+ * Description: A custom page template that you can select from the admin panel.
+ */
+
+
+get_header(); ?>
 
 	  
 	  
