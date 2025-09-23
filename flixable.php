@@ -1258,7 +1258,7 @@ $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
                         ?>
                         <div class="<?php echo esc_attr($reveal_classes); ?>">
                           <div class="divider-line"></div>
-                          <p class="hover-paragraph mb-0"><?php echo esc_html($card['content']); ?></p>
+                          <p class="hover-paragraph mb-3"><?php echo esc_html($card['content']); ?></p>
                         </div>
                       </div>
                     </div>
