@@ -964,11 +964,8 @@ blockquote p {margin:1rem 0}
 # Page Content 9
 --------------------------------------------------------------*/
 	
-	.pagecontent9 .hover-opacity {
-      transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
-    }
-    .pagecontent9 .hover-box:hover .hover-opacity {
-      transform: translateX(10px);
+    .pagecontent9 .hover-opacity {
+      transition: opacity 0.3s ease-in-out;
     }
     .pagecontent9 .parallax-card {
       height: auto;
@@ -1009,14 +1006,20 @@ blockquote p {margin:1rem 0}
       margin-top: 0.5rem;
     }
     .pagecontent9 .pagecontent9-cta-wrapper {
-      max-height: 5rem;
-      overflow: hidden;
-      transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out;
+      opacity: 1;
     }
     .pagecontent9 .hover-box:hover .pagecontent9-cta-wrapper {
-      max-height: 0;
-      opacity: 0;
-      pointer-events: none;
+      order: 3;
+      animation: pagecontent9-cta-fade-cycle 0.6s ease-in-out forwards;
+    }
+    .pagecontent9 .hover-box:hover .pagecontent9-reveal {
+      order: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pagecontent9 .hover-box:hover .pagecontent9-cta-wrapper {
+        animation: none;
+        opacity: 1;
+      }
     }
     .pagecontent9 .pagecontent9-reveal {
       opacity: 0;
@@ -1035,6 +1038,20 @@ blockquote p {margin:1rem 0}
     }
     .pagecontent9 .hover-box:hover .pagecontent9-reveal--spaced {
       margin-top: 0.5rem;
+    }
+    @keyframes pagecontent9-cta-fade-cycle {
+      0% {
+        opacity: 1;
+      }
+      40% {
+        opacity: 0;
+      }
+      60% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
     }
     .pagecontent9 .divider-line {
       width: 0;
