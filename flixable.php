@@ -403,7 +403,7 @@ if ($verticaltabs_title): ?>
 
 <?php elseif( get_row_layout() == 'pagecontent1' ): ?>
 <div class="pagecontent1 container-fluid py-spacer">
-<div class="my-5 container">
+<div class="my-5 container text-center">
 
           
           
@@ -413,7 +413,7 @@ $subtitle = get_sub_field('subtitle');
 ?>
 
 <?php if ($title): ?>
-    <h3 class="fs-1 fw-bold text-center"><?php echo esc_html($title); ?></h3>
+    <h3 class="fs-1 fw-bold"><?php echo esc_html($title); ?></h3>
 <?php endif; ?>
 
 <?php if ($subtitle): ?>
