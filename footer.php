@@ -286,10 +286,35 @@ body { <?php
 a:link { text-decoration: none;}
 a:visited { text-decoration: none;}
 a:hover {text-decoration: none; color: var(--bs-secondary) !important}
-a:active {text-decoration: none;} 
-h1,h2,h3,h4,h5,h6 {font-weight:600 !important} 
-     
-.card-overlay img, .jarallax-img {opacity: 0.1} 
+a:active {text-decoration: none;}
+h1,h2,h3,h4,h5,h6 {font-weight:600 !important}
+
+/*--------------------------------------------------------------
+# Taxonomy Icon Styling (moved from theme stylesheet)
+--------------------------------------------------------------*/
+.taxonomy-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.taxonomy-icon-wrapper--large {
+    width: 3rem;
+    height: 3rem;
+}
+
+.taxonomy-icon-wrapper--small {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.taxonomy-icon-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.card-overlay img, .jarallax-img {opacity: 0.1}
 .jarallax iframe {opacity: 0.5 }
 
 .video-jarallax-content {padding: 8rem 3rem}

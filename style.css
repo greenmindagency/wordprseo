@@ -4,25 +4,3 @@ Theme URI: greenmindagency.com
 Author: greenmindagency.com
 Author URI: https://greenmindagency.com
 */
-
-.taxonomy-icon-wrapper {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.taxonomy-icon-wrapper--large {
-    width: 3rem;
-    height: 3rem;
-}
-
-.taxonomy-icon-wrapper--small {
-    width: 1.5rem;
-    height: 1.5rem;
-}
-
-.taxonomy-icon-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
