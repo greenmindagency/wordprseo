@@ -626,7 +626,7 @@ if( have_rows('squareimgwithdesc') ): ?>
         $subtitle = get_sub_field('subtitle');
         $description = get_sub_field('description');
         $linkedin = get_sub_field('linkedin');
-        $linkedin_button = get_sub_field('linkedin_button');
+        $button = get_sub_field('button');
         $image = get_sub_field('image');
 
         $col_class = !empty($image) ? 'col-md-9' : 'col-md-12';
@@ -668,7 +668,7 @@ if( have_rows('squareimgwithdesc') ): ?>
 <?php if ($description) : ?>
 <p><?php echo ($description); ?></p><?php endif; ?>
 
-<?php if ($linkedin || $linkedin_button) : ?>
+<?php if ($linkedin || $button) : ?>
     <div class="d-flex align-items-center gap-3">
         <?php if ($linkedin) : ?>
             <a target="_blank" href="<?php echo esc_url($linkedin); ?>">
@@ -676,13 +676,13 @@ if( have_rows('squareimgwithdesc') ): ?>
             </a>
         <?php endif; ?>
 
-        <?php if (!empty($linkedin_button) && !empty($linkedin_button['url']) && !empty($linkedin_button['title'])) : ?>
+        <?php if (!empty($button) && !empty($button['url']) && !empty($button['title'])) : ?>
             <?php
-            $button_target = !empty($linkedin_button['target']) ? $linkedin_button['target'] : '_self';
+            $button_target = !empty($button['target']) ? $button['target'] : '_self';
             $button_rel_attr = ($button_target === '_blank') ? 'noopener' : '';
             ?>
-            <a class="btn btn-outline-primary" href="<?php echo esc_url($linkedin_button['url']); ?>" target="<?php echo esc_attr($button_target); ?>"<?php if ($button_rel_attr) : ?> rel="<?php echo esc_attr($button_rel_attr); ?>"<?php endif; ?>>
-                <?php echo esc_html($linkedin_button['title']); ?>
+            <a class="btn btn-outline-primary" href="<?php echo esc_url($button['url']); ?>" target="<?php echo esc_attr($button_target); ?>"<?php if ($button_rel_attr) : ?> rel="<?php echo esc_attr($button_rel_attr); ?>"<?php endif; ?>>
+                <?php echo esc_html($button['title']); ?>
             </a>
         <?php endif; ?>
     </div>
