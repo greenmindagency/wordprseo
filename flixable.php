@@ -1637,7 +1637,7 @@ $catss = get_sub_field('tags'); ?>
 <div class="mb-4 col-sm-6 col-md-6 col-lg-6" data-aos="zoom-in" data-aos-delay="<?php echo $delay; ?>">
 
 <div class="row">
-<div class="text-center col-3">
+<div class="text-center col-2">
     <?php
     $icon = get_field('icon', $cat);
     $icon_image = get_field('icon_image', $cat);
@@ -1662,7 +1662,7 @@ $catss = get_sub_field('tags'); ?>
     <?php endif; ?>
 </div>
 
-<div class="col-9"><h3 class="fw-bold m-0 mb-2"><a href="<?php echo get_tag_link($cat); ?>"><?php  echo $cat->name; ?></a></h3>
+<div class="col-10"><h3 class="fw-bold m-0 mb-2"><a href="<?php echo get_tag_link($cat); ?>"><?php  echo $cat->name; ?></a></h3>
 
 <?php $description = get_field('description', $cat);?><?php if( get_field('description', $cat) ): ?><p class="card-text mb-5"><?php echo $description; ?></p><?php endif; ?>  
 </div>
