@@ -203,22 +203,8 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 	
       
       <?php
-      $display_alt_language_link = true;
-      $front_page_id = get_option('page_on_front');
-      if ($front_page_id) {
-          $hide_other_language_field = get_field('hide_other_language', $front_page_id);
-          $should_hide_other_language = false;
-
-          if (is_array($hide_other_language_field)) {
-              $should_hide_other_language = !empty($hide_other_language_field);
-          } else {
-              $should_hide_other_language = !empty($hide_other_language_field);
-          }
-
-          if ($should_hide_other_language) {
-              $display_alt_language_link = false;
-          }
-      }
+      $display_alt_language_link = get_field('language', 2);
+      $display_alt_language_link = $display_alt_language_link === null ? true : (bool) $display_alt_language_link;
       ?>
 
       <div class="d-flex">
