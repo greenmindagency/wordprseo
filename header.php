@@ -187,8 +187,8 @@ if (!empty($image) && isset($image['sizes'][$size])) {
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-	
-	
+
+
         <?php wp_nav_menu( array(
     'theme_location'  => 'my-custom-menu',
     'depth'           => 2, // 1 = no dropdowns, 2 = with dropdowns.
@@ -202,6 +202,25 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 	
 	
       
+      <?php
+      $display_alt_language_link = true;
+      $front_page_id = get_option('page_on_front');
+      if ($front_page_id) {
+          $hide_other_language_field = get_field('hide_other_language', $front_page_id);
+          $should_hide_other_language = false;
+
+          if (is_array($hide_other_language_field)) {
+              $should_hide_other_language = !empty($hide_other_language_field);
+          } else {
+              $should_hide_other_language = !empty($hide_other_language_field);
+          }
+
+          if ($should_hide_other_language) {
+              $display_alt_language_link = false;
+          }
+      }
+      ?>
+
       <div class="d-flex">
         
       
@@ -234,11 +253,13 @@ echo tiny_url($url);
    
         
 		
-		<a href="<?php bloginfo( 'url' ); ?>/ar/" class="ms-3 btn btn-primary">ع</a> 
-		
-		
+                <?php if ($display_alt_language_link) : ?>
+                    <a href="<?php bloginfo( 'url' ); ?>/ar/" class="ms-3 btn btn-primary">ع</a>
+                <?php endif; ?>
+
+
         </div>
-        
+
     </div>
   </div>
 

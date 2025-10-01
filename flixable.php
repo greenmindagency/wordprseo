@@ -626,6 +626,7 @@ if( have_rows('squareimgwithdesc') ): ?>
         $subtitle = get_sub_field('subtitle');
         $description = get_sub_field('description');
         $linkedin = get_sub_field('linkedin');
+        $linkedin_button = get_sub_field('linkedin_button');
         $image = get_sub_field('image');
 
         $col_class = !empty($image) ? 'col-md-9' : 'col-md-12';
@@ -667,13 +668,24 @@ if( have_rows('squareimgwithdesc') ): ?>
 <?php if ($description) : ?>
 <p><?php echo ($description); ?></p><?php endif; ?>
 
-<?php if ($linkedin) : ?>
+<?php if ($linkedin || $linkedin_button) : ?>
+    <div class="d-flex align-items-center gap-3">
+        <?php if ($linkedin) : ?>
+            <a target="_blank" href="<?php echo esc_url($linkedin); ?>">
+                <i class="fa-2x fab fa-linkedin"></i>
+            </a>
+        <?php endif; ?>
 
-
-<a target="_blank" href="<?php echo ($linkedin); ?>">
-<i class="fa-2x fab fa-linkedin"></i> </a>
-
-
+        <?php if (!empty($linkedin_button) && !empty($linkedin_button['url']) && !empty($linkedin_button['title'])) : ?>
+            <?php
+            $button_target = !empty($linkedin_button['target']) ? $linkedin_button['target'] : '_self';
+            $button_rel_attr = ($button_target === '_blank') ? 'noopener' : '';
+            ?>
+            <a class="btn btn-outline-primary" href="<?php echo esc_url($linkedin_button['url']); ?>" target="<?php echo esc_attr($button_target); ?>"<?php if ($button_rel_attr) : ?> rel="<?php echo esc_attr($button_rel_attr); ?>"<?php endif; ?>>
+                <?php echo esc_html($linkedin_button['title']); ?>
+            </a>
+        <?php endif; ?>
+    </div>
 <?php endif; ?>
 
 </div>
@@ -1561,7 +1573,30 @@ if ($locations):
 <div class="mb-4 col-sm-6 col-md-6 col-lg-6">
 
 <div class="row">
-<div class="text-center col-3"><?php $icon = get_field('icon', $cat);?><i class="me-2 fa-3x fa fa-<?php echo $icon; ?>"></i></div>
+<div class="text-center col-3">
+    <?php
+    $icon = get_field('icon', $cat);
+    $icon_image = get_field('icon_image', $cat);
+    $icon_image_url = '';
+    $icon_image_alt = '';
+
+    if (!empty($icon_image)) {
+        if (!empty($icon_image['sizes']['thumbnail'])) {
+            $icon_image_url = $icon_image['sizes']['thumbnail'];
+        } elseif (!empty($icon_image['url'])) {
+            $icon_image_url = $icon_image['url'];
+        }
+        $icon_image_alt = !empty($icon_image['alt']) ? $icon_image['alt'] : $cat->name;
+    }
+
+    if (!empty($icon_image_url)) : ?>
+        <span class="taxonomy-icon-wrapper taxonomy-icon-wrapper--large">
+            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+        </span>
+    <?php elseif (!empty($icon)) : ?>
+        <i class="me-2 fa-3x fa fa-<?php echo esc_attr($icon); ?>"></i>
+    <?php endif; ?>
+</div>
 
 <div class="col-9"><h3 class="fw-bold m-0 mb-2"><a href="<?php echo get_tag_link($cat); ?>"><?php  echo $cat->name; ?></a></h3>
 
@@ -1602,7 +1637,30 @@ $catss = get_sub_field('tags'); ?>
 <div class="mb-4 col-sm-6 col-md-6 col-lg-6" data-aos="zoom-in" data-aos-delay="<?php echo $delay; ?>">
 
 <div class="row">
-<div class="text-center col-3"><?php $icon = get_field('icon', $cat);?><i class="me-2 fa-3x fa fa-<?php echo $icon; ?>"></i></div>
+<div class="text-center col-3">
+    <?php
+    $icon = get_field('icon', $cat);
+    $icon_image = get_field('icon_image', $cat);
+    $icon_image_url = '';
+    $icon_image_alt = '';
+
+    if (!empty($icon_image)) {
+        if (!empty($icon_image['sizes']['thumbnail'])) {
+            $icon_image_url = $icon_image['sizes']['thumbnail'];
+        } elseif (!empty($icon_image['url'])) {
+            $icon_image_url = $icon_image['url'];
+        }
+        $icon_image_alt = !empty($icon_image['alt']) ? $icon_image['alt'] : $cat->name;
+    }
+
+    if (!empty($icon_image_url)) : ?>
+        <span class="taxonomy-icon-wrapper taxonomy-icon-wrapper--large">
+            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+        </span>
+    <?php elseif (!empty($icon)) : ?>
+        <i class="me-2 fa-3x fa fa-<?php echo esc_attr($icon); ?>"></i>
+    <?php endif; ?>
+</div>
 
 <div class="col-9"><h3 class="fw-bold m-0 mb-2"><a href="<?php echo get_tag_link($cat); ?>"><?php  echo $cat->name; ?></a></h3>
 
@@ -2268,7 +2326,28 @@ if (!empty($related_tags)) {
 
     <h3 class="fw-bold fs-1 lh-sm">
       
-    <?php $icon = get_field('icon', $tagconnection);?><i class="me-2 fa-1x fa fa-<?php echo $icon; ?>"></i>
+    <?php
+    $icon = get_field('icon', $tagconnection);
+    $icon_image = get_field('icon_image', $tagconnection);
+    $icon_image_url = '';
+    $icon_image_alt = '';
+
+    if (!empty($icon_image)) {
+        if (!empty($icon_image['sizes']['thumbnail'])) {
+            $icon_image_url = $icon_image['sizes']['thumbnail'];
+        } elseif (!empty($icon_image['url'])) {
+            $icon_image_url = $icon_image['url'];
+        }
+        $icon_image_alt = !empty($icon_image['alt']) ? $icon_image['alt'] : $tagconnection->name;
+    }
+
+    if (!empty($icon_image_url)) : ?>
+        <span class="me-2 taxonomy-icon-wrapper taxonomy-icon-wrapper--small">
+            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+        </span>
+    <?php elseif (!empty($icon)) : ?>
+        <i class="me-2 fa-1x fa fa-<?php echo esc_attr($icon); ?>"></i>
+    <?php endif; ?>
       
       <strong> <a class="text-white" href="<?php echo get_tag_link($tagconnection); ?>"><?php  echo $tagconnection->name; ?></a></strong></h3>
 
@@ -2343,7 +2422,28 @@ if (!empty($related_tags)) {
 
     <h3 class="fw-bold fs-1 lh-sm">
       
-    <?php $icon = get_field('icon', $catconnection);?><i class="me-2 fa-1x fa fa-<?php echo $icon; ?>"></i>
+    <?php
+    $icon = get_field('icon', $catconnection);
+    $icon_image = get_field('icon_image', $catconnection);
+    $icon_image_url = '';
+    $icon_image_alt = '';
+
+    if (!empty($icon_image)) {
+        if (!empty($icon_image['sizes']['thumbnail'])) {
+            $icon_image_url = $icon_image['sizes']['thumbnail'];
+        } elseif (!empty($icon_image['url'])) {
+            $icon_image_url = $icon_image['url'];
+        }
+        $icon_image_alt = !empty($icon_image['alt']) ? $icon_image['alt'] : $catconnection->name;
+    }
+
+    if (!empty($icon_image_url)) : ?>
+        <span class="me-2 taxonomy-icon-wrapper taxonomy-icon-wrapper--small">
+            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+        </span>
+    <?php elseif (!empty($icon)) : ?>
+        <i class="me-2 fa-1x fa fa-<?php echo esc_attr($icon); ?>"></i>
+    <?php endif; ?>
       
       <strong> <a class="text-white" href="<?php echo get_tag_link($catconnection); ?>"><?php  echo $catconnection->name; ?></a></strong></h3>
 
