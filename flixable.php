@@ -1591,7 +1591,7 @@ if ($locations):
 
     if (!empty($icon_image_url)) : ?>
         <span class="taxonomy-icon-wrapper taxonomy-icon-wrapper--large">
-            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+            <img class="taxonomy-icon-image img-fluid" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
         </span>
     <?php elseif (!empty($icon)) : ?>
         <i class="me-2 fa-3x fa fa-<?php echo esc_attr($icon); ?>"></i>
@@ -1655,7 +1655,7 @@ $catss = get_sub_field('tags'); ?>
 
     if (!empty($icon_image_url)) : ?>
         <span class="taxonomy-icon-wrapper taxonomy-icon-wrapper--large">
-            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+            <img class="taxonomy-icon-image img-fluid" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
         </span>
     <?php elseif (!empty($icon)) : ?>
         <i class="me-2 fa-3x fa fa-<?php echo esc_attr($icon); ?>"></i>
@@ -2343,7 +2343,7 @@ if (!empty($related_tags)) {
 
     if (!empty($icon_image_url)) : ?>
         <span class="me-2 taxonomy-icon-wrapper taxonomy-icon-wrapper--small">
-            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+            <img class="taxonomy-icon-image img-fluid" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
         </span>
     <?php elseif (!empty($icon)) : ?>
         <i class="me-2 fa-1x fa fa-<?php echo esc_attr($icon); ?>"></i>
@@ -2439,7 +2439,7 @@ if (!empty($related_tags)) {
 
     if (!empty($icon_image_url)) : ?>
         <span class="me-2 taxonomy-icon-wrapper taxonomy-icon-wrapper--small">
-            <img class="taxonomy-icon-image" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
+            <img class="taxonomy-icon-image img-fluid" src="<?php echo esc_url($icon_image_url); ?>" alt="<?php echo esc_attr($icon_image_alt); ?>">
         </span>
     <?php elseif (!empty($icon)) : ?>
         <i class="me-2 fa-1x fa fa-<?php echo esc_attr($icon); ?>"></i>
