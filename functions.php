@@ -1,5 +1,8 @@
 <?php
 
+// Include theme lead management integrations.
+require_once get_template_directory() . '/inc/leads.php';
+
 // remove "Private: " from titles
     add_filter( 'get_the_archive_title', function ($title) {
         if ( is_category() ) {
