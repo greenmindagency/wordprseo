@@ -174,7 +174,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Render the admin leads management page.
          */
         public function render_admin_page() {
-            $forms = function_exists( 'wpcf7_contact_forms' ) ? wpcf7_contact_forms() : array();
+            $forms = $this->get_contact_forms();
             $form_slug = isset( $_GET['form'] ) ? sanitize_key( wp_unslash( $_GET['form'] ) ) : '';
 
             if ( empty( $form_slug ) && ! empty( $forms ) ) {
@@ -293,6 +293,39 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             echo '</tbody></table>';
             echo '</div>';
+        }
+
+        /**
+         * Retrieve available Contact Form 7 forms using the most reliable API available.
+         *
+         * @return array
+         */
+        protected function get_contact_forms() {
+            if ( function_exists( 'wpcf7_contact_forms' ) ) {
+                $forms = wpcf7_contact_forms();
+                if ( ! empty( $forms ) ) {
+                    return $forms;
+                }
+            }
+
+            if ( function_exists( 'wpcf7' ) ) {
+                $service = wpcf7();
+                if ( $service && method_exists( $service, 'get_contact_forms' ) ) {
+                    $forms = $service->get_contact_forms();
+                    if ( ! empty( $forms ) ) {
+                        return $forms;
+                    }
+                }
+            }
+
+            if ( class_exists( 'WPCF7_ContactForm' ) && method_exists( 'WPCF7_ContactForm', 'find' ) ) {
+                $forms = WPCF7_ContactForm::find( array() );
+                if ( ! empty( $forms ) ) {
+                    return $forms;
+                }
+            }
+
+            return array();
         }
 
         /**
