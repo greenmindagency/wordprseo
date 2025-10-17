@@ -1135,6 +1135,26 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 }
 
                 echo '<div class="theme-leads-form-group">';
+                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
+                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
+                echo '</label>';
+                echo '</div>';
+
+                if ( ! empty( $templates ) ) {
+                    echo '<div class="theme-leads-form-group">';
+                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
+                    echo '<select name="lead_template" class="theme-leads-template-select">';
+                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
+                    foreach ( $templates as $slug => $template ) {
+                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
+                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
+                    }
+                    echo '</select>';
+                    echo '</label>';
+                    echo '</div>';
+                }
+
+                echo '<div class="theme-leads-form-group">';
                 echo '<label>' . esc_html__( 'Subject', 'wordprseo' );
                 echo '<input type="text" name="lead_reply_subject" class="widefat" value="' . esc_attr( $lead->response_subject ) . '" />';
                 echo '</label>';
@@ -1557,7 +1577,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         form.addEventListener("submit", function(event) {
             event.preventDefault();
-            const submitter = form.querySelector(".theme-leads-template-delete") || form.querySelector("button[type='submit']");
+            const submitter = form.querySelector('.theme-leads-template-delete') || form.querySelector('button[type="submit"]');
             submitTemplateDelete(form, submitter);
         });
     }
