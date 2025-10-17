@@ -844,6 +844,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             echo '</div>';
             echo '</div>';
+            echo '</div>';
 
             if ( empty( $form_slug ) ) {
                 echo '<p>' . esc_html__( 'Please choose a form to view leads.', 'wordprseo' ) . '</p>';
@@ -1076,6 +1077,26 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<div class="theme-leads-form-group">';
                 echo '<label>' . esc_html__( 'Phone number', 'wordprseo' );
                 echo '<input type="text" name="lead_client_phone" class="widefat" value="' . esc_attr( $client_phone_value ) . '" />';
+                echo '</label>';
+                echo '</div>';
+
+                if ( ! empty( $templates ) ) {
+                    echo '<div class="theme-leads-form-group">';
+                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
+                    echo '<select name="lead_template" class="theme-leads-template-select">';
+                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
+                    foreach ( $templates as $slug => $template ) {
+                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
+                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
+                    }
+                    echo '</select>';
+                    echo '</label>';
+                    echo '</div>';
+                }
+
+                echo '<div class="theme-leads-form-group">';
+                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
+                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
                 echo '</label>';
                 echo '</div>';
 
@@ -2387,6 +2408,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!leadId) {
             return;
         }
+    }
 
         const summaryRow = document.querySelector(".theme-leads-summary[data-lead='" + leadId + "']");
         if (summaryRow && data.summary) {
@@ -2475,235 +2497,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else if (whatsappLink) {
                     whatsappLink.remove();
                 }
-            }
-        }
-
-        if (data.status) {
-            const detailRow = document.querySelector(".theme-leads-details[data-lead='" + leadId + "']");
-            if (detailRow) {
-                const detailSelect = detailRow.querySelector("select[name='lead_status']");
-                if (detailSelect) {
-                    detailSelect.value = data.status;
-                }
-            }
-
-            const quickLeadInput = document.querySelector('.theme-leads-status-form input[name="lead_id"][value="' + leadId + '"]');
-            if (quickLeadInput) {
-                const quickSelect = quickLeadInput.closest("form").querySelector("select[name='lead_status']");
-                if (quickSelect) {
-                    quickSelect.value = data.status;
-                }
-            }
-        }
-    }
-
-    function sendLeadViaAjax(form, submitter, feedbackEl) {
-        const formData = new FormData(form);
-        formData.set("lead_submit_action", "send");
-        formData.set("action", "theme_leads_send_email");
-
-        const originalLabel = submitter.textContent;
-        const busyLabel = submitter.getAttribute("data-busy-label") || sendingLabel;
-        submitter.disabled = true;
-        submitter.dataset.originalLabel = originalLabel;
-        submitter.textContent = busyLabel;
-
-        if (feedbackEl) {
-            feedbackEl.textContent = "";
-            feedbackEl.classList.remove("is-error", "is-success");
-        }
-
-        fetch(ajaxUrl, {
-            method: "POST",
-            credentials: "same-origin",
-            body: formData
-        })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error(sendErrorMessage);
-                }
-                return response.json();
-            })
-            .then(function(payload) {
-                if (!payload || typeof payload !== "object") {
-                    throw new Error(sendErrorMessage);
-                }
-
-                if (payload.success) {
-                    handleLeadUpdateSuccess(form, payload.data || {}, feedbackEl);
-                } else {
-                    const message = payload.data && payload.data.message ? payload.data.message : sendErrorMessage;
-                    throw new Error(message);
-                }
-            })
-            .catch(function(error) {
-                handleLeadUpdateError(feedbackEl, error && error.message ? error.message : sendErrorMessage);
-            })
-            .finally(function() {
-                submitter.disabled = false;
-                submitter.textContent = submitter.dataset.originalLabel || originalLabel;
-            });
-    }
-
-    function handleLeadUpdateSuccess(form, data, feedbackEl) {
-        if (feedbackEl) {
-            feedbackEl.textContent = sendSuccessMessage;
-            feedbackEl.classList.remove("is-error");
-            feedbackEl.classList.add("is-success");
-        }
-
-        if (!data || typeof data !== "object") {
-            return;
-        }
-
-        if (data.status) {
-            const statusSelect = form.querySelector("select[name='lead_status']");
-            if (statusSelect) {
-                statusSelect.value = data.status;
-            }
-        }
-
-        if (Object.prototype.hasOwnProperty.call(data, "note")) {
-            const noteField = form.querySelector("textarea[name='lead_note']");
-            if (noteField) {
-                noteField.value = data.note || "";
-            }
-        }
-
-        if (data.response) {
-            const subjectField = form.querySelector("input[name='lead_reply_subject']");
-            const messageField = form.querySelector("textarea[name='lead_reply']");
-            if (subjectField && Object.prototype.hasOwnProperty.call(data.response, "subject")) {
-                subjectField.value = data.response.subject || "";
-            }
-            if (messageField && Object.prototype.hasOwnProperty.call(data.response, "message")) {
-                messageField.value = data.response.message || "";
-            }
-        }
-
-        if (data.context) {
-            updateContextElement(form, data.context);
-        }
-
-        if (Object.prototype.hasOwnProperty.call(data, "history_markup")) {
-            updateHistoryBlock(form, data.history_markup);
-        }
-
-        updateSummaryRow(data.lead_id, data);
-    }
-
-    function handleLeadUpdateError(feedbackEl, message) {
-        if (feedbackEl) {
-            feedbackEl.textContent = message || sendErrorMessage;
-            feedbackEl.classList.remove("is-success");
-            feedbackEl.classList.add("is-error");
-        } else {
-            window.alert(message || sendErrorMessage);
-        }
-    }
-
-    function updateHistoryBlock(form, markup) {
-        const existing = form.querySelector('[data-role="response-history"]');
-        if (markup) {
-            if (existing) {
-                existing.outerHTML = markup;
-            } else {
-                const leftColumn = form.querySelector('.theme-leads-details-column--left');
-                if (leftColumn) {
-                    leftColumn.insertAdjacentHTML('beforeend', markup);
-                }
-            }
-        } else if (existing) {
-            existing.remove();
-        }
-    }
-
-    function updateContextElement(form, context) {
-        const contextEl = form.querySelector(".theme-leads-template-context");
-        if (!contextEl || !context) {
-            return;
-        }
-
-        if (Object.prototype.hasOwnProperty.call(context, "name")) {
-            contextEl.dataset.name = context.name || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "email")) {
-            contextEl.dataset.email = context.email || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "phone")) {
-            contextEl.dataset.phone = context.phone || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "status")) {
-            contextEl.dataset.status = context.status || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "date")) {
-            contextEl.dataset.date = context.date || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "date_short")) {
-            contextEl.dataset.dateShort = context.date_short || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "form_title")) {
-            contextEl.dataset.formTitle = context.form_title || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "site_name")) {
-            contextEl.dataset.siteName = context.site_name || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "recipient")) {
-            contextEl.dataset.recipient = context.recipient || "";
-        }
-        if (Object.prototype.hasOwnProperty.call(context, "cc")) {
-            contextEl.dataset.cc = context.cc || "";
-        }
-        if (context.payload) {
-            try {
-                contextEl.dataset.payload = JSON.stringify(context.payload);
-            } catch (error) {
-                // Ignore JSON errors when updating context payload.
-            }
-        }
-    }
-
-    function updateSummaryRow(leadId, data) {
-        if (!leadId) {
-            return;
-        }
-
-        const summaryRow = document.querySelector(".theme-leads-summary[data-lead='" + leadId + "']");
-        if (summaryRow && data.summary) {
-            if (data.summary.status_label) {
-                const statusCell = summaryRow.querySelector(".theme-leads-summary-status");
-                if (statusCell) {
-                    statusCell.textContent = data.summary.status_label;
-                }
-            }
-
-            if (data.summary.name) {
-                const nameEl = summaryRow.querySelector(".theme-leads-name-text");
-                if (nameEl) {
-                    nameEl.textContent = data.summary.name;
-                }
-            }
-
-            const emailCell = summaryRow.querySelector("td:nth-child(3)");
-            let lastResponseEl = summaryRow.querySelector(".theme-leads-last-response");
-
-            if (data.summary.last_response) {
-                if (!lastResponseEl && emailCell) {
-                    lastResponseEl = document.createElement("div");
-                    lastResponseEl.className = "theme-leads-meta theme-leads-last-response";
-                    lastResponseEl.innerHTML = "<small>" + lastResponseLabel + ": " + data.summary.last_response + "</small>";
-                    emailCell.appendChild(lastResponseEl);
-                } else if (lastResponseEl) {
-                    const text = lastResponseLabel + ": " + data.summary.last_response;
-                    const small = lastResponseEl.querySelector("small");
-                    if (small) {
-                        small.textContent = text;
-                    } else {
-                        lastResponseEl.textContent = text;
-                    }
-                }
-            } else if (lastResponseEl) {
-                lastResponseEl.remove();
             }
         }
 
