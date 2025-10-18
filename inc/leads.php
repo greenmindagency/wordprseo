@@ -1100,80 +1100,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</label>';
                 echo '</div>';
 
-                if ( ! empty( $templates ) ) {
-                    echo '<div class="theme-leads-form-group">';
-                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
-                    echo '<select name="lead_template" class="theme-leads-template-select">';
-                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
-                    foreach ( $templates as $slug => $template ) {
-                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
-                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
-                    }
-                    echo '</select>';
-                    echo '</label>';
-                    echo '</div>';
-                }
-
-                echo '<div class="theme-leads-form-group">';
-                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
-                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
-                echo '</label>';
-                echo '</div>';
-
-                if ( ! empty( $templates ) ) {
-                    echo '<div class="theme-leads-form-group">';
-                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
-                    echo '<select name="lead_template" class="theme-leads-template-select">';
-                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
-                    foreach ( $templates as $slug => $template ) {
-                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
-                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
-                    }
-                    echo '</select>';
-                    echo '</label>';
-                    echo '</div>';
-                }
-
-                echo '<div class="theme-leads-form-group">';
-                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
-                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
-                echo '</label>';
-                echo '</div>';
-
-                if ( ! empty( $templates ) ) {
-                    echo '<div class="theme-leads-form-group">';
-                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
-                    echo '<select name="lead_template" class="theme-leads-template-select">';
-                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
-                    foreach ( $templates as $slug => $template ) {
-                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
-                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
-                    }
-                    echo '</select>';
-                    echo '</label>';
-                    echo '</div>';
-                }
-
-                echo '<div class="theme-leads-form-group">';
-                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
-                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
-                echo '</label>';
-                echo '</div>';
-
-                if ( ! empty( $templates ) ) {
-                    echo '<div class="theme-leads-form-group">';
-                    echo '<label>' . esc_html__( 'Template', 'wordprseo' );
-                    echo '<select name="lead_template" class="theme-leads-template-select">';
-                    echo '<option value="">' . esc_html__( 'Select a template', 'wordprseo' ) . '</option>';
-                    foreach ( $templates as $slug => $template ) {
-                        $label = isset( $template['label'] ) ? $template['label'] : $slug;
-                        printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $slug ), selected( $lead->response_template, $slug, false ), esc_html( $label ) );
-                    }
-                    echo '</select>';
-                    echo '</label>';
-                    echo '</div>';
-                }
-
                 echo '<div class="theme-leads-form-group">';
                 echo '<label>' . esc_html__( 'Subject', 'wordprseo' );
                 echo '<input type="text" name="lead_reply_subject" class="widefat" value="' . esc_attr( $lead->response_subject ) . '" />';
@@ -1228,7 +1154,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-toggle-button:focus { outline:2px solid #2271b1; outline-offset:2px; }
                 .theme-leads-summary { cursor:pointer; }
                 .theme-leads-summary.is-open .theme-leads-toggle-button .dashicons { transform:rotate(90deg); }
-                .theme-leads-submitted-text { display:inline-block; min-width:160px; }
+                .theme-leads-submitted-text { display:inline-flex; align-items:center; min-width:160px; }
                 .theme-leads-details { display:none; background:#f9f9f9; }
                 .theme-leads-details.is-open { display:table-row; }
                 .theme-leads-details-inner { padding:20px 16px; }
@@ -1256,6 +1182,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-form-feedback { min-height:20px; font-size:13px; font-weight:500; color:#2271b1; }
                 .theme-leads-form-feedback.is-error { color:#b32d2e; }
                 .theme-leads-form-feedback.is-success { color:#017c3c; }
+                .theme-leads-template-placeholder-buttons { display:flex; flex-direction:column; gap:16px; }
+                .theme-leads-placeholder-section { display:flex; flex-direction:column; gap:8px; }
+                .theme-leads-placeholder-section-title { font-size:11px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; }
+                .theme-leads-placeholder-buttons-grid { display:flex; flex-wrap:wrap; gap:8px; }
+                .theme-leads-placeholder-button { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; border:1px solid #ccd0d4; background:#f6f7f7; cursor:pointer; font-size:12px; line-height:1.4; color:#1d2327; transition:all .2s ease; font-family:inherit; }
+                .theme-leads-placeholder-button:hover, .theme-leads-placeholder-button:focus { background:#2271b1; border-color:#2271b1; color:#fff; outline:0; }
+                .theme-leads-placeholder-empty { font-size:12px; color:#666; }
                 .theme-leads-template-context { display:none; }
                 @keyframes themeLeadsSpin { to { transform:rotate(360deg); } }
             </style>';
@@ -1285,6 +1218,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $template_message_label_json  = wp_json_encode( __( 'Message template', 'wordprseo' ) );
             $whatsapp_label_json          = wp_json_encode( __( 'Send WhatsApp message', 'wordprseo' ) );
             $changes_saved_message_json   = wp_json_encode( __( 'Changes saved.', 'wordprseo' ) );
+            $form_placeholders_heading_json   = wp_json_encode( __( 'Form fields', 'wordprseo' ) );
+            $system_placeholders_heading_json = wp_json_encode( __( 'Lead details', 'wordprseo' ) );
 
             $script = <<<JS
 <script>
@@ -1314,6 +1249,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const templateSaveLabel = {$template_save_button_json};
     const templateDeleteLabel = {$template_delete_button_json};
     const placeholdersLabel = {$placeholders_label_json};
+    const formPlaceholdersLabel = {$form_placeholders_heading_json};
+    const systemPlaceholdersLabel = {$system_placeholders_heading_json};
     const templateNameLabel = {$template_name_label_json};
     const templateDescriptionLabel = {$template_description_label_json};
     const templateSubjectLabel = {$template_subject_label_json};
@@ -1481,7 +1418,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!field) {
             return;
         }
-        if ((field.tagName === "INPUT" || field.tagName === "TEXTAREA") && field.closest(".theme-leads-template-form")) {
+        if ((field.tagName === "INPUT" || field.tagName === "TEXTAREA") && (field.closest(".theme-leads-template-form") || field.closest(".theme-leads-detail-form"))) {
             activeTemplateField = field;
         }
     });
@@ -2051,32 +1988,60 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function gatherPlaceholderTokens() {
-        const defaults = ['%name%', '%email%', '%phone%', '%brand%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%recipient%', '%cc%'];
-        const tokens = new Set(defaults);
+        const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%recipient%', '%cc%'];
+        const systemTokens = new Set(defaultSystemTokens);
+        const formTokens = new Set();
 
         document.querySelectorAll(".theme-leads-template-context").forEach(function(contextEl) {
             if (!contextEl.dataset.placeholders) {
                 return;
             }
+
             try {
-                const list = JSON.parse(contextEl.dataset.placeholders);
-                if (Array.isArray(list)) {
-                    list.forEach(function(token) {
+                const parsed = JSON.parse(contextEl.dataset.placeholders);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(function(token) {
                         if (token) {
-                            tokens.add(token);
+                            systemTokens.add(token);
                         }
                     });
+                } else if (parsed && typeof parsed === "object") {
+                    if (Array.isArray(parsed.system)) {
+                        parsed.system.forEach(function(token) {
+                            if (token) {
+                                systemTokens.add(token);
+                            }
+                        });
+                    }
+                    if (Array.isArray(parsed.form)) {
+                        parsed.form.forEach(function(token) {
+                            if (token) {
+                                formTokens.add(token);
+                            }
+                        });
+                    }
                 }
             } catch (error) {
                 // Ignore invalid placeholder sets.
             }
         });
 
-        return Array.from(tokens).sort();
+        const sections = [];
+        const systemList = Array.from(systemTokens);
+        if (systemList.length) {
+            sections.push({ id: "system", label: systemPlaceholdersLabel, tokens: systemList });
+        }
+
+        const formList = Array.from(formTokens);
+        if (formList.length) {
+            sections.push({ id: "form", label: formPlaceholdersLabel, tokens: formList });
+        }
+
+        return sections;
     }
 
     function refreshTemplatePlaceholderButtons() {
-        const tokens = gatherPlaceholderTokens();
+        const sections = gatherPlaceholderTokens();
         document.querySelectorAll(".theme-leads-template-placeholders").forEach(function(container) {
             const buttonsWrapper = container.querySelector("[data-role='placeholder-buttons']");
             if (!buttonsWrapper) {
@@ -2084,7 +2049,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             buttonsWrapper.innerHTML = "";
 
-            if (!tokens.length) {
+            if (!sections.length) {
                 const empty = document.createElement("span");
                 empty.className = "theme-leads-placeholder-empty";
                 empty.textContent = noPlaceholdersLabel;
@@ -2092,13 +2057,40 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            tokens.forEach(function(token) {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "button-link theme-leads-placeholder-button";
-                button.dataset.placeholder = token;
-                button.textContent = token;
-                buttonsWrapper.appendChild(button);
+            sections.forEach(function(section) {
+                if (!section || !Array.isArray(section.tokens) || !section.tokens.length) {
+                    return;
+                }
+
+                const sectionEl = document.createElement("div");
+                sectionEl.className = "theme-leads-placeholder-section";
+
+                if (section.label) {
+                    const titleEl = document.createElement("div");
+                    titleEl.className = "theme-leads-placeholder-section-title";
+                    titleEl.textContent = section.label;
+                    sectionEl.appendChild(titleEl);
+                }
+
+                const listEl = document.createElement("div");
+                listEl.className = "theme-leads-placeholder-buttons-grid";
+
+                section.tokens.forEach(function(token) {
+                    if (!token) {
+                        return;
+                    }
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "theme-leads-placeholder-button";
+                    button.dataset.placeholder = token;
+                    button.textContent = token;
+                    listEl.appendChild(button);
+                });
+
+                if (listEl.children.length) {
+                    sectionEl.appendChild(listEl);
+                    buttonsWrapper.appendChild(sectionEl);
+                }
             });
         });
     }
@@ -2135,7 +2127,10 @@ document.addEventListener("DOMContentLoaded", function() {
             site_name: "",
             recipient: "",
             cc: "",
-            placeholders: []
+            placeholders: {
+                system: [],
+                form: []
+            }
         };
 
         if (contextEl) {
@@ -2153,9 +2148,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (contextEl.dataset.placeholders) {
                 try {
-                    data.placeholders = JSON.parse(contextEl.dataset.placeholders);
+                    const parsedPlaceholders = JSON.parse(contextEl.dataset.placeholders);
+                    if (Array.isArray(parsedPlaceholders)) {
+                        data.placeholders = { system: parsedPlaceholders, form: [] };
+                    } else if (parsedPlaceholders && typeof parsedPlaceholders === "object") {
+                        const system = Array.isArray(parsedPlaceholders.system) ? parsedPlaceholders.system : [];
+                        const form = Array.isArray(parsedPlaceholders.form) ? parsedPlaceholders.form : [];
+                        data.placeholders = { system: system, form: form };
+                    }
                 } catch (error) {
-                    data.placeholders = [];
+                    data.placeholders = { system: [], form: [] };
                 }
             }
 
@@ -2286,6 +2288,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function handleLeadUpdateSuccess(form, data, feedbackEl, submitAction) {
         const action = submitAction || "save";
+        const leadIdField = form.querySelector("input[name='lead_id']");
+        const leadId = data && data.lead_id ? String(data.lead_id) : (leadIdField ? leadIdField.value : "");
 
         if (feedbackEl) {
             const successMessage = action === "send" ? sendSuccessMessage : changesSavedMessage;
@@ -2360,7 +2364,7 @@ document.addEventListener("DOMContentLoaded", function() {
             updateHistoryBlock(form, data.history_markup);
         }
 
-        updateSummaryRow(data.lead_id, data);
+        updateSummaryRow(leadId, data);
     }
 
     function handleLeadUpdateError(feedbackEl, message) {
@@ -2435,7 +2439,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Ignore JSON errors when updating context payload.
             }
         }
-        if (Array.isArray(context.placeholders)) {
+        if (context.placeholders) {
             try {
                 contextEl.dataset.placeholders = JSON.stringify(context.placeholders);
             } catch (error) {
@@ -2726,7 +2730,7 @@ JS;
                 }
             }
 
-            $context['placeholders'] = $this->build_placeholder_tokens( $context );
+            $context['placeholders'] = $this->build_placeholder_tokens( $context, $payload );
 
             return $context;
         }
@@ -2772,48 +2776,65 @@ JS;
          * Build a list of placeholder tokens available for templates.
          *
          * @param array $context Template context data.
+         * @param array $payload Submission payload data.
          * @return array
          */
-        protected function build_placeholder_tokens( $context ) {
-            $tokens   = array();
-            $core_keys = array( 'name', 'email', 'phone', 'brand', 'status', 'date', 'date_short', 'form_title', 'site_name', 'recipient', 'cc' );
+        protected function build_placeholder_tokens( $context, $payload = array() ) {
+            $system_keys   = array( 'name', 'email', 'phone', 'brand', 'status', 'date', 'date_short', 'form_title', 'site_name', 'recipient', 'cc' );
+            $system_tokens = array();
 
-            foreach ( $core_keys as $key ) {
-                $tokens[] = '%' . $key . '%';
-
-                if ( false !== strpos( $key, '_' ) ) {
-                    $tokens[] = '%' . str_replace( '_', '-', $key ) . '%';
-                }
-
-                if ( false !== strpos( $key, '-' ) ) {
-                    $tokens[] = '%' . str_replace( '-', '_', $key ) . '%';
-                }
+            foreach ( $system_keys as $key ) {
+                $system_tokens = array_merge( $system_tokens, $this->expand_placeholder_variants( $key ) );
             }
 
-            if ( isset( $context['payload'] ) && is_array( $context['payload'] ) ) {
-                foreach ( $context['payload'] as $payload_key => $value ) {
-                    $payload_key = strtolower( (string) $payload_key );
+            $form_tokens = array();
 
-                    if ( '' === $payload_key ) {
+            if ( ! empty( $payload ) && is_array( $payload ) ) {
+                foreach ( $payload as $field_key => $value ) {
+                    $normalised_key = strtolower( (string) $field_key );
+                    $normalised_key = preg_replace( '/[^a-z0-9_\-]/', '', $normalised_key );
+
+                    if ( '' === $normalised_key ) {
                         continue;
                     }
 
-                    $tokens[] = '%' . $payload_key . '%';
-
-                    if ( false !== strpos( $payload_key, '_' ) ) {
-                        $tokens[] = '%' . str_replace( '_', '-', $payload_key ) . '%';
-                    }
-
-                    if ( false !== strpos( $payload_key, '-' ) ) {
-                        $tokens[] = '%' . str_replace( '-', '_', $payload_key ) . '%';
-                    }
+                    $form_tokens = array_merge( $form_tokens, $this->expand_placeholder_variants( $normalised_key ) );
                 }
             }
 
-            $tokens = array_values( array_unique( $tokens ) );
-            sort( $tokens );
+            $system_tokens = array_values( array_unique( $system_tokens ) );
+            $form_tokens   = array_values( array_unique( $form_tokens ) );
 
-            return $tokens;
+            return array(
+                'system' => $system_tokens,
+                'form'   => $form_tokens,
+            );
+        }
+
+        /**
+         * Generate placeholder variants for a given key.
+         *
+         * @param string $key Base placeholder key.
+         * @return array
+         */
+        protected function expand_placeholder_variants( $key ) {
+            $variants = array();
+
+            if ( '' === $key ) {
+                return $variants;
+            }
+
+            $variants[] = '%' . $key . '%';
+
+            if ( false !== strpos( $key, '_' ) ) {
+                $variants[] = '%' . str_replace( '_', '-', $key ) . '%';
+            }
+
+            if ( false !== strpos( $key, '-' ) ) {
+                $variants[] = '%' . str_replace( '-', '_', $key ) . '%';
+            }
+
+            return $variants;
         }
 
         /**
