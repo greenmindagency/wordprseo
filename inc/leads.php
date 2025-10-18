@@ -1360,8 +1360,21 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             submitButtons.forEach(function(button) {
-                button.addEventListener("click", function() {
+                button.addEventListener("click", function(event) {
                     form._themeLeadsLastSubmitter = button;
+
+                    if (!ajaxUrl) {
+                        return;
+                    }
+
+                    if (form._themeLeadsSubmitting) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    const actionValue = button.value === "send" ? "send" : "save";
+                    event.preventDefault();
+                    submitLeadViaAjax(form, button, feedbackEl, actionValue);
                 });
             });
         }
@@ -1426,6 +1439,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             if (!submitter) {
+                return;
+            }
+
+            if (form._themeLeadsSubmitting) {
+                event.preventDefault();
                 return;
             }
 
@@ -2251,12 +2269,28 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function submitLeadViaAjax(form, submitter, feedbackEl, submitAction) {
-        const formData = new FormData(form);
+        form._themeLeadsSubmitting = true;
+
+        let formData;
+        if (submitter) {
+            try {
+                formData = new FormData(form, submitter);
+            } catch (error) {
+                formData = new FormData(form);
+            }
+        } else {
+            formData = new FormData(form);
+        }
         formData.set("action", "theme_leads_update");
         if (submitAction) {
             formData.set("lead_submit_action", submitAction);
         } else if (!formData.get("lead_submit_action")) {
             formData.set("lead_submit_action", "save");
+        }
+
+        const nonceValue = formData.get("_wpnonce");
+        if (nonceValue && !formData.get("_ajax_nonce")) {
+            formData.set("_ajax_nonce", nonceValue);
         }
 
         if (feedbackEl) {
@@ -2307,6 +2341,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                     setBusyState(submitter, false);
                 }
+                form._themeLeadsSubmitting = false;
             });
     }
 
