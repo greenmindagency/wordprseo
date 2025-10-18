@@ -229,6 +229,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             $has_client_name  = array_key_exists( 'lead_client_name', $request );
             $has_client_phone = array_key_exists( 'lead_client_phone', $request );
+            $has_client_link  = array_key_exists( 'lead_client_link', $request );
             $has_brand        = array_key_exists( 'lead_brand', $request );
             $has_subject      = array_key_exists( 'lead_reply_subject', $request );
             $has_message      = array_key_exists( 'lead_reply', $request );
@@ -237,6 +238,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             $client_name  = $has_client_name ? sanitize_text_field( wp_unslash( $request['lead_client_name'] ) ) : null;
             $client_phone = $has_client_phone ? sanitize_text_field( wp_unslash( $request['lead_client_phone'] ) ) : null;
+            $client_link  = $has_client_link ? $this->normalise_link_value( wp_unslash( $request['lead_client_link'] ) ) : null;
             $client_brand = $has_brand ? sanitize_text_field( wp_unslash( $request['lead_brand'] ) ) : null;
             $reply_subj   = $has_subject ? sanitize_text_field( wp_unslash( $request['lead_reply_subject'] ) ) : null;
             $reply_body   = $has_message ? wp_kses_post( wp_unslash( $request['lead_reply'] ) ) : null;
@@ -264,6 +266,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $resolved_client_name  = null !== $client_name ? $client_name : ( ! empty( $lead->response_client_name ) ? $lead->response_client_name : $this->extract_contact_name( $payload ) );
             $resolved_client_phone = null !== $client_phone ? $client_phone : ( ! empty( $lead->response_phone ) ? $lead->response_phone : $this->extract_phone_from_payload( $payload ) );
             $resolved_brand        = null !== $client_brand ? $client_brand : ( ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload ) );
+            $resolved_link         = null !== $client_link ? $client_link : ( ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload ) );
             $resolved_subject      = null !== $reply_subj ? $reply_subj : ( ! empty( $lead->response_subject ) ? $lead->response_subject : '' );
             $resolved_message      = null !== $reply_body ? $reply_body : ( ! empty( $lead->response ) ? $lead->response : '' );
             $resolved_template     = null !== $template_key ? $template_key : ( ! empty( $lead->response_template ) ? sanitize_key( $lead->response_template ) : '' );
@@ -286,6 +289,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             if ( $has_client_phone ) {
                 $data['response_phone'] = $client_phone;
                 $format[]               = '%s';
+            }
+
+            if ( $has_client_link ) {
+                $data['response_link'] = $client_link;
+                $format[]              = '%s';
             }
 
             if ( $has_brand ) {
@@ -365,8 +373,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     return new WP_Error( 'theme_leads_missing_recipient', __( 'Please provide at least one email address.', 'wordprseo' ) );
                 }
 
-                $prepared_subject    = $this->apply_template_placeholders( $resolved_subject, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $recipient_emails );
-                $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $recipient_emails );
+                $prepared_subject    = $this->apply_template_placeholders( $resolved_subject, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
+                $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
                 $prepared_recipients = $recipient_emails;
 
                 $contact_form = $this->get_contact_form_by_slug( $form_slug );
@@ -487,6 +495,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 'status'         => $updated_lead->status,
                 'note'           => $updated_lead->note,
                 'brand'          => $updated_lead->response_brand,
+                'link'           => $updated_lead->response_link,
                 'template'       => $updated_lead->response_template,
                 'context'        => $updated_context,
                 'response'       => array(
@@ -637,7 +646,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $label           = isset( $request['template_label'] ) ? sanitize_text_field( wp_unslash( $request['template_label'] ) ) : '';
             $subject         = isset( $request['template_subject'] ) ? sanitize_text_field( wp_unslash( $request['template_subject'] ) ) : '';
             $body            = isset( $request['template_body'] ) ? wp_kses_post( wp_unslash( $request['template_body'] ) ) : '';
-            $description     = isset( $request['template_description'] ) ? sanitize_textarea_field( wp_unslash( $request['template_description'] ) ) : '';
+            $has_description = array_key_exists( 'template_description', $request );
+            $description     = $has_description ? sanitize_textarea_field( wp_unslash( $request['template_description'] ) ) : null;
             $slug            = isset( $request['template_slug'] ) ? sanitize_key( wp_unslash( $request['template_slug'] ) ) : '';
 
             if ( empty( $label ) || empty( $subject ) || empty( $body ) ) {
@@ -664,12 +674,19 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $slug = sanitize_key( uniqid( 'template_', true ) );
             }
 
+            $previous_description = isset( $templates[ $slug ]['description'] ) ? $templates[ $slug ]['description'] : '';
+
             $templates[ $slug ] = array(
-                'label'       => $label,
-                'subject'     => $subject,
-                'body'        => $body,
-                'description' => $description,
+                'label'   => $label,
+                'subject' => $subject,
+                'body'    => $body,
             );
+
+            if ( null !== $description ) {
+                $templates[ $slug ]['description'] = $description;
+            } elseif ( '' !== $previous_description ) {
+                $templates[ $slug ]['description'] = $previous_description;
+            }
 
             $this->save_templates( $templates );
 
@@ -750,17 +767,19 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</select>';
             echo '</form>';
 
+            echo '<div class="theme-leads-toolbar-actions">';
             echo '<button type="button" class="button theme-leads-template-toggle" aria-expanded="false">';
             echo '<span class="dashicons dashicons-admin-generic" aria-hidden="true"></span>';
             echo '<span class="screen-reader-text">' . esc_html__( 'Manage templates', 'wordprseo' ) . '</span>';
             echo '</button>';
             echo '</div>';
+            echo '</div>';
 
-            echo '<div class="theme-leads-template-panel" aria-hidden="true">';
+            echo '<div class="theme-leads-template-panel" aria-hidden="true" hidden>';
             echo '<div class="theme-leads-template-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Response templates', 'wordprseo' ) . '</h2>';
-            echo '<p>' . esc_html__( 'Use placeholders like %name%, %email%, %phone%, %brand%, %date%, %form_title%, or any Contact Form 7 field key (for example %your-name%) to personalise messages automatically.', 'wordprseo' ) . '</p>';
+            echo '<p>' . esc_html__( 'Use placeholders like %name%, %email%, %phone%, %brand%, %link%, %site_title%, %date%, %form_title%, or any Contact Form 7 field key (for example %your-name%) to personalise messages automatically.', 'wordprseo' ) . '</p>';
             echo '<p class="description">' . esc_html__( 'Available placeholders are pulled from the submission details of the lead you are viewing. Click a placeholder to insert it.', 'wordprseo' ) . '</p>';
 
             echo '<div class="theme-leads-template-list" data-role="template-list">';
@@ -770,14 +789,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $label       = isset( $template['label'] ) ? $template['label'] : $slug;
                     $subject_tpl = isset( $template['subject'] ) ? $template['subject'] : '';
                     $body_tpl    = isset( $template['body'] ) ? $template['body'] : '';
-                    $desc        = isset( $template['description'] ) ? $template['description'] : '';
 
                     echo '<details class="theme-leads-template-card" data-template="' . esc_attr( $slug ) . '">';
                     echo '<summary class="theme-leads-template-card-summary">';
                     echo '<span class="theme-leads-template-card-title">' . esc_html( $label ) . '</span>';
-                    if ( ! empty( $desc ) ) {
-                        echo '<span class="theme-leads-template-card-summary-desc">' . esc_html( $desc ) . '</span>';
-                    }
                     echo '<span class="theme-leads-template-card-toggle-icon dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>';
                     echo '</summary>';
                     echo '<div class="theme-leads-template-card-body">';
@@ -792,8 +807,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     echo '</div>';
                     echo '<p><label>' . esc_html__( 'Template name', 'wordprseo' ) . '<br />';
                     echo '<input type="text" name="template_label" class="widefat" value="' . esc_attr( $label ) . '" required /></label></p>';
-                    echo '<p><label>' . esc_html__( 'Description', 'wordprseo' ) . '<br />';
-                    echo '<textarea name="template_description" class="widefat" rows="2">' . esc_textarea( $desc ) . '</textarea></label></p>';
                     echo '<p><label>' . esc_html__( 'Subject template', 'wordprseo' ) . '<br />';
                     echo '<input type="text" name="template_subject" class="widefat" value="' . esc_attr( $subject_tpl ) . '" required /></label></p>';
                     echo '<p><label>' . esc_html__( 'Message template', 'wordprseo' ) . '<br />';
@@ -831,10 +844,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</div>';
             echo '<p><label>' . esc_html__( 'Template name', 'wordprseo' ) . '<br />';
             echo '<input type="text" name="template_label" class="widefat" required /></label></p>';
-            echo '<p><label>' . esc_html__( 'Custom key (optional)', 'wordprseo' ) . '<br />';
-            echo '<input type="text" name="template_slug" class="widefat" /></label></p>';
-            echo '<p><label>' . esc_html__( 'Description', 'wordprseo' ) . '<br />';
-            echo '<textarea name="template_description" class="widefat" rows="2"></textarea></label></p>';
             echo '<p><label>' . esc_html__( 'Subject template', 'wordprseo' ) . '<br />';
             echo '<input type="text" name="template_subject" class="widefat" required /></label></p>';
             echo '<p><label>' . esc_html__( 'Message template', 'wordprseo' ) . '<br />';
@@ -859,9 +868,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             $contact_form = $this->get_contact_form_by_slug( $form_slug );
             $table        = $contact_form ? $this->get_table_name( $contact_form ) : $this->get_table_name_from_slug( $form_slug );
-
-            // Make sure legacy installations upgrade their lead tables when the admin page is viewed.
-            $this->maybe_create_table( $table );
 
             global $wpdb;
 
@@ -904,6 +910,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $client_name_value = ! empty( $lead->response_client_name ) ? $lead->response_client_name : ( $lead_name ? $lead_name : '' );
                 $client_phone_value = ! empty( $lead->response_phone ) ? $lead->response_phone : ( $lead_phone ? $lead_phone : '' );
                 $client_brand_value = ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload );
+                $client_link_value  = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
+                $client_link_value  = $this->normalise_link_value( $client_link_value );
                 $stored_recipients = array();
 
                 if ( ! empty( $lead->response_recipients ) ) {
@@ -922,7 +930,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $stored_recipients[] = $lead->email;
                 }
 
-                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value );
+                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value, $client_link_value );
                 $context_attr_string    = '';
 
                 foreach ( $template_context_attrs as $attr_key => $attr_value ) {
@@ -1075,6 +1083,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</label>';
                 echo '</div>';
 
+                echo '<div class="theme-leads-form-group">';
+                echo '<label>' . esc_html__( 'Link', 'wordprseo' );
+                echo '<input type="url" name="lead_client_link" class="widefat" value="' . esc_attr( $client_link_value ) . '" placeholder="https://" />';
+                echo '</label>';
+                echo '</div>';
+
                 echo '<div class="theme-leads-form-group theme-leads-email-group">';
                 echo '<label>' . esc_html__( 'Client emails', 'wordprseo' );
                 echo '<span class="theme-leads-field-help">' . esc_html__( 'Use + to add CC recipients.', 'wordprseo' ) . '</span>';
@@ -1099,6 +1113,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<input type="text" name="lead_client_phone" class="widefat" value="' . esc_attr( $client_phone_value ) . '" />';
                 echo '</label>';
                 echo '</div>';
+
+                echo '<hr class="theme-leads-field-divider" />';
 
                 if ( ! empty( $templates ) ) {
                     echo '<div class="theme-leads-form-group">';
@@ -1147,7 +1163,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             echo '<style>
-                .theme-leads-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
+                .theme-leads-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+                .theme-leads-toolbar-actions { margin-left:auto; display:flex; align-items:center; }
                 .theme-leads-form-selector { display:flex; align-items:center; gap:8px; }
                 .theme-leads-form-selector select { min-width:220px; }
                 .theme-leads-template-toggle { display:flex; align-items:center; gap:6px; }
@@ -1194,6 +1211,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-email-remove { color:#dc3232; }
                 .theme-leads-email-remove[hidden] { display:none; }
                 .theme-leads-form-actions { display:flex; gap:8px; margin-top:8px; }
+                .theme-leads-field-divider { border:0; border-top:1px solid #dcdcde; margin:8px 0 16px; }
                 .theme-leads-form-feedback { min-height:20px; font-size:13px; font-weight:500; color:#2271b1; }
                 .theme-leads-form-feedback.is-error { color:#b32d2e; }
                 .theme-leads-form-feedback.is-success { color:#017c3c; }
@@ -1228,7 +1246,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $template_delete_button_json  = wp_json_encode( __( 'Delete template', 'wordprseo' ) );
             $placeholders_label_json      = wp_json_encode( __( 'Placeholders', 'wordprseo' ) );
             $template_name_label_json     = wp_json_encode( __( 'Template name', 'wordprseo' ) );
-            $template_description_label_json = wp_json_encode( __( 'Description', 'wordprseo' ) );
             $template_subject_label_json  = wp_json_encode( __( 'Subject template', 'wordprseo' ) );
             $template_message_label_json  = wp_json_encode( __( 'Message template', 'wordprseo' ) );
             $whatsapp_label_json          = wp_json_encode( __( 'Send WhatsApp message', 'wordprseo' ) );
@@ -1267,7 +1284,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const formPlaceholdersLabel = {$form_placeholders_heading_json};
     const systemPlaceholdersLabel = {$system_placeholders_heading_json};
     const templateNameLabel = {$template_name_label_json};
-    const templateDescriptionLabel = {$template_description_label_json};
     const templateSubjectLabel = {$template_subject_label_json};
     const templateMessageLabel = {$template_message_label_json};
     const whatsappLabel = {$whatsapp_label_json};
@@ -1287,6 +1303,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         templateToggle.setAttribute("aria-expanded", open ? "true" : "false");
         templatePanel.setAttribute("aria-hidden", open ? "false" : "true");
+        if (open) {
+            templatePanel.removeAttribute("hidden");
+        } else {
+            templatePanel.setAttribute("hidden", "hidden");
+        }
         if (open) {
             refreshTemplatePlaceholderButtons();
         }
@@ -1312,6 +1333,8 @@ document.addEventListener("DOMContentLoaded", function() {
             setTemplatePanel(false);
         }
     });
+
+    setTemplatePanel(false);
 
     const rows = document.querySelectorAll(".theme-leads-summary");
     rows.forEach(function(row) {
@@ -1822,27 +1845,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (title) {
             title.textContent = templateData.label || card.dataset.template || "";
         }
-        const desc = card.querySelector(".theme-leads-template-card-summary-desc");
-        if (desc) {
-            desc.textContent = templateData.description || "";
-            desc.hidden = !templateData.description;
-        } else if (templateData.description) {
-            const summary = card.querySelector(".theme-leads-template-card-summary");
-            if (summary) {
-                const descSpan = document.createElement("span");
-                descSpan.className = "theme-leads-template-card-summary-desc";
-                descSpan.textContent = templateData.description;
-                summary.insertBefore(descSpan, summary.querySelector(".theme-leads-template-card-toggle-icon"));
-            }
-        }
-
         const labelField = card.querySelector("input[name='template_label']");
         if (labelField) {
             labelField.value = templateData.label || "";
-        }
-        const descField = card.querySelector("textarea[name='template_description']");
-        if (descField) {
-            descField.value = templateData.description || "";
         }
         const subjectField = card.querySelector("input[name='template_subject']");
         if (subjectField) {
@@ -1867,13 +1872,6 @@ document.addEventListener("DOMContentLoaded", function() {
         title.className = "theme-leads-template-card-title";
         title.textContent = templateData.label || slug;
         summary.appendChild(title);
-
-        if (templateData.description) {
-            const desc = document.createElement("span");
-            desc.className = "theme-leads-template-card-summary-desc";
-            desc.textContent = templateData.description;
-            summary.appendChild(desc);
-        }
 
         const icon = document.createElement("span");
         icon.className = "theme-leads-template-card-toggle-icon dashicons dashicons-arrow-down-alt2";
@@ -1942,13 +1940,6 @@ document.addEventListener("DOMContentLoaded", function() {
         nameInput.required = true;
         nameInput.value = templateData.label || "";
         form.appendChild(createLabeledField(templateNameLabel, nameInput));
-
-        const descField = document.createElement("textarea");
-        descField.name = "template_description";
-        descField.className = "widefat";
-        descField.rows = 2;
-        descField.value = templateData.description || "";
-        form.appendChild(createLabeledField(templateDescriptionLabel, descField));
 
         const subjectInput = document.createElement("input");
         subjectInput.type = "text";
@@ -2045,7 +2036,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function gatherPlaceholderTokens() {
-        const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%recipient%', '%cc%'];
+        const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%link%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%site_title%', '%recipient%', '%cc%'];
         const systemTokens = new Set(defaultSystemTokens);
         const formTokens = new Set();
 
@@ -2177,11 +2168,13 @@ document.addEventListener("DOMContentLoaded", function() {
             email: "",
             phone: "",
             brand: "",
+            link: "",
             status: "",
             date: "",
             form_title: "",
             date_short: "",
             site_name: "",
+            site_title: "",
             recipient: "",
             cc: "",
             placeholders: {
@@ -2195,11 +2188,13 @@ document.addEventListener("DOMContentLoaded", function() {
             data.email = contextEl.dataset.email || "";
             data.phone = contextEl.dataset.phone || "";
             data.brand = contextEl.dataset.brand || "";
+            data.link = contextEl.dataset.link || "";
             data.status = contextEl.dataset.status || "";
             data.date = contextEl.dataset.date || "";
             data.form_title = contextEl.dataset.formTitle || "";
             data.date_short = contextEl.dataset.dateShort || "";
             data.site_name = contextEl.dataset.siteName || "";
+            data.site_title = contextEl.dataset.siteTitle || contextEl.dataset.siteName || "";
             data.recipient = contextEl.dataset.recipient || "";
             data.cc = contextEl.dataset.cc || "";
 
@@ -2254,6 +2249,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const brandField = form.querySelector("input[name='lead_brand']");
         if (brandField && brandField.value) {
             data.brand = brandField.value;
+        }
+
+        const linkField = form.querySelector("input[name='lead_client_link']");
+        if (linkField && linkField.value) {
+            data.link = linkField.value;
         }
 
         const nameField = form.querySelector("input[name='lead_client_name']");
@@ -2429,6 +2429,13 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
+        if (data.context && Object.prototype.hasOwnProperty.call(data.context, "link")) {
+            const linkField = form.querySelector("input[name='lead_client_link']");
+            if (linkField) {
+                linkField.value = data.context.link || "";
+            }
+        }
+
         if (data.context) {
             updateContextElement(form, data.context);
             refreshTemplatePlaceholderButtons();
@@ -2485,6 +2492,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (Object.prototype.hasOwnProperty.call(context, "brand")) {
             contextEl.dataset.brand = context.brand || "";
         }
+        if (Object.prototype.hasOwnProperty.call(context, "link")) {
+            contextEl.dataset.link = context.link || "";
+        }
         if (Object.prototype.hasOwnProperty.call(context, "status")) {
             contextEl.dataset.status = context.status || "";
         }
@@ -2499,6 +2509,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         if (Object.prototype.hasOwnProperty.call(context, "site_name")) {
             contextEl.dataset.siteName = context.site_name || "";
+        }
+        if (Object.prototype.hasOwnProperty.call(context, "site_title")) {
+            contextEl.dataset.siteTitle = context.site_title || "";
         }
         if (Object.prototype.hasOwnProperty.call(context, "recipient")) {
             contextEl.dataset.recipient = context.recipient || "";
@@ -2846,16 +2859,21 @@ JS;
         protected function build_template_context_data( $lead, $payload ) {
             $submitted_at = ! empty( $lead->submitted_at ) ? $lead->submitted_at : current_time( 'mysql' );
 
+            $stored_link = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
+            $stored_link = $this->normalise_link_value( $stored_link );
+
             $context = array(
                 'name'       => ! empty( $lead->response_client_name ) ? $lead->response_client_name : $this->extract_contact_name( $payload ),
                 'email'      => ! empty( $lead->email ) ? sanitize_email( $lead->email ) : '',
                 'phone'      => ! empty( $lead->response_phone ) ? $lead->response_phone : $this->extract_phone_from_payload( $payload ),
                 'brand'      => ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload ),
+                'link'       => $stored_link,
                 'status'     => ! empty( $lead->status ) ? $lead->status : 'new',
                 'date'       => mysql2date( 'Y-m-d\TH:i:sP', $submitted_at ),
                 'date_short' => mysql2date( 'd/m/Y', $submitted_at ),
                 'form_title' => ! empty( $lead->form_title ) ? $lead->form_title : '',
                 'site_name'  => get_bloginfo( 'name' ),
+                'site_title' => get_bloginfo( 'name' ),
                 'payload'    => $this->prepare_payload_for_js( $payload ),
                 'recipient'  => '',
                 'cc'         => '',
@@ -2931,7 +2949,7 @@ JS;
          * @return array
          */
         protected function build_placeholder_tokens( $context, $payload = array() ) {
-            $system_keys   = array( 'name', 'email', 'phone', 'brand', 'status', 'date', 'date_short', 'form_title', 'site_name', 'recipient', 'cc' );
+            $system_keys   = array( 'name', 'email', 'phone', 'brand', 'link', 'status', 'date', 'date_short', 'form_title', 'site_name', 'site_title', 'recipient', 'cc' );
             $system_tokens = array();
 
             foreach ( $system_keys as $key ) {
@@ -2995,9 +3013,11 @@ JS;
          * @param array  $payload           Submission payload.
          * @param string $client_name_value Client name override.
          * @param string $client_phone      Client phone override.
+         * @param string $client_brand      Client brand override.
+         * @param string $client_link       Client link override.
          * @return array
          */
-        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '' ) {
+        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '', $client_link = '' ) {
             $context = $this->build_template_context_data( $lead, $payload );
 
             if ( ! empty( $client_name_value ) ) {
@@ -3012,16 +3032,22 @@ JS;
                 $context['brand'] = $client_brand;
             }
 
+            if ( ! empty( $client_link ) ) {
+                $context['link'] = $this->normalise_link_value( $client_link );
+            }
+
             $attrs = array(
                 'data-name'       => esc_attr( $context['name'] ),
                 'data-email'      => esc_attr( $context['email'] ),
                 'data-phone'      => esc_attr( $context['phone'] ),
                 'data-brand'      => esc_attr( $context['brand'] ),
+                'data-link'       => esc_attr( $context['link'] ),
                 'data-status'     => esc_attr( $context['status'] ),
                 'data-date'       => esc_attr( $context['date'] ),
                 'data-date-short' => esc_attr( $context['date_short'] ),
                 'data-form-title' => esc_attr( $context['form_title'] ),
-                'data-site-name'  => esc_attr( get_bloginfo( 'name' ) ),
+                'data-site-name'  => esc_attr( $context['site_name'] ),
+                'data-site-title' => esc_attr( $context['site_title'] ),
                 'data-recipient'  => esc_attr( $context['recipient'] ),
                 'data-cc'         => esc_attr( $context['cc'] ),
             );
@@ -3109,10 +3135,11 @@ JS;
          * @param string $client_name       Client name override.
          * @param string $client_phone      Client phone override.
          * @param string $client_brand      Client brand override.
+         * @param string $client_link       Client link override.
          * @param array  $recipient_emails  Recipient email list.
          * @return string
          */
-        protected function apply_template_placeholders( $content, $lead, $payload, $client_name, $client_phone, $client_brand, $recipient_emails ) {
+        protected function apply_template_placeholders( $content, $lead, $payload, $client_name, $client_phone, $client_brand, $client_link, $recipient_emails ) {
             if ( empty( $content ) ) {
                 return $content;
             }
@@ -3135,16 +3162,22 @@ JS;
                 $client_brand = $lead && ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload );
             }
 
+            if ( empty( $client_link ) ) {
+                $client_link = $lead && ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
+            }
+
             $replacements = array(
                 '%name%'        => $client_name,
                 '%email%'       => $lead_email,
                 '%phone%'       => $client_phone,
                 '%brand%'       => $client_brand,
+                '%link%'        => $client_link,
                 '%status%'      => $lead ? $lead->status : '',
                 '%date%'        => $lead ? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $lead->submitted_at ) : '',
                 '%date_short%'  => $lead ? mysql2date( 'd/m/Y', $lead->submitted_at ) : '',
                 '%form_title%'  => $lead ? $lead->form_title : '',
                 '%site_name%'   => get_bloginfo( 'name' ),
+                '%site_title%'  => get_bloginfo( 'name' ),
             );
 
             if ( ! empty( $recipient_emails ) ) {
@@ -3307,6 +3340,55 @@ JS;
         }
 
         /**
+         * Attempt to extract a link or website URL from the payload.
+         *
+         * @param array $payload Submission payload.
+         * @return string
+         */
+        protected function extract_link_from_payload( $payload ) {
+            if ( empty( $payload ) || ! is_array( $payload ) ) {
+                return '';
+            }
+
+            $candidates = array(
+                'link',
+                'link_url',
+                'website',
+                'website_url',
+                'website-link',
+                'site',
+                'site_url',
+                'site-link',
+                'url',
+                'page_url',
+                'portfolio',
+                'portfolio_url',
+                'profile',
+                'profile_url',
+            );
+
+            $value = $this->find_payload_value( $payload, $candidates );
+
+            if ( $value ) {
+                $normalised = $this->normalise_link_value( $value );
+                if ( $normalised ) {
+                    return $normalised;
+                }
+            }
+
+            foreach ( $payload as $key => $item ) {
+                if ( preg_match( '/link|url|site|web|page|portfolio|profile/i', $key ) ) {
+                    $normalised = $this->normalise_link_value( $item );
+                    if ( $normalised ) {
+                        return $normalised;
+                    }
+                }
+            }
+
+            return '';
+        }
+
+        /**
          * Attempt to extract a brand or company name from the payload.
          *
          * @param array $payload Submission payload.
@@ -3401,6 +3483,41 @@ JS;
             $value = trim( (string) $value );
 
             return $value;
+        }
+
+        /**
+         * Normalise a user-supplied link value into a clean URL string.
+         *
+         * @param mixed $value Raw value.
+         * @return string
+         */
+        protected function normalise_link_value( $value ) {
+            if ( is_array( $value ) ) {
+                $value = implode( ' ', array_filter( $value ) );
+            }
+
+            $value = wp_strip_all_tags( (string) $value );
+            $value = trim( $value );
+            $value = trim( $value, "\"'<>[]()" );
+
+            if ( '' === $value ) {
+                return '';
+            }
+
+            if ( 0 === strpos( $value, '//' ) ) {
+                $value = 'https:' . $value;
+            }
+
+            if ( preg_match( '#^[a-z][a-z0-9+\-.]*://#i', $value ) ) {
+                return esc_url_raw( $value );
+            }
+
+            if ( preg_match( '/^[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}(\/.*)?$/', $value ) ) {
+                $value = 'https://' . $value;
+                return esc_url_raw( $value );
+            }
+
+            return esc_url_raw( $value );
         }
 
         /**
@@ -3774,6 +3891,7 @@ JS;
                 response_subject varchar(255) DEFAULT '',
                 response_sent datetime DEFAULT NULL,
                 response_client_name varchar(190) DEFAULT '',
+                response_link varchar(255) DEFAULT '',
                 response_phone varchar(100) DEFAULT '',
                 response_brand varchar(190) DEFAULT '',
                 response_recipients longtext,
@@ -3795,6 +3913,7 @@ JS;
                 'response_subject',
                 'response_sent',
                 'response_client_name',
+                'response_link',
                 'response_phone',
                 'response_brand',
                 'response_recipients',
