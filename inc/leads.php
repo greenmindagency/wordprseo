@@ -3447,7 +3447,17 @@ JS;
                 return;
             }
 
-            $required_columns = array( 'response_phone', 'response_brand', 'response_recipients', 'response_template' );
+            $required_columns = array(
+                'note',
+                'response',
+                'response_subject',
+                'response_sent',
+                'response_client_name',
+                'response_phone',
+                'response_brand',
+                'response_recipients',
+                'response_template',
+            );
             $needs_update      = false;
 
             foreach ( $required_columns as $column_name ) {
