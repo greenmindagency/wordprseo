@@ -219,6 +219,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return new WP_Error( 'theme_leads_missing_table', __( 'The lead storage table could not be found.', 'wordprseo' ) );
             }
 
+            // Ensure the table schema is up to date before attempting to store additional lead details.
+            $this->maybe_create_table( $table );
+
             $status        = isset( $request['lead_status'] ) ? sanitize_text_field( wp_unslash( $request['lead_status'] ) ) : 'new';
             $submit_action = isset( $request['lead_submit_action'] ) ? sanitize_key( wp_unslash( $request['lead_submit_action'] ) ) : 'save';
 
@@ -859,6 +862,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</div>';
                 return;
             }
+
+            // Make sure legacy installations upgrade their lead tables when the admin page is viewed.
+            $this->maybe_create_table( $table );
 
             global $wpdb;
 
