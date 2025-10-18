@@ -2037,6 +2037,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function gatherPlaceholderTokens() {
         const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%link%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%site_title%', '%recipient%', '%cc%'];
+        const displaySystemTokens = ['%brand%', '%link%', '%status%', '%site_title%'];
         const systemTokens = new Set(defaultSystemTokens);
         const formTokens = new Set();
 
@@ -2075,7 +2076,9 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         const sections = [];
-        const systemList = Array.from(systemTokens);
+        const systemList = displaySystemTokens.filter(function(token) {
+            return systemTokens.has(token);
+        });
         if (systemList.length) {
             sections.push({ id: "system", label: systemPlaceholdersLabel, tokens: systemList });
         }
