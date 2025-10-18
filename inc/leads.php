@@ -1050,6 +1050,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<h3>' . esc_html__( 'Update & respond', 'wordprseo' ) . '</h3>';
 
                 echo '<div class="theme-leads-form-group">';
+                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
+                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
+                echo '</label>';
+                echo '</div>';
+
+                echo '<div class="theme-leads-form-group">';
                 echo '<label>' . esc_html__( 'Client name', 'wordprseo' );
                 echo '<input type="text" name="lead_client_name" class="widefat" value="' . esc_attr( $client_name_value ) . '" />';
                 echo '</label>';
@@ -1093,12 +1099,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     echo '</label>';
                     echo '</div>';
                 }
-
-                echo '<div class="theme-leads-form-group">';
-                echo '<label>' . esc_html__( 'Brand name', 'wordprseo' );
-                echo '<input type="text" name="lead_brand" class="widefat" value="' . esc_attr( $client_brand_value ) . '" />';
-                echo '</label>';
-                echo '</div>';
 
                 echo '<div class="theme-leads-form-group">';
                 echo '<label>' . esc_html__( 'Subject', 'wordprseo' );
@@ -1349,6 +1349,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const subjectField = form.querySelector("input[name=\"lead_reply_subject\"]");
         const messageField = form.querySelector("textarea[name=\"lead_reply\"]");
         const feedbackEl = form.querySelector(".theme-leads-form-feedback");
+        const submitButtons = form.querySelectorAll("button[name='lead_submit_action']");
+
+        if (submitButtons.length) {
+            const defaultButton = Array.prototype.find.call(submitButtons, function(button) {
+                return button.value === "save";
+            });
+            if (defaultButton) {
+                form._themeLeadsLastSubmitter = defaultButton;
+            }
+
+            submitButtons.forEach(function(button) {
+                button.addEventListener("click", function() {
+                    form._themeLeadsLastSubmitter = button;
+                });
+            });
+        }
 
         if (emailFields) {
             emailFields.addEventListener("click", function(event) {
@@ -1396,12 +1412,20 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         form.addEventListener("submit", function(event) {
-            const submitter = event.submitter || document.activeElement;
-            if (!submitter || submitter.name !== "lead_submit_action") {
+            if (!ajaxUrl) {
                 return;
             }
 
-            if (!ajaxUrl) {
+            let submitter = event.submitter || document.activeElement;
+            if (!submitter || submitter.form !== form) {
+                submitter = null;
+            }
+
+            if (!submitter || submitter.name !== "lead_submit_action") {
+                submitter = form._themeLeadsLastSubmitter || form.querySelector("button[name='lead_submit_action'][value='save']");
+            }
+
+            if (!submitter) {
                 return;
             }
 
