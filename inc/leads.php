@@ -25,6 +25,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
+            $this->maybe_create_templates_table();
+
             add_action( 'wpcf7_before_send_mail', array( $this, 'capture_submission' ), 10, 3 );
 
             if ( is_admin() ) {
@@ -2677,23 +2679,31 @@ JS;
          * @return array
          */
         protected function get_templates() {
-            $templates = get_option( 'theme_leads_templates', array() );
+            global $wpdb;
 
-            if ( empty( $templates ) || ! is_array( $templates ) ) {
+            $table = $this->get_templates_table_name();
+            $this->maybe_create_templates_table();
+
+            $rows = $wpdb->get_results( "SELECT slug, label, subject, body, description FROM {$table} ORDER BY label ASC" );
+
+            if ( empty( $rows ) ) {
                 return array();
             }
 
-            foreach ( $templates as $slug => $template ) {
-                if ( ! is_array( $template ) ) {
-                    unset( $templates[ $slug ] );
+            $templates = array();
+
+            foreach ( $rows as $row ) {
+                $slug = sanitize_key( $row->slug );
+
+                if ( empty( $slug ) ) {
                     continue;
                 }
 
                 $templates[ $slug ] = array(
-                    'label'       => isset( $template['label'] ) ? sanitize_text_field( $template['label'] ) : $slug,
-                    'subject'     => isset( $template['subject'] ) ? (string) $template['subject'] : '',
-                    'body'        => isset( $template['body'] ) ? (string) $template['body'] : '',
-                    'description' => isset( $template['description'] ) ? sanitize_textarea_field( $template['description'] ) : '',
+                    'label'       => sanitize_text_field( $row->label ),
+                    'subject'     => isset( $row->subject ) ? (string) $row->subject : '',
+                    'body'        => isset( $row->body ) ? (string) $row->body : '',
+                    'description' => isset( $row->description ) ? sanitize_textarea_field( $row->description ) : '',
                 );
             }
 
@@ -2706,7 +2716,76 @@ JS;
          * @param array $templates Templates to store.
          */
         protected function save_templates( $templates ) {
-            update_option( 'theme_leads_templates', $templates );
+            global $wpdb;
+
+            $table = $this->get_templates_table_name();
+            $this->maybe_create_templates_table();
+
+            if ( empty( $templates ) || ! is_array( $templates ) ) {
+                $wpdb->query( "DELETE FROM {$table}" );
+                return;
+            }
+
+            $existing_rows = $wpdb->get_results( "SELECT slug FROM {$table}" );
+            $existing      = array();
+
+            if ( ! empty( $existing_rows ) ) {
+                foreach ( $existing_rows as $row ) {
+                    $existing[ $row->slug ] = true;
+                }
+            }
+
+            foreach ( $templates as $slug => $template ) {
+                $slug = sanitize_key( $slug );
+
+                if ( empty( $slug ) ) {
+                    continue;
+                }
+
+                $label       = isset( $template['label'] ) ? sanitize_text_field( $template['label'] ) : $slug;
+                $subject     = isset( $template['subject'] ) ? (string) $template['subject'] : '';
+                $body        = isset( $template['body'] ) ? (string) $template['body'] : '';
+                $description = isset( $template['description'] ) ? sanitize_textarea_field( $template['description'] ) : '';
+
+                if ( isset( $existing[ $slug ] ) ) {
+                    $wpdb->update(
+                        $table,
+                        array(
+                            'label'       => $label,
+                            'subject'     => $subject,
+                            'body'        => $body,
+                            'description' => $description,
+                            'updated_at'  => current_time( 'mysql' ),
+                        ),
+                        array( 'slug' => $slug ),
+                        array( '%s', '%s', '%s', '%s', '%s' ),
+                        array( '%s' )
+                    );
+
+                    unset( $existing[ $slug ] );
+                } else {
+                    $wpdb->insert(
+                        $table,
+                        array(
+                            'slug'        => $slug,
+                            'label'       => $label,
+                            'subject'     => $subject,
+                            'body'        => $body,
+                            'description' => $description,
+                            'created_at'  => current_time( 'mysql' ),
+                            'updated_at'  => current_time( 'mysql' ),
+                        ),
+                        array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+                    );
+                }
+            }
+
+            if ( ! empty( $existing ) ) {
+                $slugs_to_delete = array_keys( $existing );
+                $placeholders    = implode( ', ', array_fill( 0, count( $slugs_to_delete ), '%s' ) );
+
+                $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE slug IN ({$placeholders})", $slugs_to_delete ) );
+            }
         }
 
         /**
@@ -3379,7 +3458,32 @@ JS;
          * @return string
          */
         protected function get_table_name( $contact_form ) {
-            return $this->get_table_name_from_slug( $this->get_form_slug( $contact_form ) );
+            $slug  = $this->get_form_slug( $contact_form );
+            $table = $this->get_table_name_from_slug( $slug );
+
+            $legacy_slug = '';
+
+            if ( method_exists( $contact_form, 'name' ) ) {
+                $legacy_slug = sanitize_key( $contact_form->name() );
+            } elseif ( method_exists( $contact_form, 'title' ) ) {
+                $legacy_slug = sanitize_key( $contact_form->title() );
+            }
+
+            if ( empty( $legacy_slug ) && method_exists( $contact_form, 'id' ) ) {
+                $legacy_slug = 'form_' . absint( $contact_form->id() );
+            }
+
+            if ( ! empty( $legacy_slug ) && $legacy_slug !== $slug ) {
+                $legacy_table = $this->get_table_name_from_slug( $legacy_slug );
+
+                if ( $this->table_exists( $legacy_table ) && ! $this->table_exists( $table ) ) {
+                    global $wpdb;
+
+                    $wpdb->query( "ALTER TABLE {$legacy_table} RENAME TO {$table}" );
+                }
+            }
+
+            return $table;
         }
 
         /**
@@ -3395,25 +3499,70 @@ JS;
         }
 
         /**
+         * Retrieve the database table name for response templates.
+         *
+         * @return string
+         */
+        protected function get_templates_table_name() {
+            global $wpdb;
+
+            return $wpdb->prefix . 'lead_templates';
+        }
+
+        /**
+         * Ensure the response templates table exists.
+         */
+        protected function maybe_create_templates_table() {
+            global $wpdb;
+
+            $table           = $this->get_templates_table_name();
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql             = "CREATE TABLE {$table} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                slug varchar(191) NOT NULL,
+                label varchar(191) NOT NULL DEFAULT '',
+                subject varchar(255) NOT NULL DEFAULT '',
+                body longtext,
+                description text,
+                created_at datetime NOT NULL,
+                updated_at datetime NOT NULL,
+                PRIMARY KEY  (id),
+                UNIQUE KEY slug (slug)
+            ) {$charset_collate};";
+
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            dbDelta( $sql );
+        }
+
+        /**
          * Generate a stable slug for a form instance.
          *
          * @param WPCF7_ContactForm $contact_form Contact form instance.
          * @return string
          */
         protected function get_form_slug( $contact_form ) {
-            if ( method_exists( $contact_form, 'name' ) ) {
-                $name = $contact_form->name();
-            } else {
-                $name = $contact_form->title();
+            $name  = method_exists( $contact_form, 'name' ) ? $contact_form->name() : '';
+            $title = method_exists( $contact_form, 'title' ) ? $contact_form->title() : '';
+
+            $candidates = array( $name, $title );
+
+            foreach ( $candidates as $candidate ) {
+                if ( empty( $candidate ) ) {
+                    continue;
+                }
+
+                $slug = sanitize_key( $candidate );
+
+                if ( ! empty( $slug ) && 'untitled' !== $slug ) {
+                    return $slug;
+                }
             }
 
-            $slug = sanitize_key( $name );
-
-            if ( empty( $slug ) && method_exists( $contact_form, 'id' ) ) {
-                $slug = 'form_' . absint( $contact_form->id() );
+            if ( method_exists( $contact_form, 'id' ) ) {
+                return 'form_' . absint( $contact_form->id() );
             }
 
-            return $slug;
+            return 'form_legacy';
         }
 
         /**
