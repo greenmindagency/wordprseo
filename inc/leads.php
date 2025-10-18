@@ -215,9 +215,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return new WP_Error( 'theme_leads_invalid_request', __( 'Invalid lead update request.', 'wordprseo' ) );
             }
 
-            $table = $this->get_table_name_from_slug( $form_slug );
+            $table = $this->resolve_table_name_for_slug( $form_slug );
 
-            if ( ! $this->table_exists( $table ) ) {
+            if ( empty( $table ) || ! $this->table_exists( $table ) ) {
                 return new WP_Error( 'theme_leads_missing_table', __( 'The lead storage table could not be found.', 'wordprseo' ) );
             }
 
@@ -526,9 +526,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             global $wpdb;
 
-            $table = $this->get_table_name_from_slug( $form_slug );
+            $table = $this->resolve_table_name_for_slug( $form_slug );
 
-            if ( $this->table_exists( $table ) ) {
+            if ( ! empty( $table ) && $this->table_exists( $table ) ) {
                 $wpdb->delete( $table, array( 'id' => $lead_id ), array( '%d' ) );
             }
 
@@ -857,39 +857,45 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
-            $table = $this->get_table_name_from_slug( $form_slug );
-
-            if ( ! $this->table_exists( $table ) ) {
-                echo '<p>' . esc_html__( 'No leads have been captured for the selected form yet.', 'wordprseo' ) . '</p>';
-                echo '</div>';
-                return;
-            }
+            $contact_form = $this->get_contact_form_by_slug( $form_slug );
+            $table        = $contact_form ? $this->get_table_name( $contact_form ) : $this->get_table_name_from_slug( $form_slug );
 
             // Make sure legacy installations upgrade their lead tables when the admin page is viewed.
             $this->maybe_create_table( $table );
 
             global $wpdb;
 
-            $leads = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY submitted_at DESC" );
+            $table_exists = false;
+            $leads        = array();
 
-            if ( empty( $leads ) ) {
-                echo '<p>' . esc_html__( 'No leads found for this form.', 'wordprseo' ) . '</p>';
-                echo '</div>';
-                return;
+            if ( ! empty( $table ) ) {
+                // Make sure legacy installations upgrade their lead tables when the admin page is viewed.
+                $this->maybe_create_table( $table );
+
+                $table_exists = $this->table_exists( $table );
+
+                if ( $table_exists ) {
+                    $leads = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY submitted_at DESC" );
+                }
             }
 
-            echo '<table class="widefat fixed striped theme-leads-table">';
-            echo '<thead><tr>';
-            echo '<th>' . esc_html__( 'Submitted', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Name', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Email', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Phone', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Status', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Update status', 'wordprseo' ) . '</th>';
-            echo '<th>' . esc_html__( 'Actions', 'wordprseo' ) . '</th>';
-            echo '</tr></thead><tbody>';
+            if ( ! $table_exists ) {
+                echo '<p>' . esc_html__( 'No leads have been captured for the selected form yet.', 'wordprseo' ) . '</p>';
+            } elseif ( empty( $leads ) ) {
+                echo '<p>' . esc_html__( 'No leads found for this form.', 'wordprseo' ) . '</p>';
+            } else {
+                echo '<table class="widefat fixed striped theme-leads-table">';
+                echo '<thead><tr>';
+                echo '<th>' . esc_html__( 'Submitted', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Name', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Email', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Phone', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Status', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Update status', 'wordprseo' ) . '</th>';
+                echo '<th>' . esc_html__( 'Actions', 'wordprseo' ) . '</th>';
+                echo '</tr></thead><tbody>';
 
-            foreach ( $leads as $lead ) {
+                foreach ( $leads as $lead ) {
                 $payload      = $this->normalise_payload( $lead->payload );
                 $lead_name    = $this->extract_contact_name( $payload );
                 $lead_phone   = $this->extract_phone_from_payload( $payload );
@@ -1137,7 +1143,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</tr>';
             }
 
-            echo '</tbody></table>';
+                echo '</tbody></table>';
+            }
 
             echo '<style>
                 .theme-leads-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
@@ -3452,6 +3459,40 @@ JS;
         }
 
         /**
+         * Resolve the storage table name for a given form slug.
+         *
+         * @param string $slug Form slug.
+         * @return string
+         */
+        protected function resolve_table_name_for_slug( $slug ) {
+            if ( empty( $slug ) ) {
+                return '';
+            }
+
+            $normalised_slug = $this->normalise_form_slug_candidate( $slug );
+
+            $contact_form = $this->get_contact_form_by_slug( $slug );
+
+            if ( ! $contact_form && $normalised_slug !== $slug ) {
+                $contact_form = $this->get_contact_form_by_slug( $normalised_slug );
+            }
+
+            if ( $contact_form ) {
+                return $this->get_table_name( $contact_form );
+            }
+
+            if ( $normalised_slug !== $slug ) {
+                $normalised_table = $this->get_table_name_from_slug( $normalised_slug );
+
+                if ( $this->table_exists( $normalised_table ) ) {
+                    return $normalised_table;
+                }
+            }
+
+            return $this->get_table_name_from_slug( $slug );
+        }
+
+        /**
          * Get the database table name for a specific form.
          *
          * @param WPCF7_ContactForm $contact_form Contact form instance.
@@ -3460,30 +3501,157 @@ JS;
         protected function get_table_name( $contact_form ) {
             $slug  = $this->get_form_slug( $contact_form );
             $table = $this->get_table_name_from_slug( $slug );
-
-            $legacy_slug = '';
+            $legacy_slugs = array();
 
             if ( method_exists( $contact_form, 'name' ) ) {
-                $legacy_slug = sanitize_key( $contact_form->name() );
-            } elseif ( method_exists( $contact_form, 'title' ) ) {
-                $legacy_slug = sanitize_key( $contact_form->title() );
+                $legacy_slugs[] = sanitize_key( $contact_form->name() );
             }
 
-            if ( empty( $legacy_slug ) && method_exists( $contact_form, 'id' ) ) {
-                $legacy_slug = 'form_' . absint( $contact_form->id() );
+            if ( method_exists( $contact_form, 'title' ) ) {
+                $legacy_slugs[] = sanitize_key( $contact_form->title() );
             }
 
-            if ( ! empty( $legacy_slug ) && $legacy_slug !== $slug ) {
-                $legacy_table = $this->get_table_name_from_slug( $legacy_slug );
+            if ( method_exists( $contact_form, 'id' ) ) {
+                $legacy_slugs[] = 'form_' . absint( $contact_form->id() );
+            }
 
-                if ( $this->table_exists( $legacy_table ) && ! $this->table_exists( $table ) ) {
-                    global $wpdb;
+            $legacy_slugs = array_unique( array_filter( $legacy_slugs ) );
 
-                    $wpdb->query( "ALTER TABLE {$legacy_table} RENAME TO {$table}" );
+            foreach ( $legacy_slugs as $legacy_slug ) {
+                $variants = array_unique(
+                    array(
+                        $legacy_slug,
+                        str_replace( '-', '_', $legacy_slug ),
+                    )
+                );
+
+                foreach ( $variants as $variant_slug ) {
+                    if ( $variant_slug === $slug ) {
+                        continue;
+                    }
+
+                    $legacy_table = $this->get_table_name_from_slug( $variant_slug );
+                    $this->maybe_migrate_legacy_table( $legacy_table, $table );
                 }
             }
 
             return $table;
+        }
+
+        /**
+         * Attempt to migrate data from a legacy table into the target table.
+         *
+         * @param string $legacy_table Legacy table name.
+         * @param string $target_table Target table name.
+         */
+        protected function maybe_migrate_legacy_table( $legacy_table, $target_table ) {
+            if ( empty( $legacy_table ) || empty( $target_table ) || $legacy_table === $target_table ) {
+                return;
+            }
+
+            if ( ! $this->table_exists( $legacy_table ) ) {
+                return;
+            }
+
+            global $wpdb;
+
+            if ( ! $this->table_exists( $target_table ) ) {
+                $wpdb->query( "ALTER TABLE {$legacy_table} RENAME TO {$target_table}" );
+                return;
+            }
+
+            $legacy_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$legacy_table}" );
+
+            if ( $legacy_count <= 0 ) {
+                $wpdb->query( "DROP TABLE {$legacy_table}" );
+                return;
+            }
+
+            $target_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$target_table}" );
+
+            if ( 0 === $target_count ) {
+                $wpdb->query( "DROP TABLE {$target_table}" );
+                $wpdb->query( "ALTER TABLE {$legacy_table} RENAME TO {$target_table}" );
+                return;
+            }
+
+            $this->copy_legacy_rows_to_table( $legacy_table, $target_table );
+        }
+
+        /**
+         * Copy rows from a legacy table into the target table when both already exist.
+         *
+         * @param string $legacy_table Legacy table name.
+         * @param string $target_table Target table name.
+         */
+        protected function copy_legacy_rows_to_table( $legacy_table, $target_table ) {
+            global $wpdb;
+
+            $legacy_columns = $this->get_table_columns( $legacy_table );
+            $target_columns = $this->get_table_columns( $target_table );
+
+            if ( empty( $legacy_columns ) || empty( $target_columns ) ) {
+                return;
+            }
+
+            $common = array_values( array_intersect( $legacy_columns, $target_columns ) );
+            $common = array_filter(
+                $common,
+                function ( $column ) {
+                    return 'id' !== $column && preg_match( '/^[A-Za-z0-9_]+$/', $column );
+                }
+            );
+
+            if ( empty( $common ) ) {
+                return;
+            }
+
+            $column_list = implode( ', ', array_map( array( $this, 'quote_identifier' ), $common ) );
+
+            if ( empty( $column_list ) ) {
+                return;
+            }
+
+            $wpdb->query( "INSERT IGNORE INTO {$target_table} ({$column_list}) SELECT {$column_list} FROM {$legacy_table}" );
+            $wpdb->query( "DROP TABLE {$legacy_table}" );
+        }
+
+        /**
+         * Retrieve a list of column names for a table.
+         *
+         * @param string $table Table name.
+         * @return array
+         */
+        protected function get_table_columns( $table ) {
+            if ( empty( $table ) ) {
+                return array();
+            }
+
+            global $wpdb;
+
+            $columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table}" );
+
+            if ( empty( $columns ) ) {
+                return array();
+            }
+
+            return array_map( 'strval', $columns );
+        }
+
+        /**
+         * Quote a database identifier (such as a column name).
+         *
+         * @param string $identifier Identifier to quote.
+         * @return string
+         */
+        protected function quote_identifier( $identifier ) {
+            $sanitised = preg_replace( '/[^A-Za-z0-9_]/', '', (string) $identifier );
+
+            if ( '' === $sanitised ) {
+                return '';
+            }
+
+            return '`' . $sanitised . '`';
         }
 
         /**
@@ -3541,17 +3709,18 @@ JS;
          * @return string
          */
         protected function get_form_slug( $contact_form ) {
-            $name  = method_exists( $contact_form, 'name' ) ? $contact_form->name() : '';
-            $title = method_exists( $contact_form, 'title' ) ? $contact_form->title() : '';
+            $candidates = array();
 
-            $candidates = array( $name, $title );
+            if ( method_exists( $contact_form, 'name' ) ) {
+                $candidates[] = $contact_form->name();
+            }
+
+            if ( method_exists( $contact_form, 'title' ) ) {
+                $candidates[] = $contact_form->title();
+            }
 
             foreach ( $candidates as $candidate ) {
-                if ( empty( $candidate ) ) {
-                    continue;
-                }
-
-                $slug = sanitize_key( $candidate );
+                $slug = $this->normalise_form_slug_candidate( $candidate );
 
                 if ( ! empty( $slug ) && 'untitled' !== $slug ) {
                     return $slug;
@@ -3563,6 +3732,24 @@ JS;
             }
 
             return 'form_legacy';
+        }
+
+        /**
+         * Normalise a slug candidate into a safe table identifier fragment.
+         *
+         * @param string $candidate Raw candidate value.
+         * @return string
+         */
+        protected function normalise_form_slug_candidate( $candidate ) {
+            $slug = sanitize_key( $candidate );
+
+            if ( empty( $slug ) ) {
+                return '';
+            }
+
+            $slug = str_replace( '-', '_', $slug );
+
+            return $slug;
         }
 
         /**
