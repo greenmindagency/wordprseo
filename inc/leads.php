@@ -2448,7 +2448,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!leadId) {
             return;
         }
-    }
 
         const summaryRow = document.querySelector(".theme-leads-summary[data-lead='" + leadId + "']");
         if (summaryRow && data.summary) {
