@@ -69,13 +69,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
+            $form_slug   = $this->get_form_slug( $contact_form );
             $posted_data = $submission->get_posted_data();
-            $posted_data = $this->enrich_payload_with_uploaded_files( $posted_data, $submission );
+            $posted_data = $this->enrich_payload_with_uploaded_files( $posted_data, $submission, $form_slug );
             $email       = $this->extract_email_from_submission( $posted_data );
 
             global $wpdb;
 
-            $form_slug = $this->get_form_slug( $contact_form );
             $table     = $this->get_table_name( $contact_form );
 
             $this->maybe_create_table( $table, $form_slug );
@@ -123,14 +123,15 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @param mixed             $posted_data Submission payload.
          * @param WPCF7_Submission  $submission  Submission instance.
+         * @param string            $form_slug   Current form slug.
          * @return array
          */
-        protected function enrich_payload_with_uploaded_files( $posted_data, $submission ) {
+        protected function enrich_payload_with_uploaded_files( $posted_data, $submission, $form_slug = '' ) {
             if ( ! is_array( $posted_data ) ) {
                 $posted_data = array();
             }
 
-            $uploaded_files = $this->get_uploaded_files_payload( $submission );
+            $uploaded_files = $this->get_uploaded_files_payload( $submission, $form_slug );
 
             if ( empty( $uploaded_files ) ) {
                 return $posted_data;
@@ -156,9 +157,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Extract uploaded file information from the submission.
          *
          * @param WPCF7_Submission $submission Submission instance.
+         * @param string           $form_slug  Current form slug.
          * @return array
          */
-        protected function get_uploaded_files_payload( $submission ) {
+        protected function get_uploaded_files_payload( $submission, $form_slug = '' ) {
             if ( ! $submission || ! is_callable( array( $submission, 'uploaded_files' ) ) ) {
                 return array();
             }
@@ -186,7 +188,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $entries = array();
 
                 foreach ( $paths as $path ) {
-                    $entry = $this->normalise_uploaded_file_entry( $path );
+                    $entry = $this->normalise_uploaded_file_entry( $path, $form_slug );
 
                     if ( ! empty( $entry ) ) {
                         $entries[] = $entry;
@@ -207,14 +209,21 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Normalise a file path into stored payload data.
          *
          * @param string $file_path Absolute file path.
+         * @param string $form_slug Current form slug.
          * @return array|null
          */
-        protected function normalise_uploaded_file_entry( $file_path ) {
+        protected function normalise_uploaded_file_entry( $file_path, $form_slug = '' ) {
             if ( empty( $file_path ) || ! is_string( $file_path ) ) {
                 return null;
             }
 
             $file_path = wp_normalize_path( $file_path );
+            $file_path = $this->ensure_uploaded_file_persisted( $file_path, $form_slug );
+
+            if ( empty( $file_path ) || ! file_exists( $file_path ) ) {
+                return null;
+            }
+
             $file_name = wp_basename( $file_path );
 
             if ( '' === $file_name ) {
@@ -245,6 +254,78 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             return $file_data;
+        }
+
+        /**
+         * Ensure an uploaded file is copied into the persistent lead uploads directory.
+         *
+         * @param string $file_path Absolute file path provided by Contact Form 7.
+         * @param string $form_slug Current form slug.
+         * @return string Normalised absolute path within the uploads directory when possible.
+         */
+        protected function ensure_uploaded_file_persisted( $file_path, $form_slug = '' ) {
+            if ( empty( $file_path ) || ! is_string( $file_path ) ) {
+                return '';
+            }
+
+            $file_path = wp_normalize_path( $file_path );
+
+            if ( '' === $file_path ) {
+                return '';
+            }
+
+            $uploads = wp_upload_dir();
+
+            if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+                return $file_path;
+            }
+
+            $basedir = wp_normalize_path( trailingslashit( $uploads['basedir'] ) );
+
+            if ( '' === $basedir ) {
+                return $file_path;
+            }
+
+            if ( strpos( $file_path, $basedir ) === 0 ) {
+                $relative_path = substr( $file_path, strlen( $basedir ) );
+                $relative_path = ltrim( wp_normalize_path( $relative_path ), '/' );
+
+                if ( '' !== $relative_path && false === strpos( $relative_path, '..' ) && 0 === strpos( $relative_path, 'theme-leads/' ) ) {
+                    return $file_path;
+                }
+            }
+
+            if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+                return '';
+            }
+
+            $storage_dir = $basedir . 'theme-leads/';
+            $form_slug   = $this->normalise_option_form_slug( $form_slug );
+
+            if ( '' !== $form_slug ) {
+                $storage_dir .= $form_slug . '/';
+            }
+
+            wp_mkdir_p( $storage_dir );
+
+            if ( ! is_dir( $storage_dir ) || ! wp_is_writable( $storage_dir ) ) {
+                return $file_path;
+            }
+
+            $file_name = wp_basename( $file_path );
+
+            if ( '' === $file_name ) {
+                return '';
+            }
+
+            $unique_name = wp_unique_filename( $storage_dir, $file_name );
+            $target_path = wp_normalize_path( trailingslashit( $storage_dir ) . $unique_name );
+
+            if ( ! @copy( $file_path, $target_path ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                return $file_path;
+            }
+
+            return $target_path;
         }
 
         /**
