@@ -803,6 +803,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             // Ensure the table schema is up to date before attempting to store additional lead details.
             $this->maybe_create_table( $table );
 
+            $contact_form    = $this->get_contact_form_by_slug( $form_slug );
+            $form_field_keys = $this->get_form_field_keys( $contact_form );
+
             $status_input  = isset( $request['lead_status'] ) ? wp_unslash( $request['lead_status'] ) : '';
             $status        = $this->sanitise_status_value( $status_input );
             $submit_action = isset( $request['lead_submit_action'] ) ? sanitize_key( wp_unslash( $request['lead_submit_action'] ) ) : 'save';
@@ -966,7 +969,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
                 $prepared_recipients = $recipient_emails;
 
-                $contact_form = $this->get_contact_form_by_slug( $form_slug );
                 $sender_email = '';
                 $sender_name  = get_bloginfo( 'name' );
 
@@ -1098,7 +1100,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             $updated_payload     = $this->normalise_payload( $updated_lead->payload );
-            $updated_context     = $this->build_template_context_data( $updated_lead, $updated_payload );
+            $updated_context     = $this->build_template_context_data( $updated_lead, $updated_payload, $form_field_keys );
             $response_history    = $this->get_response_history_markup( $updated_lead );
             $summary_name        = ! empty( $updated_lead->response_client_name ) ? $updated_lead->response_client_name : $this->extract_contact_name( $updated_payload );
             $summary_status      = $this->get_status_label( $updated_lead->status );
@@ -1648,6 +1650,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
+            $contact_form       = $this->get_contact_form_by_slug( $form_slug );
+            $form_field_keys    = $this->get_form_field_keys( $contact_form );
+            $form_placeholder_tokens = $this->prepare_form_placeholder_tokens( $form_field_keys );
+
             echo '<div class="theme-leads-toolbar">';
             echo '<form method="get" action="" class="theme-leads-form-selector">';
             echo '<input type="hidden" name="page" value="theme-leads" />';
@@ -1782,8 +1788,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '<div class="theme-leads-panel-inner theme-leads-template-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Response templates', 'wordprseo' ) . '</h2>';
-            echo '<p>' . esc_html__( 'Use placeholders like %name%, %email%, %phone%, %brand%, %link%, %site_title%, %date%, %form_title%, or any Contact Form 7 field key (for example %your-name%) to personalise messages automatically.', 'wordprseo' ) . '</p>';
-            echo '<p class="description">' . esc_html__( 'Available placeholders are pulled from the submission details of the lead you are viewing. Click a placeholder to insert it.', 'wordprseo' ) . '</p>';
 
             echo '<div class="theme-leads-template-list" data-role="template-list">';
 
@@ -1869,7 +1873,6 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
-            $contact_form = $this->get_contact_form_by_slug( $form_slug );
             $table        = $contact_form ? $this->get_table_name( $contact_form ) : $this->get_table_name_from_slug( $form_slug );
 
             global $wpdb;
@@ -1933,7 +1936,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $stored_recipients[] = $lead->email;
                 }
 
-                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value, $client_link_value );
+                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value, $client_link_value, $form_field_keys );
                 $context_attr_string    = '';
 
                 foreach ( $template_context_attrs as $attr_key => $attr_value ) {
@@ -2242,6 +2245,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $templates_json = wp_json_encode( $this->prepare_templates_for_js( $templates ) );
             if ( $templates_json ) {
                 echo '<script type="application/json" id="theme-leads-templates-data">' . str_replace( '</', '<\/', $templates_json ) . '</script>';
+            }
+
+            $form_placeholders_json = wp_json_encode( $form_placeholder_tokens );
+            if ( false !== $form_placeholders_json ) {
+                echo '<script type="application/json" id="theme-leads-form-placeholders">' . str_replace( '</', '<\/', $form_placeholders_json ) . '</script>';
             }
 
             $statuses_json = wp_json_encode( $statuses_for_js );
@@ -3680,6 +3688,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const systemTokens = new Set(defaultSystemTokens);
         const formTokens = new Set();
 
+        const formPlaceholdersElement = document.getElementById("theme-leads-form-placeholders");
+        if (formPlaceholdersElement) {
+            try {
+                const parsedFormPlaceholders = JSON.parse(formPlaceholdersElement.textContent);
+                if (Array.isArray(parsedFormPlaceholders)) {
+                    parsedFormPlaceholders.forEach(function(token) {
+                        if (token) {
+                            formTokens.add(token);
+                        }
+                    });
+                }
+            } catch (error) {
+                // Ignore invalid placeholder data.
+            }
+        }
+
         document.querySelectorAll(".theme-leads-template-context").forEach(function(contextEl) {
             if (!contextEl.dataset.placeholders) {
                 return;
@@ -4528,11 +4552,12 @@ JS;
         /**
          * Build template context data for server and client usage.
          *
-         * @param object $lead    Lead database row.
-         * @param array  $payload Submission payload.
+         * @param object $lead            Lead database row.
+         * @param array  $payload         Submission payload.
+         * @param array  $form_field_keys Contact Form 7 field keys.
          * @return array
          */
-        protected function build_template_context_data( $lead, $payload ) {
+        protected function build_template_context_data( $lead, $payload, $form_field_keys = array() ) {
             $submitted_at = ! empty( $lead->submitted_at ) ? $lead->submitted_at : current_time( 'mysql' );
 
             $stored_link = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
@@ -4615,7 +4640,7 @@ JS;
                 $context['cc'] = implode( ', ', $combined_cc );
             }
 
-            $context['placeholders'] = $this->build_placeholder_tokens( $context, $payload );
+            $context['placeholders'] = $this->build_placeholder_tokens( $context, $payload, $form_field_keys );
 
             return $context;
         }
@@ -4658,13 +4683,95 @@ JS;
         }
 
         /**
-         * Build a list of placeholder tokens available for templates.
+         * Extract Contact Form 7 field keys for placeholder suggestions.
          *
-         * @param array $context Template context data.
-         * @param array $payload Submission payload data.
+         * @param WPCF7_ContactForm|null $contact_form Contact form instance.
          * @return array
          */
-        protected function build_placeholder_tokens( $context, $payload = array() ) {
+        protected function get_form_field_keys( $contact_form ) {
+            if ( empty( $contact_form ) || ! is_object( $contact_form ) ) {
+                return array();
+            }
+
+            $tags = array();
+
+            if ( method_exists( $contact_form, 'scan_form_tags' ) ) {
+                $tags = $contact_form->scan_form_tags();
+            } elseif ( method_exists( $contact_form, 'form_tags_manager' ) ) {
+                $manager = $contact_form->form_tags_manager();
+                if ( $manager && method_exists( $manager, 'scan' ) ) {
+                    $tags = $manager->scan();
+                }
+            }
+
+            if ( empty( $tags ) ) {
+                return array();
+            }
+
+            $keys = array();
+
+            foreach ( $tags as $tag ) {
+                $name = '';
+
+                if ( is_object( $tag ) && isset( $tag->name ) ) {
+                    $name = $tag->name;
+                } elseif ( is_array( $tag ) && isset( $tag['name'] ) ) {
+                    $name = $tag['name'];
+                }
+
+                $normalised = strtolower( (string) $name );
+                $normalised = preg_replace( '/[^a-z0-9_\-]/', '', $normalised );
+
+                if ( '' === $normalised ) {
+                    continue;
+                }
+
+                $keys[] = $normalised;
+            }
+
+            if ( empty( $keys ) ) {
+                return array();
+            }
+
+            return array_values( array_unique( $keys ) );
+        }
+
+        /**
+         * Prepare placeholder tokens for Contact Form 7 field keys.
+         *
+         * @param array $form_field_keys Contact Form 7 field keys.
+         * @return array
+         */
+        protected function prepare_form_placeholder_tokens( $form_field_keys ) {
+            if ( empty( $form_field_keys ) || ! is_array( $form_field_keys ) ) {
+                return array();
+            }
+
+            $tokens = array();
+
+            foreach ( $form_field_keys as $field_key ) {
+                $normalised_key = strtolower( (string) $field_key );
+                $normalised_key = preg_replace( '/[^a-z0-9_\-]/', '', $normalised_key );
+
+                if ( '' === $normalised_key ) {
+                    continue;
+                }
+
+                $tokens = array_merge( $tokens, $this->expand_placeholder_variants( $normalised_key ) );
+            }
+
+            return array_values( array_unique( $tokens ) );
+        }
+
+        /**
+         * Build a list of placeholder tokens available for templates.
+         *
+         * @param array $context         Template context data.
+         * @param array $payload         Submission payload data.
+         * @param array $form_field_keys Contact Form 7 field keys.
+         * @return array
+         */
+        protected function build_placeholder_tokens( $context, $payload = array(), $form_field_keys = array() ) {
             $system_keys   = array( 'name', 'email', 'phone', 'brand', 'link', 'status', 'status_slug', 'date', 'date_short', 'form_title', 'site_name', 'site_title', 'recipient', 'cc', 'default_cc' );
             $system_tokens = array();
 
@@ -4676,6 +4783,19 @@ JS;
 
             if ( ! empty( $payload ) && is_array( $payload ) ) {
                 foreach ( $payload as $field_key => $value ) {
+                    $normalised_key = strtolower( (string) $field_key );
+                    $normalised_key = preg_replace( '/[^a-z0-9_\-]/', '', $normalised_key );
+
+                    if ( '' === $normalised_key ) {
+                        continue;
+                    }
+
+                    $form_tokens = array_merge( $form_tokens, $this->expand_placeholder_variants( $normalised_key ) );
+                }
+            }
+
+            if ( ! empty( $form_field_keys ) && is_array( $form_field_keys ) ) {
+                foreach ( $form_field_keys as $field_key ) {
                     $normalised_key = strtolower( (string) $field_key );
                     $normalised_key = preg_replace( '/[^a-z0-9_\-]/', '', $normalised_key );
 
@@ -4731,10 +4851,11 @@ JS;
          * @param string $client_phone      Client phone override.
          * @param string $client_brand      Client brand override.
          * @param string $client_link       Client link override.
+         * @param array  $form_field_keys   Contact Form 7 field keys.
          * @return array
          */
-        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '', $client_link = '' ) {
-            $context = $this->build_template_context_data( $lead, $payload );
+        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '', $client_link = '', $form_field_keys = array() ) {
+            $context = $this->build_template_context_data( $lead, $payload, $form_field_keys );
 
             if ( ! empty( $client_name_value ) ) {
                 $context['name'] = $client_name_value;
