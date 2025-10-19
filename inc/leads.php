@@ -341,7 +341,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 if ( array_key_exists( 'value', $value ) ) {
                     $text_value = $this->normalise_payload_value( $value['value'] );
 
-                    if ( '' !== $text_value ) {
+                    if ( '' !== $text_value && ! $this->payload_value_is_uploaded_file_placeholder( $text_value ) ) {
                         $parts[] = esc_html( $text_value );
                     }
                 }
@@ -444,6 +444,36 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             return ! empty( $value['file_url'] ) && is_string( $value['file_url'] );
+        }
+
+        /**
+         * Determine whether a payload value represents the Contact Form 7 upload placeholder hash.
+         *
+         * @param mixed $value Payload value.
+         * @return bool
+         */
+        protected function payload_value_is_uploaded_file_placeholder( $value ) {
+            if ( ! is_string( $value ) ) {
+                return false;
+            }
+
+            $candidate = trim( $value );
+
+            if ( '' === $candidate ) {
+                return false;
+            }
+
+            if ( strpbrk( $candidate, '/\\' ) !== false ) {
+                return false;
+            }
+
+            $length = strlen( $candidate );
+
+            if ( $length < 32 || $length > 128 ) {
+                return false;
+            }
+
+            return (bool) preg_match( '/^[a-f0-9]{32,}$/i', $candidate );
         }
 
         /**
