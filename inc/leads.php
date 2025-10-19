@@ -46,6 +46,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'admin_post_theme_leads_statuses_save', array( $this, 'handle_statuses_save' ) );
                 add_action( 'admin_post_theme_leads_default_cc_save', array( $this, 'handle_default_cc_save' ) );
                 add_action( 'admin_post_theme_leads_mailer_save', array( $this, 'handle_mailer_settings_save' ) );
+                add_action( 'admin_post_theme_leads_download', array( $this, 'handle_uploaded_file_download' ) );
                 add_action( 'wp_ajax_theme_leads_update', array( $this, 'handle_ajax_update_lead' ) );
                 add_action( 'wp_ajax_theme_leads_send_email', array( $this, 'handle_ajax_send_email' ) );
                 add_action( 'wp_ajax_theme_leads_template_save', array( $this, 'handle_ajax_template_save' ) );
@@ -233,6 +234,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 if ( strpos( $file_path, $basedir ) === 0 ) {
                     $relative = ltrim( substr( $file_path, strlen( $basedir ) ), '/' );
                     $relative = str_replace( '\\', '/', $relative );
+                    $relative = preg_replace( '#/+#', '/', $relative );
+
+                    if ( false === strpos( $relative, '..' ) ) {
+                        $file_data['relative_path'] = sanitize_text_field( $relative );
+                    }
 
                     $file_data['file_url'] = esc_url_raw( $baseurl . $relative );
                 }
@@ -247,7 +253,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param mixed $value Payload value.
          * @return string
          */
-        protected function get_payload_value_display_markup( $value ) {
+        protected function get_payload_value_display_markup( $value, $lead = null, $form_slug = '', $field_key = '' ) {
             if ( is_array( $value ) && isset( $value['files'] ) && is_array( $value['files'] ) ) {
                 $parts = array();
 
@@ -259,7 +265,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     }
                 }
 
-                $files_markup = $this->build_uploaded_file_links_markup( $value['files'] );
+                $files_markup = $this->build_uploaded_file_links_markup( $value['files'], $lead, $form_slug, $field_key );
 
                 if ( '' !== $files_markup ) {
                     $parts[] = $files_markup;
@@ -273,7 +279,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             if ( $this->payload_value_is_uploaded_file( $value ) ) {
-                $link_markup = $this->build_uploaded_file_link_markup( $value );
+                $link_markup = $this->build_uploaded_file_link_markup( $value, $lead, $form_slug, $field_key );
 
                 if ( '' !== $link_markup ) {
                     return $link_markup;
@@ -289,7 +295,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param array $files Uploaded files.
          * @return string
          */
-        protected function build_uploaded_file_links_markup( $files ) {
+        protected function build_uploaded_file_links_markup( $files, $lead = null, $form_slug = '', $field_key = '' ) {
             if ( empty( $files ) ) {
                 return '';
             }
@@ -301,7 +307,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $links = array();
 
             foreach ( $files as $file_entry ) {
-                $link_markup = $this->build_uploaded_file_link_markup( $file_entry );
+                $link_markup = $this->build_uploaded_file_link_markup( $file_entry, $lead, $form_slug, $field_key );
 
                 if ( '' !== $link_markup ) {
                     $links[] = $link_markup;
@@ -321,12 +327,16 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param array $file_entry Uploaded file entry.
          * @return string
          */
-        protected function build_uploaded_file_link_markup( $file_entry ) {
+        protected function build_uploaded_file_link_markup( $file_entry, $lead = null, $form_slug = '', $field_key = '' ) {
             if ( ! $this->payload_value_is_uploaded_file( $file_entry ) ) {
                 return '';
             }
 
-            $url   = isset( $file_entry['file_url'] ) ? $file_entry['file_url'] : '';
+            $url = $this->get_uploaded_file_download_url( $file_entry, $lead, $form_slug, $field_key );
+
+            if ( '' === $url && isset( $file_entry['file_url'] ) ) {
+                $url = $file_entry['file_url'];
+            }
 
             if ( '' === $url ) {
                 return '';
@@ -344,9 +354,314 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @return bool
          */
         protected function payload_value_is_uploaded_file( $value ) {
-            return is_array( $value )
-                && ! empty( $value['file_url'] )
-                && is_string( $value['file_url'] );
+            if ( ! is_array( $value ) ) {
+                return false;
+            }
+
+            if ( ! empty( $value['relative_path'] ) && is_string( $value['relative_path'] ) ) {
+                return true;
+            }
+
+            return ! empty( $value['file_url'] ) && is_string( $value['file_url'] );
+        }
+
+        /**
+         * Generate a secure download URL for an uploaded file entry.
+         *
+         * @param array       $file_entry Uploaded file entry.
+         * @param object|null $lead       Lead object.
+         * @param string      $form_slug  Form slug.
+         * @param string      $field_key  Submission field key.
+         * @return string
+         */
+        protected function get_uploaded_file_download_url( $file_entry, $lead = null, $form_slug = '', $field_key = '' ) {
+            $relative_path = $this->get_uploaded_file_relative_path_from_entry( $file_entry );
+
+            if ( '' === $relative_path ) {
+                return '';
+            }
+
+            $lead_id = ( is_object( $lead ) && isset( $lead->id ) ) ? absint( $lead->id ) : 0;
+
+            if ( ! $lead_id || '' === $form_slug ) {
+                return '';
+            }
+
+            $args = array(
+                'action'  => 'theme_leads_download',
+                'form'    => $form_slug,
+                'lead_id' => $lead_id,
+                'field'   => $field_key,
+                'file'    => $relative_path,
+                '_wpnonce' => wp_create_nonce( 'theme_leads_download_' . $lead_id ),
+            );
+
+            return add_query_arg( $args, admin_url( 'admin-post.php' ) );
+        }
+
+        /**
+         * Determine the stored relative upload path for an entry.
+         *
+         * @param array $file_entry Uploaded file entry.
+         * @return string
+         */
+        protected function get_uploaded_file_relative_path_from_entry( $file_entry ) {
+            if ( isset( $file_entry['relative_path'] ) && '' !== $file_entry['relative_path'] ) {
+                $relative = wp_normalize_path( $file_entry['relative_path'] );
+                $relative = ltrim( $relative, '/' );
+
+                if ( false === strpos( $relative, '..' ) ) {
+                    return $relative;
+                }
+            }
+
+            if ( isset( $file_entry['file_url'] ) && '' !== $file_entry['file_url'] ) {
+                $relative = $this->convert_upload_url_to_relative_path( $file_entry['file_url'] );
+
+                if ( '' !== $relative ) {
+                    return $relative;
+                }
+            }
+
+            return '';
+        }
+
+        /**
+         * Convert a full upload URL into a relative path.
+         *
+         * @param string $url Upload URL.
+         * @return string
+         */
+        protected function convert_upload_url_to_relative_path( $url ) {
+            if ( empty( $url ) || ! is_string( $url ) ) {
+                return '';
+            }
+
+            $uploads = wp_upload_dir();
+
+            if ( ! empty( $uploads['error'] ) || empty( $uploads['baseurl'] ) ) {
+                return '';
+            }
+
+            $relative_url = wp_make_link_relative( $url );
+            $base_relative = wp_make_link_relative( trailingslashit( $uploads['baseurl'] ) );
+
+            if ( empty( $relative_url ) || empty( $base_relative ) ) {
+                return '';
+            }
+
+            if ( strpos( $relative_url, $base_relative ) !== 0 ) {
+                return '';
+            }
+
+            $relative_path = substr( $relative_url, strlen( $base_relative ) );
+            $relative_path = ltrim( $relative_path, '/' );
+            $relative_path = wp_normalize_path( $relative_path );
+            $relative_path = str_replace( '\\', '/', $relative_path );
+            $relative_path = preg_replace( '#/+#', '/', $relative_path );
+
+            if ( '' === $relative_path || false !== strpos( $relative_path, '..' ) ) {
+                return '';
+            }
+
+            return $relative_path;
+        }
+
+        /**
+         * Gather uploaded file entries from a payload value.
+         *
+         * @param mixed $payload Submission payload.
+         * @return array
+         */
+        protected function extract_uploaded_file_entries_from_payload( $payload ) {
+            $collected = array();
+
+            if ( empty( $payload ) || ! is_array( $payload ) ) {
+                return $collected;
+            }
+
+            foreach ( $payload as $value ) {
+                $this->collect_uploaded_file_entries( $value, $collected );
+            }
+
+            return $collected;
+        }
+
+        /**
+         * Recursively collect uploaded file entries from a value.
+         *
+         * @param mixed $value      Payload value.
+         * @param array $collected  Reference to collected entries.
+         */
+        protected function collect_uploaded_file_entries( $value, &$collected ) {
+            if ( $this->payload_value_is_uploaded_file( $value ) ) {
+                $collected[] = $value;
+                return;
+            }
+
+            if ( ! is_array( $value ) ) {
+                return;
+            }
+
+            if ( isset( $value['files'] ) && is_array( $value['files'] ) ) {
+                foreach ( $value['files'] as $file_entry ) {
+                    $this->collect_uploaded_file_entries( $file_entry, $collected );
+                }
+                return;
+            }
+
+            foreach ( $value as $nested_value ) {
+                $this->collect_uploaded_file_entries( $nested_value, $collected );
+            }
+        }
+
+        /**
+         * Delete all uploaded files referenced within a payload.
+         *
+         * @param mixed $payload Submission payload.
+         */
+        protected function delete_uploaded_files_from_payload( $payload ) {
+            $entries = $this->extract_uploaded_file_entries_from_payload( $payload );
+
+            if ( empty( $entries ) ) {
+                return;
+            }
+
+            foreach ( $entries as $entry ) {
+                $this->delete_single_uploaded_file_entry( $entry );
+            }
+        }
+
+        /**
+         * Delete a specific uploaded file entry from disk.
+         *
+         * @param array $file_entry Uploaded file entry.
+         */
+        protected function delete_single_uploaded_file_entry( $file_entry ) {
+            $relative_path = $this->get_uploaded_file_relative_path_from_entry( $file_entry );
+
+            if ( '' === $relative_path ) {
+                return;
+            }
+
+            $absolute_path = $this->resolve_absolute_upload_path( $relative_path );
+
+            if ( '' === $absolute_path || ! file_exists( $absolute_path ) ) {
+                return;
+            }
+
+            wp_delete_file( $absolute_path );
+        }
+
+        /**
+         * Resolve a relative upload path to an absolute file path.
+         *
+         * @param string $relative_path Relative upload path.
+         * @return string
+         */
+        protected function resolve_absolute_upload_path( $relative_path ) {
+            if ( '' === $relative_path ) {
+                return '';
+            }
+
+            $uploads = wp_upload_dir();
+
+            if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+                return '';
+            }
+
+            $normalized_relative = wp_normalize_path( $relative_path );
+            $normalized_relative = ltrim( $normalized_relative, '/' );
+
+            if ( '' === $normalized_relative || false !== strpos( $normalized_relative, '..' ) ) {
+                return '';
+            }
+
+            $basedir = wp_normalize_path( trailingslashit( $uploads['basedir'] ) );
+            $absolute_path = $basedir . $normalized_relative;
+
+            if ( strpos( $absolute_path, $basedir ) !== 0 ) {
+                return '';
+            }
+
+            return $absolute_path;
+        }
+
+        /**
+         * Find a specific uploaded file entry within a payload.
+         *
+         * @param mixed  $payload       Submission payload.
+         * @param string $field_key     Submission field key.
+         * @param string $relative_path Relative file path.
+         * @return array|null
+         */
+        protected function locate_uploaded_file_entry_in_payload( $payload, $field_key, $relative_path ) {
+            if ( empty( $payload ) ) {
+                return null;
+            }
+
+            if ( is_array( $payload ) && '' !== $field_key && isset( $payload[ $field_key ] ) ) {
+                $match = $this->find_uploaded_file_entry_in_value( $payload[ $field_key ], $relative_path );
+
+                if ( ! empty( $match ) ) {
+                    return $match;
+                }
+            }
+
+            if ( is_array( $payload ) ) {
+                foreach ( $payload as $value ) {
+                    $match = $this->find_uploaded_file_entry_in_value( $value, $relative_path );
+
+                    if ( ! empty( $match ) ) {
+                        return $match;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Recursively search for an uploaded file entry within a payload value.
+         *
+         * @param mixed  $value         Payload value.
+         * @param string $relative_path Relative file path.
+         * @return array|null
+         */
+        protected function find_uploaded_file_entry_in_value( $value, $relative_path ) {
+            if ( $this->payload_value_is_uploaded_file( $value ) ) {
+                $entry_relative = $this->get_uploaded_file_relative_path_from_entry( $value );
+
+                if ( '' !== $entry_relative && $entry_relative === $relative_path ) {
+                    return $value;
+                }
+            }
+
+            if ( ! is_array( $value ) ) {
+                return null;
+            }
+
+            if ( isset( $value['files'] ) && is_array( $value['files'] ) ) {
+                foreach ( $value['files'] as $file_entry ) {
+                    $match = $this->find_uploaded_file_entry_in_value( $file_entry, $relative_path );
+
+                    if ( ! empty( $match ) ) {
+                        return $match;
+                    }
+                }
+
+                return null;
+            }
+
+            foreach ( $value as $nested_value ) {
+                $match = $this->find_uploaded_file_entry_in_value( $nested_value, $relative_path );
+
+                if ( ! empty( $match ) ) {
+                    return $match;
+                }
+            }
+
+            return null;
         }
 
         /**
@@ -1411,10 +1726,105 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $table = $this->resolve_table_name_for_slug( $form_slug );
 
             if ( ! empty( $table ) && $this->table_exists( $table ) ) {
+                $lead = $wpdb->get_row( $wpdb->prepare( "SELECT payload FROM {$table} WHERE id = %d", $lead_id ) );
+
+                if ( $lead && isset( $lead->payload ) ) {
+                    $payload = $this->normalise_payload( $lead->payload );
+                    $this->delete_uploaded_files_from_payload( $payload );
+                }
+
                 $wpdb->delete( $table, array( 'id' => $lead_id ), array( '%d' ) );
             }
 
             wp_safe_redirect( admin_url( 'admin.php?page=theme-leads&form=' . $form_slug ) );
+            exit;
+        }
+
+        /**
+         * Stream an uploaded file to the browser for authorised users.
+         */
+        public function handle_uploaded_file_download() {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            $lead_id   = isset( $_GET['lead_id'] ) ? absint( $_GET['lead_id'] ) : 0;
+            $form_slug = isset( $_GET['form'] ) ? sanitize_key( wp_unslash( $_GET['form'] ) ) : '';
+            $field_key = isset( $_GET['field'] ) ? sanitize_text_field( wp_unslash( $_GET['field'] ) ) : '';
+            $nonce     = isset( $_GET['_wpnonce'] ) ? wp_unslash( $_GET['_wpnonce'] ) : '';
+            $file_arg  = isset( $_GET['file'] ) ? wp_unslash( $_GET['file'] ) : '';
+
+            if ( ! $lead_id || '' === $form_slug || '' === $file_arg ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            if ( ! wp_verify_nonce( $nonce, 'theme_leads_download_' . $lead_id ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            $relative_path = wp_normalize_path( $file_arg );
+            $relative_path = ltrim( $relative_path, '/' );
+            $relative_path = preg_replace( '#/+#', '/', $relative_path );
+
+            if ( '' === $relative_path || false !== strpos( $relative_path, '..' ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            global $wpdb;
+
+            $table = $this->resolve_table_name_for_slug( $form_slug );
+
+            if ( empty( $table ) || ! $this->table_exists( $table ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            $lead = $wpdb->get_row( $wpdb->prepare( "SELECT payload FROM {$table} WHERE id = %d", $lead_id ) );
+
+            if ( ! $lead || ! isset( $lead->payload ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            $payload = $this->normalise_payload( $lead->payload );
+            $file_entry = $this->locate_uploaded_file_entry_in_payload( $payload, $field_key, $relative_path );
+
+            if ( empty( $file_entry ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            $absolute_path = $this->resolve_absolute_upload_path( $relative_path );
+
+            if ( '' === $absolute_path || ! file_exists( $absolute_path ) || ! is_readable( $absolute_path ) ) {
+                wp_die( esc_html__( 'The requested file could not be found.', 'wordprseo' ) );
+            }
+
+            $file_name = isset( $file_entry['file_name'] ) && '' !== $file_entry['file_name'] ? $file_entry['file_name'] : wp_basename( $absolute_path );
+            $file_name = sanitize_file_name( $file_name );
+
+            if ( '' === $file_name ) {
+                $file_name = wp_basename( $absolute_path );
+            }
+
+            $filetype    = wp_check_filetype( $absolute_path );
+            $content_type = ! empty( $filetype['type'] ) ? $filetype['type'] : 'application/octet-stream';
+
+            if ( ob_get_length() ) {
+                ob_end_clean();
+            }
+
+            $sanitised_name = str_replace( '"', '', $file_name );
+
+            nocache_headers();
+            status_header( 200 );
+            header( 'Content-Type: ' . $content_type );
+            header( 'Content-Disposition: inline; filename="' . $sanitised_name . '"' );
+
+            $file_size = @filesize( $absolute_path );
+
+            if ( false !== $file_size ) {
+                header( 'Content-Length: ' . $file_size );
+            }
+
+            readfile( $absolute_path );
             exit;
         }
 
@@ -2347,7 +2757,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                         printf(
                             '<li><strong>%1$s:</strong> %2$s</li>',
                             esc_html( $key ),
-                            $this->get_payload_value_display_markup( $value )
+                            $this->get_payload_value_display_markup( $value, $lead, $form_slug, $key )
                         );
                     }
                     echo '</ul>';
