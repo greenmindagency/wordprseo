@@ -1837,7 +1837,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Response templates', 'wordprseo' ) . '</h2>';
 
-            echo '<div class="theme-leads-template-list" data-role="template-list">';
+            echo '<div class="theme-leads-template-list" data-role="template-list" data-current-form="' . esc_attr( $form_slug ) . '">';
 
             if ( ! empty( $templates ) ) {
                 foreach ( $templates as $slug => $template ) {
@@ -1856,6 +1856,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     echo '<input type="hidden" name="action" value="theme_leads_template_save" />';
                     echo '<input type="hidden" name="template_action" value="update" />';
                     echo '<input type="hidden" name="template_slug" value="' . esc_attr( $slug ) . '" />';
+                    echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
                     echo '<div class="theme-leads-template-placeholders" data-role="placeholder-list">';
                     echo '<span class="theme-leads-template-placeholders-label">' . esc_html__( 'Placeholders', 'wordprseo' ) . '</span>';
                     echo '<div class="theme-leads-template-placeholder-buttons" data-role="placeholder-buttons"></div>';
@@ -1875,6 +1876,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     wp_nonce_field( 'theme_leads_template_delete' );
                     echo '<input type="hidden" name="action" value="theme_leads_template_delete" />';
                     echo '<input type="hidden" name="template_slug" value="' . esc_attr( $slug ) . '" />';
+                    echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
                     echo '<button type="submit" class="button-link theme-leads-template-delete">' . esc_html__( 'Delete template', 'wordprseo' ) . '</button>';
                     echo '</form>';
                     echo '</div>';
@@ -1893,6 +1895,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             wp_nonce_field( 'theme_leads_template_save' );
             echo '<input type="hidden" name="action" value="theme_leads_template_save" />';
             echo '<input type="hidden" name="template_action" value="create" />';
+            echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
             echo '<div class="theme-leads-template-placeholders" data-role="placeholder-list">';
             echo '<span class="theme-leads-template-placeholders-label">' . esc_html__( 'Placeholders', 'wordprseo' ) . '</span>';
             echo '<div class="theme-leads-template-placeholder-buttons" data-role="placeholder-buttons"></div>';
@@ -2454,9 +2457,21 @@ document.addEventListener("DOMContentLoaded", function() {
     const mailerErrorMessage = {$mailer_error_label_json};
     const emailSplitRegex = new RegExp({$email_split_pattern_json});
 
+    const formSelect = document.getElementById("theme-leads-form");
+    let currentFormSlug = formSelect && typeof formSelect.value === "string" ? formSelect.value : "";
+
     const templateToggle = document.querySelector(".theme-leads-template-toggle");
     const templatePanel = document.querySelector(".theme-leads-template-panel");
     const templateList = document.querySelector(".theme-leads-template-list");
+
+    if (templateList) {
+        if (typeof templateList.dataset.currentForm === "string" && templateList.dataset.currentForm) {
+            currentFormSlug = templateList.dataset.currentForm;
+        }
+        templateList.dataset.currentForm = currentFormSlug;
+    }
+
+    syncNewTemplateFormCurrentSlug();
     const statusToggle = document.querySelector(".theme-leads-status-toggle");
     const statusPanel = document.querySelector(".theme-leads-status-panel");
     const defaultToggle = document.querySelector(".theme-leads-defaults-toggle");
@@ -3322,6 +3337,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const formData = new FormData(form);
         formData.set("action", "theme_leads_template_save");
+        formData.set("current_form", getCurrentFormSlug());
 
         const feedbackEl = form.querySelector(".theme-leads-template-feedback");
         if (feedbackEl) {
@@ -3390,6 +3406,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const formData = new FormData(form);
         formData.set("action", "theme_leads_template_delete");
+        formData.set("current_form", getCurrentFormSlug());
 
         const card = form.closest(".theme-leads-template-card");
 
@@ -3439,6 +3456,25 @@ document.addEventListener("DOMContentLoaded", function() {
             feedbackEl.classList.add("is-success");
         }
 
+        let responseFormSlug = getCurrentFormSlug();
+        if (data && typeof data.form_slug === "string") {
+            responseFormSlug = data.form_slug;
+        } else {
+            const currentFormInput = form.querySelector("input[name='current_form']");
+            if (currentFormInput && typeof currentFormInput.value === "string") {
+                responseFormSlug = currentFormInput.value;
+            }
+        }
+
+        updateCurrentFormSlug(responseFormSlug);
+        syncNewTemplateFormCurrentSlug();
+
+        const formCurrentInput = form.querySelector("input[name='current_form']");
+        if (formCurrentInput) {
+            formCurrentInput.value = responseFormSlug;
+            formCurrentInput.defaultValue = responseFormSlug;
+        }
+
         if (!data || !data.slug) {
             refreshTemplateSelects();
             refreshTemplatePlaceholderButtons();
@@ -3473,6 +3509,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 const deleteForm = card.querySelector(".theme-leads-template-delete-form");
                 if (deleteForm) {
                     deleteForm.dataset.template = slug;
+                    const deleteCurrentFormInput = deleteForm.querySelector("input[name='current_form']");
+                    if (deleteCurrentFormInput) {
+                        deleteCurrentFormInput.value = responseFormSlug;
+                        deleteCurrentFormInput.defaultValue = responseFormSlug;
+                    }
                 }
             }
         }
@@ -3486,6 +3527,13 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function handleTemplateDeleteSuccess(slug, data) {
+        let responseFormSlug = getCurrentFormSlug();
+        if (data && typeof data.form_slug === "string") {
+            responseFormSlug = data.form_slug;
+        }
+        updateCurrentFormSlug(responseFormSlug);
+        syncNewTemplateFormCurrentSlug();
+
         if (slug) {
             const card = document.querySelector('.theme-leads-template-card[data-template="' + slug + '"]');
             if (card) {
@@ -3588,6 +3636,7 @@ document.addEventListener("DOMContentLoaded", function() {
         appendHiddenInput(deleteForm, "action", "theme_leads_template_delete");
         appendHiddenInput(deleteForm, "template_slug", slug);
         appendHiddenInput(deleteForm, "_wpnonce", deleteNonce || "");
+        appendHiddenInput(deleteForm, "current_form", getCurrentFormSlug());
 
         const deleteButton = document.createElement("button");
         deleteButton.type = "submit";
@@ -3611,6 +3660,7 @@ document.addEventListener("DOMContentLoaded", function() {
         appendHiddenInput(form, "template_action", "update");
         appendHiddenInput(form, "template_slug", slug);
         appendHiddenInput(form, "_wpnonce", saveNonce || "");
+        appendHiddenInput(form, "current_form", getCurrentFormSlug());
 
         const placeholders = document.createElement("div");
         placeholders.className = "theme-leads-template-placeholders";
@@ -3673,8 +3723,10 @@ document.addEventListener("DOMContentLoaded", function() {
         const input = document.createElement("input");
         input.type = "hidden";
         input.name = name;
-        input.value = value;
+        input.value = typeof value === "string" ? value : "";
+        input.defaultValue = input.value;
         form.appendChild(input);
+        return input;
     }
 
     function createLabeledField(labelText, fieldElement) {
@@ -3685,6 +3737,33 @@ document.addEventListener("DOMContentLoaded", function() {
         label.appendChild(fieldElement);
         wrapper.appendChild(label);
         return wrapper;
+    }
+
+    function getCurrentFormSlug() {
+        return typeof currentFormSlug === "string" ? currentFormSlug : "";
+    }
+
+    function updateCurrentFormSlug(slug) {
+        currentFormSlug = typeof slug === "string" ? slug : "";
+        if (templateList) {
+            templateList.dataset.currentForm = currentFormSlug;
+        }
+    }
+
+    function syncNewTemplateFormCurrentSlug() {
+        if (!templateList) {
+            return;
+        }
+        const newTemplateForm = templateList.querySelector(".theme-leads-template-card.theme-leads-template-new .theme-leads-template-form");
+        if (!newTemplateForm) {
+            return;
+        }
+        const currentInput = newTemplateForm.querySelector("input[name='current_form']");
+        if (currentInput) {
+            const slug = getCurrentFormSlug();
+            currentInput.value = slug;
+            currentInput.defaultValue = slug;
+        }
     }
 
     function refreshTemplateSelects() {
