@@ -5851,12 +5851,12 @@ JS;
         protected function get_form_slug( $contact_form ) {
             $candidates = array();
 
-            if ( method_exists( $contact_form, 'name' ) ) {
-                $candidates[] = $contact_form->name();
-            }
-
             if ( method_exists( $contact_form, 'title' ) ) {
                 $candidates[] = $contact_form->title();
+            }
+
+            if ( method_exists( $contact_form, 'name' ) ) {
+                $candidates[] = $contact_form->name();
             }
 
             foreach ( $candidates as $candidate ) {
