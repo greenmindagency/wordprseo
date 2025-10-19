@@ -73,11 +73,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             global $wpdb;
 
-            $table = $this->get_table_name( $contact_form );
+            $form_slug = $this->get_form_slug( $contact_form );
+            $table     = $this->get_table_name( $contact_form );
 
-            $this->maybe_create_table( $table );
+            $this->maybe_create_table( $table, $form_slug );
 
-            $default_status = $this->get_default_status_slug();
+            $default_status = $this->get_default_status_slug( $form_slug );
 
             $wpdb->insert(
                 $table,
@@ -177,8 +178,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @return array
          */
-        protected function get_status_definitions() {
-            $stored      = $this->get_module_option( 'statuses', array() );
+        protected function get_status_definitions( $form_slug = '' ) {
+            $stored      = $this->get_option_for_form( 'statuses', array(), $form_slug );
             $definitions = array();
 
             if ( is_array( $stored ) ) {
@@ -237,20 +238,22 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Persist lead status definitions.
          *
          * @param array $definitions Status definitions.
+         * @param string $form_slug   Form slug.
          */
-        protected function save_status_definitions( $definitions ) {
-            $this->update_module_option( 'statuses', array_values( $definitions ) );
+        protected function save_status_definitions( $definitions, $form_slug = '' ) {
+            $this->update_module_option( 'statuses', array_values( $definitions ), $form_slug );
         }
 
         /**
          * Build a map of status slugs to labels.
          *
          * @param array|null $definitions Optional status definition list.
+         * @param string     $form_slug   Form slug.
          * @return array
          */
-        protected function get_status_labels_map( $definitions = null ) {
+        protected function get_status_labels_map( $definitions = null, $form_slug = '' ) {
             if ( null === $definitions ) {
-                $definitions = $this->get_status_definitions();
+                $definitions = $this->get_status_definitions( $form_slug );
             }
 
             $map = array();
@@ -275,14 +278,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param string $status Status slug.
          * @return string
          */
-        protected function get_status_label( $status ) {
+        protected function get_status_label( $status, $form_slug = '' ) {
             $status = sanitize_title_with_dashes( $status );
 
             if ( '' === $status ) {
                 return '';
             }
 
-            $map = $this->get_status_labels_map();
+            $map = $this->get_status_labels_map( null, $form_slug );
 
             if ( isset( $map[ $status ] ) ) {
                 return $map[ $status ];
@@ -296,8 +299,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @return string
          */
-        protected function get_default_status_slug() {
-            $definitions = $this->get_status_definitions();
+        protected function get_default_status_slug( $form_slug = '' ) {
+            $definitions = $this->get_status_definitions( $form_slug );
 
             if ( ! empty( $definitions ) ) {
                 $first = reset( $definitions );
@@ -413,16 +416,16 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param string $status Raw status value.
          * @return string
          */
-        protected function sanitise_status_value( $status ) {
+        protected function sanitise_status_value( $status, $form_slug = '' ) {
             $status = sanitize_title_with_dashes( $status );
 
-            $map = $this->get_status_labels_map();
+            $map = $this->get_status_labels_map( null, $form_slug );
 
             if ( isset( $map[ $status ] ) ) {
                 return $status;
             }
 
-            return $this->get_default_status_slug();
+            return $this->get_default_status_slug( $form_slug );
         }
 
         /**
@@ -430,8 +433,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @return array
          */
-        protected function get_default_cc_addresses() {
-            $stored = $this->get_module_option( 'default_cc', array() );
+        protected function get_default_cc_addresses( $form_slug = '' ) {
+            $stored = $this->get_option_for_form( 'default_cc', array(), $form_slug );
 
             if ( empty( $stored ) ) {
                 return array();
@@ -449,8 +452,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @param array|string $addresses Address list.
          */
-        protected function save_default_cc_addresses( $addresses ) {
-            $this->update_module_option( 'default_cc', $this->parse_email_list( $addresses ) );
+        protected function save_default_cc_addresses( $addresses, $form_slug = '' ) {
+            $this->update_module_option( 'default_cc', $this->parse_email_list( $addresses ), $form_slug );
         }
 
         /**
@@ -522,8 +525,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @return array
          */
-        protected function get_mailer_settings() {
-            $stored = $this->get_module_option( 'mailer_settings', array() );
+        protected function get_mailer_settings( $form_slug = '' ) {
+            $stored = $this->get_option_for_form( 'mailer_settings', array(), $form_slug );
 
             if ( ! is_array( $stored ) ) {
                 $stored = array();
@@ -549,9 +552,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          *
          * @param array $settings Raw settings.
          */
-        protected function save_mailer_settings( $settings ) {
+        protected function save_mailer_settings( $settings, $form_slug = '' ) {
             $sanitised = $this->sanitise_mailer_settings( $settings );
-            $this->update_module_option( 'mailer_settings', $sanitised );
+            $this->update_module_option( 'mailer_settings', $sanitised, $form_slug );
         }
 
         /**
@@ -801,13 +804,16 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             // Ensure the table schema is up to date before attempting to store additional lead details.
-            $this->maybe_create_table( $table );
+            $this->maybe_create_table( $table, $form_slug );
+
+            $contact_form    = $this->get_contact_form_by_slug( $form_slug );
+            $form_field_keys = $this->get_form_field_keys( $contact_form );
 
             $contact_form    = $this->get_contact_form_by_slug( $form_slug );
             $form_field_keys = $this->get_form_field_keys( $contact_form );
 
             $status_input  = isset( $request['lead_status'] ) ? wp_unslash( $request['lead_status'] ) : '';
-            $status        = $this->sanitise_status_value( $status_input );
+            $status        = $this->sanitise_status_value( $status_input, $form_slug );
             $submit_action = isset( $request['lead_submit_action'] ) ? sanitize_key( wp_unslash( $request['lead_submit_action'] ) ) : 'save';
 
             $has_client_name  = array_key_exists( 'lead_client_name', $request );
@@ -934,7 +940,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $recipient_emails[] = $lead->email;
                 }
 
-                $template = ! empty( $resolved_template ) ? $this->get_template( $resolved_template ) : null;
+                $template = ! empty( $resolved_template ) ? $this->get_template( $resolved_template, $form_slug ) : null;
 
                 if ( empty( $resolved_subject ) && $template && ! empty( $template['subject'] ) ) {
                     $resolved_subject = $template['subject'];
@@ -956,7 +962,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     return new WP_Error( 'theme_leads_missing_recipient', __( 'Please provide at least one email address.', 'wordprseo' ) );
                 }
 
-                $default_cc_addresses = $this->get_default_cc_addresses();
+                $default_cc_addresses = $this->get_default_cc_addresses( $form_slug );
                 if ( ! empty( $default_cc_addresses ) ) {
                     foreach ( $default_cc_addresses as $cc_email ) {
                         if ( ! in_array( $cc_email, $recipient_emails, true ) ) {
@@ -965,8 +971,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     }
                 }
 
-                $prepared_subject    = $this->apply_template_placeholders( $resolved_subject, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
-                $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
+                $prepared_subject    = $this->apply_template_placeholders( $resolved_subject, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails, $form_slug );
+                $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails, $form_slug );
                 $prepared_recipients = $recipient_emails;
 
                 $sender_email = '';
@@ -1003,7 +1009,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     }
                 }
 
-                $mailer_settings   = $this->get_mailer_settings();
+                $mailer_settings   = $this->get_mailer_settings( $form_slug );
                 $use_custom_mailer = $this->should_use_custom_mailer( $mailer_settings );
 
                 if ( $use_custom_mailer ) {
@@ -1100,10 +1106,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             $updated_payload     = $this->normalise_payload( $updated_lead->payload );
-            $updated_context     = $this->build_template_context_data( $updated_lead, $updated_payload, $form_field_keys );
+            $updated_context     = $this->build_template_context_data( $updated_lead, $updated_payload, $form_field_keys, $form_slug );
             $response_history    = $this->get_response_history_markup( $updated_lead );
             $summary_name        = ! empty( $updated_lead->response_client_name ) ? $updated_lead->response_client_name : $this->extract_contact_name( $updated_payload );
-            $summary_status      = $this->get_status_label( $updated_lead->status );
+            $summary_status      = $this->get_status_label( $updated_lead->status, $form_slug );
             $summary_last_reply  = ! empty( $updated_lead->response_sent ) ? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $updated_lead->response_sent ) : '';
             $recipients_display  = $this->format_recipient_list_for_display( $updated_lead->response_recipients );
             $response_sent_value = ! empty( $updated_lead->response_sent ) ? $updated_lead->response_sent : $response_sent_at;
@@ -1317,13 +1323,22 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          */
         protected function process_default_cc_save_request( $request ) {
             $raw_input = isset( $request['lead_default_cc'] ) ? wp_unslash( $request['lead_default_cc'] ) : '';
+            $form_slug = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
+
             $addresses = $this->parse_email_list( $raw_input );
 
-            $this->save_default_cc_addresses( $addresses );
+            $this->save_default_cc_addresses( $addresses, $form_slug );
 
             return array(
-                'cc'       => $this->prepare_default_cc_for_js( $addresses ),
-                'textarea' => implode( "\n", $addresses ),
+                'cc'        => $this->prepare_default_cc_for_js( $addresses ),
+                'textarea'  => implode( "\n", $addresses ),
+                'form_slug' => $form_slug,
             );
         }
 
@@ -1390,6 +1405,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         protected function process_statuses_save_request( $request ) {
             $raw_input = isset( $request['lead_statuses'] ) ? wp_unslash( $request['lead_statuses'] ) : '';
             $lines     = preg_split( '/[\r\n]+/', (string) $raw_input );
+            $form_slug = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
 
             $definitions = $this->normalise_status_definitions( $lines );
 
@@ -1397,11 +1419,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return new WP_Error( 'theme_leads_statuses_empty', __( 'Please enter at least one status.', 'wordprseo' ) );
             }
 
-            $this->save_status_definitions( $definitions );
+            $this->save_status_definitions( $definitions, $form_slug );
 
             return array(
                 'statuses' => $this->prepare_statuses_for_js( $definitions ),
                 'textarea' => $this->get_status_textarea_value( $definitions ),
+                'form_slug'=> $form_slug,
             );
         }
 
@@ -1475,13 +1498,21 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 'from_email' => isset( $request['mailer_from_email'] ) ? wp_unslash( $request['mailer_from_email'] ) : '',
                 'from_name'  => isset( $request['mailer_from_name'] ) ? wp_unslash( $request['mailer_from_name'] ) : '',
             );
+            $form_slug = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
 
             $sanitised = $this->sanitise_mailer_settings( $settings );
 
-            $this->save_mailer_settings( $sanitised );
+            $this->save_mailer_settings( $sanitised, $form_slug );
 
             return array(
-                'mailer' => $this->prepare_mailer_settings_for_js( $sanitised ),
+                'mailer'    => $this->prepare_mailer_settings_for_js( $sanitised ),
+                'form_slug' => $form_slug,
             );
         }
 
@@ -1499,12 +1530,19 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $has_description = array_key_exists( 'template_description', $request );
             $description     = $has_description ? sanitize_textarea_field( wp_unslash( $request['template_description'] ) ) : null;
             $slug            = isset( $request['template_slug'] ) ? sanitize_key( wp_unslash( $request['template_slug'] ) ) : '';
+            $form_slug       = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
 
             if ( empty( $label ) || empty( $subject ) || empty( $body ) ) {
                 return new WP_Error( 'theme_leads_template_missing_fields', __( 'Please complete the required template fields.', 'wordprseo' ) );
             }
 
-            $templates = $this->get_templates();
+            $templates = $this->get_templates( $form_slug );
 
             if ( 'create' === $template_action ) {
                 if ( empty( $slug ) ) {
@@ -1538,12 +1576,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $templates[ $slug ]['description'] = $previous_description;
             }
 
-            $this->save_templates( $templates );
+            $this->save_templates( $templates, $form_slug );
 
             return array(
                 'slug'      => $slug,
                 'template'  => $templates[ $slug ],
                 'templates' => $this->prepare_templates_for_js( $templates ),
+                'form_slug' => $form_slug,
                 'save_nonce'   => wp_create_nonce( 'theme_leads_template_save' ),
                 'delete_nonce' => wp_create_nonce( 'theme_leads_template_delete' ),
             );
@@ -1557,12 +1596,19 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          */
         protected function process_template_delete_request( $request ) {
             $slug = isset( $request['template_slug'] ) ? sanitize_key( wp_unslash( $request['template_slug'] ) ) : '';
+            $form_slug = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
 
             if ( empty( $slug ) ) {
                 return new WP_Error( 'theme_leads_template_missing_slug', __( 'Template reference missing.', 'wordprseo' ) );
             }
 
-            $templates = $this->get_templates();
+            $templates = $this->get_templates( $form_slug );
 
             if ( ! isset( $templates[ $slug ] ) ) {
                 return new WP_Error( 'theme_leads_template_not_found', __( 'Template not found.', 'wordprseo' ) );
@@ -1570,11 +1616,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             unset( $templates[ $slug ] );
 
-            $this->save_templates( $templates );
+            $this->save_templates( $templates, $form_slug );
 
             return array(
                 'slug'      => $slug,
                 'templates' => $this->prepare_templates_for_js( $templates ),
+                'form_slug' => $form_slug,
                 'save_nonce'   => wp_create_nonce( 'theme_leads_template_save' ),
                 'delete_nonce' => wp_create_nonce( 'theme_leads_template_delete' ),
             );
@@ -1584,22 +1631,23 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Render the admin leads management page.
          */
         public function render_admin_page() {
-            $forms      = $this->get_contact_forms();
-            $templates  = $this->get_templates();
-            $form_slug  = isset( $_GET['form'] ) ? sanitize_key( wp_unslash( $_GET['form'] ) ) : '';
-            $statuses   = $this->get_status_definitions();
-            $status_textarea_value = $this->get_status_textarea_value( $statuses );
-            $statuses_for_js       = $this->prepare_statuses_for_js( $statuses );
-            $default_cc_addresses  = $this->get_default_cc_addresses();
-            $default_cc_textarea   = implode( "\n", $default_cc_addresses );
-            $default_cc_for_js     = $this->prepare_default_cc_for_js( $default_cc_addresses );
-            $mailer_settings       = $this->get_mailer_settings();
-            $mailer_settings_for_js = $this->prepare_mailer_settings_for_js( $mailer_settings );
+            $forms     = $this->get_contact_forms();
+            $form_slug = isset( $_GET['form'] ) ? sanitize_key( wp_unslash( $_GET['form'] ) ) : '';
 
             if ( empty( $form_slug ) && ! empty( $forms ) ) {
                 $first_form = reset( $forms );
                 $form_slug  = $this->get_form_slug( $first_form );
             }
+
+            $templates             = $this->get_templates( $form_slug );
+            $statuses              = $this->get_status_definitions( $form_slug );
+            $status_textarea_value = $this->get_status_textarea_value( $statuses );
+            $statuses_for_js       = $this->prepare_statuses_for_js( $statuses );
+            $default_cc_addresses  = $this->get_default_cc_addresses( $form_slug );
+            $default_cc_textarea   = implode( "\n", $default_cc_addresses );
+            $default_cc_for_js     = $this->prepare_default_cc_for_js( $default_cc_addresses );
+            $mailer_settings       = $this->get_mailer_settings( $form_slug );
+            $mailer_settings_for_js = $this->prepare_mailer_settings_for_js( $mailer_settings );
 
             echo '<div class="wrap">';
             echo '<h1>' . esc_html__( 'Leads', 'wordprseo' ) . '</h1>';
@@ -1882,7 +1930,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             if ( ! empty( $table ) ) {
                 // Make sure legacy installations upgrade their lead tables when the admin page is viewed.
-                $this->maybe_create_table( $table );
+                $this->maybe_create_table( $table, $form_slug );
 
                 $table_exists = $this->table_exists( $table );
 
@@ -1936,7 +1984,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $stored_recipients[] = $lead->email;
                 }
 
-                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value, $client_link_value, $form_field_keys );
+                $template_context_attrs = $this->build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone_value, $client_brand_value, $client_link_value, $form_field_keys, $form_slug );
                 $context_attr_string    = '';
 
                 foreach ( $template_context_attrs as $attr_key => $attr_value ) {
@@ -1979,7 +2027,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 }
                 echo '</td>';
 
-                echo '<td class="theme-leads-summary-status" data-status="' . esc_attr( $lead->status ) . '">' . esc_html( $this->get_status_label( $lead->status ) ) . '</td>';
+                echo '<td class="theme-leads-summary-status" data-status="' . esc_attr( $lead->status ) . '">' . esc_html( $this->get_status_label( $lead->status, $form_slug ) ) . '</td>';
 
                 echo '<td>';
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-status-form theme-leads-no-toggle">';
@@ -4398,13 +4446,29 @@ JS;
          *
          * @return array
          */
-        protected function get_templates() {
+        protected function get_templates( $form_slug = '' ) {
             global $wpdb;
 
             $table = $this->get_templates_table_name();
             $this->maybe_create_templates_table();
 
-            $rows = $wpdb->get_results( "SELECT slug, label, subject, body, description FROM {$table} ORDER BY label ASC" );
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT slug, label, subject, body, description FROM {$table} WHERE form_slug = %s ORDER BY label ASC",
+                    $form_slug
+                )
+            );
+
+            if ( empty( $rows ) && '' !== $form_slug ) {
+                $rows = $wpdb->get_results(
+                    $wpdb->prepare(
+                        "SELECT slug, label, subject, body, description FROM {$table} WHERE form_slug = %s ORDER BY label ASC",
+                        ''
+                    )
+                );
+            }
 
             if ( empty( $rows ) ) {
                 return array();
@@ -4435,18 +4499,22 @@ JS;
          *
          * @param array $templates Templates to store.
          */
-        protected function save_templates( $templates ) {
+        protected function save_templates( $templates, $form_slug = '' ) {
             global $wpdb;
 
             $table = $this->get_templates_table_name();
             $this->maybe_create_templates_table();
 
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
             if ( empty( $templates ) || ! is_array( $templates ) ) {
-                $wpdb->query( "DELETE FROM {$table}" );
+                $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE form_slug = %s", $form_slug ) );
                 return;
             }
 
-            $existing_rows = $wpdb->get_results( "SELECT slug FROM {$table}" );
+            $existing_rows = $wpdb->get_results(
+                $wpdb->prepare( "SELECT slug FROM {$table} WHERE form_slug = %s", $form_slug )
+            );
             $existing      = array();
 
             if ( ! empty( $existing_rows ) ) {
@@ -4471,15 +4539,19 @@ JS;
                     $wpdb->update(
                         $table,
                         array(
+                            'form_slug'   => $form_slug,
                             'label'       => $label,
                             'subject'     => $subject,
                             'body'        => $body,
                             'description' => $description,
                             'updated_at'  => current_time( 'mysql' ),
                         ),
-                        array( 'slug' => $slug ),
-                        array( '%s', '%s', '%s', '%s', '%s' ),
-                        array( '%s' )
+                        array(
+                            'slug'      => $slug,
+                            'form_slug' => $form_slug,
+                        ),
+                        array( '%s', '%s', '%s', '%s', '%s', '%s' ),
+                        array( '%s', '%s' )
                     );
 
                     unset( $existing[ $slug ] );
@@ -4487,6 +4559,7 @@ JS;
                     $wpdb->insert(
                         $table,
                         array(
+                            'form_slug'   => $form_slug,
                             'slug'        => $slug,
                             'label'       => $label,
                             'subject'     => $subject,
@@ -4495,7 +4568,7 @@ JS;
                             'created_at'  => current_time( 'mysql' ),
                             'updated_at'  => current_time( 'mysql' ),
                         ),
-                        array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+                        array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
                     );
                 }
             }
@@ -4504,7 +4577,12 @@ JS;
                 $slugs_to_delete = array_keys( $existing );
                 $placeholders    = implode( ', ', array_fill( 0, count( $slugs_to_delete ), '%s' ) );
 
-                $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE slug IN ({$placeholders})", $slugs_to_delete ) );
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "DELETE FROM {$table} WHERE form_slug = %s AND slug IN ({$placeholders})",
+                        array_merge( array( $form_slug ), $slugs_to_delete )
+                    )
+                );
             }
         }
 
@@ -4514,12 +4592,12 @@ JS;
          * @param string $slug Template slug.
          * @return array|null
          */
-        protected function get_template( $slug ) {
+        protected function get_template( $slug, $form_slug = '' ) {
             if ( empty( $slug ) ) {
                 return null;
             }
 
-            $templates = $this->get_templates();
+            $templates = $this->get_templates( $form_slug );
 
             return isset( $templates[ $slug ] ) ? $templates[ $slug ] : null;
         }
@@ -4557,15 +4635,15 @@ JS;
          * @param array  $form_field_keys Contact Form 7 field keys.
          * @return array
          */
-        protected function build_template_context_data( $lead, $payload, $form_field_keys = array() ) {
+        protected function build_template_context_data( $lead, $payload, $form_field_keys = array(), $form_slug = '' ) {
             $submitted_at = ! empty( $lead->submitted_at ) ? $lead->submitted_at : current_time( 'mysql' );
 
             $stored_link = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
             $stored_link = $this->normalise_link_value( $stored_link );
 
-            $status_slug           = ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug();
-            $status_label          = $this->get_status_label( $status_slug );
-            $default_cc_addresses  = $this->get_default_cc_addresses();
+            $status_slug           = ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug( $form_slug );
+            $status_label          = $this->get_status_label( $status_slug, $form_slug );
+            $default_cc_addresses  = $this->get_default_cc_addresses( $form_slug );
 
             $context = array(
                 'name'       => ! empty( $lead->response_client_name ) ? $lead->response_client_name : $this->extract_contact_name( $payload ),
@@ -4854,8 +4932,8 @@ JS;
          * @param array  $form_field_keys   Contact Form 7 field keys.
          * @return array
          */
-        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '', $client_link = '', $form_field_keys = array() ) {
-            $context = $this->build_template_context_data( $lead, $payload, $form_field_keys );
+        protected function build_template_context_attributes( $lead, $payload, $client_name_value, $client_phone, $client_brand = '', $client_link = '', $form_field_keys = array(), $form_slug = '' ) {
+            $context = $this->build_template_context_data( $lead, $payload, $form_field_keys, $form_slug );
 
             if ( ! empty( $client_name_value ) ) {
                 $context['name'] = $client_name_value;
@@ -4979,14 +5057,14 @@ JS;
          * @param array  $recipient_emails  Recipient email list.
          * @return string
          */
-        protected function apply_template_placeholders( $content, $lead, $payload, $client_name, $client_phone, $client_brand, $client_link, $recipient_emails ) {
+        protected function apply_template_placeholders( $content, $lead, $payload, $client_name, $client_phone, $client_brand, $client_link, $recipient_emails, $form_slug = '' ) {
             if ( empty( $content ) ) {
                 return $content;
             }
 
             $lead_email = ( $lead && ! empty( $lead->email ) ) ? $lead->email : '';
-            $status_slug  = $lead && ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug();
-            $status_label = $this->get_status_label( $status_slug );
+            $status_slug  = $lead && ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug( $form_slug );
+            $status_label = $this->get_status_label( $status_slug, $form_slug );
 
             if ( empty( $lead_email ) && ! empty( $recipient_emails ) ) {
                 $lead_email = reset( $recipient_emails );
@@ -5021,7 +5099,7 @@ JS;
                 '%form_title%'  => $lead ? $lead->form_title : '',
                 '%site_name%'   => get_bloginfo( 'name' ),
                 '%site_title%'  => get_bloginfo( 'name' ),
-                '%default_cc%'  => implode( ', ', $this->get_default_cc_addresses() ),
+                '%default_cc%'  => implode( ', ', $this->get_default_cc_addresses( $form_slug ) ),
             );
 
             if ( ! empty( $recipient_emails ) ) {
@@ -5654,6 +5732,7 @@ JS;
             $charset_collate = $wpdb->get_charset_collate();
             $sql             = "CREATE TABLE {$table} (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                form_slug varchar(191) NOT NULL DEFAULT '',
                 slug varchar(191) NOT NULL,
                 label varchar(191) NOT NULL DEFAULT '',
                 subject varchar(255) NOT NULL DEFAULT '',
@@ -5662,11 +5741,264 @@ JS;
                 created_at datetime NOT NULL,
                 updated_at datetime NOT NULL,
                 PRIMARY KEY  (id),
-                UNIQUE KEY slug (slug)
+                UNIQUE KEY template_slug (form_slug, slug),
+                KEY form_slug (form_slug)
             ) {$charset_collate};";
 
             require_once ABSPATH . 'wp-admin/includes/upgrade.php';
             dbDelta( $sql );
+        }
+
+        /**
+         * Retrieve the database table name for module options.
+         *
+         * @return string
+         */
+        protected function get_options_table_name() {
+            global $wpdb;
+
+            return $wpdb->prefix . 'leads_options';
+        }
+
+        /**
+         * Ensure the module options table exists and legacy options are migrated.
+         */
+        protected function maybe_create_options_table() {
+            global $wpdb;
+
+            $table           = $this->get_options_table_name();
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql             = "CREATE TABLE {$table} (
+                option_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                form_slug varchar(191) NOT NULL DEFAULT '',
+                option_name varchar(191) NOT NULL,
+                option_value longtext NOT NULL,
+                autoload varchar(20) NOT NULL DEFAULT 'no',
+                PRIMARY KEY  (option_id),
+                UNIQUE KEY option_name (option_name, form_slug),
+                KEY form_slug (form_slug)
+            ) {$charset_collate};";
+
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            dbDelta( $sql );
+
+            $this->maybe_migrate_options_from_wp_options();
+        }
+
+        /**
+         * Determine whether a module option already exists.
+         *
+         * @param string $name Option name.
+         * @return bool
+         */
+        protected function normalise_option_form_slug( $form_slug ) {
+            $slug = sanitize_key( $form_slug );
+
+            if ( empty( $slug ) ) {
+                return '';
+            }
+
+            return $slug;
+        }
+
+        /**
+         * Determine whether a module option already exists.
+         *
+         * @param string $name      Option name.
+         * @param string $form_slug Form slug.
+         * @return bool
+         */
+        protected function module_option_exists( $name, $form_slug = '' ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return false;
+            }
+
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $existing = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT option_name FROM {$table} WHERE option_name = %s AND form_slug = %s LIMIT 1",
+                    $name,
+                    $form_slug
+                )
+            );
+
+            return null !== $existing;
+        }
+
+        /**
+         * Migrate legacy options stored in wp_options into the module options table.
+         */
+        protected function maybe_migrate_options_from_wp_options() {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $mappings = array(
+                'theme_leads_statuses'        => 'statuses',
+                'theme_leads_default_cc'      => 'default_cc',
+                'theme_leads_mailer_settings' => 'mailer_settings',
+            );
+
+            foreach ( $mappings as $legacy_key => $new_key ) {
+                if ( $this->module_option_exists( $new_key ) ) {
+                    continue;
+                }
+
+                $value = get_option( $legacy_key, '__theme_leads_missing__' );
+
+                if ( '__theme_leads_missing__' === $value ) {
+                    continue;
+                }
+
+                $wpdb->replace(
+                    $table,
+                    array(
+                        'form_slug'    => '',
+                        'option_name'  => $new_key,
+                        'option_value' => maybe_serialize( $value ),
+                        'autoload'     => 'no',
+                    ),
+                    array( '%s', '%s', '%s', '%s' )
+                );
+
+                delete_option( $legacy_key );
+            }
+        }
+
+        /**
+         * Retrieve a module option from the dedicated table.
+         *
+         * @param string $name    Option name.
+         * @param mixed  $default Default value when the option is missing.
+         * @param string $form_slug Form slug.
+         * @param bool   $found   Whether the option exists.
+         * @return mixed
+         */
+        protected function get_module_option( $name, $default = null, $form_slug = '', &$found = null ) {
+            global $wpdb;
+
+            $found = false;
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                $this->maybe_create_options_table();
+
+                if ( ! $this->table_exists( $table ) ) {
+                    return $default;
+                }
+            }
+
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $value = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT option_value FROM {$table} WHERE option_name = %s AND form_slug = %s LIMIT 1",
+                    $name,
+                    $form_slug
+                )
+            );
+
+            if ( null === $value ) {
+                return $default;
+            }
+
+            $found = true;
+
+            return maybe_unserialize( $value );
+        }
+
+        /**
+         * Persist a module option to the dedicated table.
+         *
+         * @param string $name  Option name.
+         * @param mixed  $value Option value.
+         * @param string $form_slug Form slug.
+         */
+        protected function update_module_option( $name, $value, $form_slug = '' ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                $this->maybe_create_options_table();
+            }
+
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $wpdb->replace(
+                $table,
+                array(
+                    'form_slug'    => $form_slug,
+                    'option_name'  => $name,
+                    'option_value' => maybe_serialize( $value ),
+                    'autoload'     => 'no',
+                ),
+                array( '%s', '%s', '%s', '%s' )
+            );
+        }
+
+        /**
+         * Delete a module option from the dedicated table.
+         *
+         * @param string $name      Option name.
+         * @param string $form_slug Form slug.
+         */
+        protected function delete_module_option( $name, $form_slug = '' ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $wpdb->delete(
+                $table,
+                array(
+                    'option_name' => $name,
+                    'form_slug'   => $form_slug,
+                ),
+                array( '%s', '%s' )
+            );
+        }
+
+        /**
+         * Retrieve a module option with fallback to the global scope.
+         *
+         * @param string $name      Option name.
+         * @param mixed  $default   Default value.
+         * @param string $form_slug Form slug.
+         * @return mixed
+         */
+        protected function get_option_for_form( $name, $default = null, $form_slug = '' ) {
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
+            $value = $this->get_module_option( $name, null, $form_slug, $found );
+
+            if ( $found ) {
+                return null === $value ? $default : $value;
+            }
+
+            if ( '' !== $form_slug ) {
+                $fallback = $this->get_module_option( $name, null, '', $fallback_found );
+
+                if ( $fallback_found ) {
+                    return null === $fallback ? $default : $fallback;
+                }
+            }
+
+            return $default;
         }
 
         /**
@@ -5897,11 +6229,13 @@ JS;
          *
          * @param string $table Table name.
          */
-        protected function maybe_create_table( $table ) {
+        protected function maybe_create_table( $table, $form_slug = '' ) {
             global $wpdb;
 
+            $form_slug = $this->normalise_option_form_slug( $form_slug );
+
             $charset_collate = $wpdb->get_charset_collate();
-            $default_status  = esc_sql( $this->get_default_status_slug() );
+            $default_status  = esc_sql( $this->get_default_status_slug( $form_slug ) );
 
             $sql = "CREATE TABLE {$table} (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
