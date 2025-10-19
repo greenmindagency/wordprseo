@@ -2285,6 +2285,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $default_cc_error_label_json      = wp_json_encode( __( 'Unable to save the default CC list. Please try again.', 'wordprseo' ) );
             $mailer_saved_label_json          = wp_json_encode( __( 'Email sender settings saved.', 'wordprseo' ) );
             $mailer_error_label_json          = wp_json_encode( __( 'Unable to save the email sender settings. Please try again.', 'wordprseo' ) );
+            $email_split_pattern_json         = wp_json_encode( '[\\r\\n,;]+' );
+            if ( false === $email_split_pattern_json ) {
+                $email_split_pattern_json = '"[\\\\r\\\\n,;]+"';
+            }
 
             $script = <<<JS
 <script>
@@ -2391,6 +2395,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const defaultCcErrorMessage = {$default_cc_error_label_json};
     const mailerSavedMessage = {$mailer_saved_label_json};
     const mailerErrorMessage = {$mailer_error_label_json};
+    const emailSplitRegex = new RegExp({$email_split_pattern_json});
 
     const templateToggle = document.querySelector(".theme-leads-template-toggle");
     const templatePanel = document.querySelector(".theme-leads-template-panel");
@@ -2939,7 +2944,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return value.filter(function(item) { return !!item; }).map(function(item) { return String(item).trim(); }).filter(Boolean);
         }
         return String(value)
-            .split(/[\r\n,;]+/)
+            .split(emailSplitRegex)
             .map(function(item) { return item.trim(); })
             .filter(Boolean);
     }
