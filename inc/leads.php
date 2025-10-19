@@ -35,10 +35,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'admin_post_theme_leads_delete', array( $this, 'handle_delete' ) );
                 add_action( 'admin_post_theme_leads_template_save', array( $this, 'handle_template_save' ) );
                 add_action( 'admin_post_theme_leads_template_delete', array( $this, 'handle_template_delete' ) );
+                add_action( 'admin_post_theme_leads_statuses_save', array( $this, 'handle_statuses_save' ) );
+                add_action( 'admin_post_theme_leads_default_cc_save', array( $this, 'handle_default_cc_save' ) );
                 add_action( 'wp_ajax_theme_leads_update', array( $this, 'handle_ajax_update_lead' ) );
                 add_action( 'wp_ajax_theme_leads_send_email', array( $this, 'handle_ajax_send_email' ) );
                 add_action( 'wp_ajax_theme_leads_template_save', array( $this, 'handle_ajax_template_save' ) );
                 add_action( 'wp_ajax_theme_leads_template_delete', array( $this, 'handle_ajax_template_delete' ) );
+                add_action( 'wp_ajax_theme_leads_statuses_save', array( $this, 'handle_ajax_statuses_save' ) );
+                add_action( 'wp_ajax_theme_leads_default_cc_save', array( $this, 'handle_ajax_default_cc_save' ) );
             }
         }
 
@@ -63,11 +67,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             $this->maybe_create_table( $table );
 
+            $default_status = $this->get_default_status_slug();
+
             $wpdb->insert(
                 $table,
                 array(
                     'submitted_at'  => current_time( 'mysql' ),
-                    'status'        => 'new',
+                    'status'        => $default_status,
                     'email'         => $email,
                     'payload'       => wp_json_encode( $posted_data ),
                     'form_title'    => $contact_form->title(),
@@ -124,6 +130,381 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             return '';
+        }
+
+        /**
+         * Retrieve the default set of lead statuses.
+         *
+         * @return array
+         */
+        protected function get_default_status_definitions() {
+            return array(
+                array(
+                    'slug'  => 'new',
+                    'label' => __( 'New', 'wordprseo' ),
+                ),
+                array(
+                    'slug'  => 'in-progress',
+                    'label' => __( 'In progress', 'wordprseo' ),
+                ),
+                array(
+                    'slug'  => 'won',
+                    'label' => __( 'Won', 'wordprseo' ),
+                ),
+                array(
+                    'slug'  => 'lost',
+                    'label' => __( 'Lost', 'wordprseo' ),
+                ),
+                array(
+                    'slug'  => 'archived',
+                    'label' => __( 'Archived', 'wordprseo' ),
+                ),
+            );
+        }
+
+        /**
+         * Retrieve the configured lead statuses.
+         *
+         * @return array
+         */
+        protected function get_status_definitions() {
+            $stored      = get_option( 'theme_leads_statuses', array() );
+            $definitions = array();
+
+            if ( is_array( $stored ) ) {
+                $used_slugs = array();
+
+                foreach ( $stored as $entry ) {
+                    $label = '';
+                    $slug  = '';
+
+                    if ( is_array( $entry ) ) {
+                        $label = isset( $entry['label'] ) ? sanitize_text_field( $entry['label'] ) : '';
+                        $slug  = isset( $entry['slug'] ) ? sanitize_title_with_dashes( $entry['slug'] ) : '';
+                    } elseif ( is_string( $entry ) ) {
+                        $label = sanitize_text_field( $entry );
+                        $slug  = sanitize_title_with_dashes( $entry );
+                    }
+
+                    $label = trim( preg_replace( '/\s+/', ' ', $label ) );
+
+                    if ( '' === $label ) {
+                        continue;
+                    }
+
+                    if ( '' === $slug ) {
+                        $slug = sanitize_title_with_dashes( $label );
+                    }
+
+                    if ( '' === $slug ) {
+                        continue;
+                    }
+
+                    $original_slug = $slug;
+                    $counter       = 2;
+
+                    while ( in_array( $slug, $used_slugs, true ) ) {
+                        $slug = $original_slug . '-' . $counter;
+                        $counter++;
+                    }
+
+                    $used_slugs[]  = $slug;
+                    $definitions[] = array(
+                        'slug'  => $slug,
+                        'label' => $label,
+                    );
+                }
+            }
+
+            if ( empty( $definitions ) ) {
+                $definitions = $this->get_default_status_definitions();
+            }
+
+            return array_values( $definitions );
+        }
+
+        /**
+         * Persist lead status definitions.
+         *
+         * @param array $definitions Status definitions.
+         */
+        protected function save_status_definitions( $definitions ) {
+            update_option( 'theme_leads_statuses', array_values( $definitions ) );
+        }
+
+        /**
+         * Build a map of status slugs to labels.
+         *
+         * @param array|null $definitions Optional status definition list.
+         * @return array
+         */
+        protected function get_status_labels_map( $definitions = null ) {
+            if ( null === $definitions ) {
+                $definitions = $this->get_status_definitions();
+            }
+
+            $map = array();
+
+            foreach ( $definitions as $definition ) {
+                $slug  = isset( $definition['slug'] ) ? sanitize_title_with_dashes( $definition['slug'] ) : '';
+                $label = isset( $definition['label'] ) ? sanitize_text_field( $definition['label'] ) : $slug;
+
+                if ( '' === $slug ) {
+                    continue;
+                }
+
+                $map[ $slug ] = $label;
+            }
+
+            return $map;
+        }
+
+        /**
+         * Retrieve the human readable label for a status slug.
+         *
+         * @param string $status Status slug.
+         * @return string
+         */
+        protected function get_status_label( $status ) {
+            $status = sanitize_title_with_dashes( $status );
+
+            if ( '' === $status ) {
+                return '';
+            }
+
+            $map = $this->get_status_labels_map();
+
+            if ( isset( $map[ $status ] ) ) {
+                return $map[ $status ];
+            }
+
+            return ucwords( str_replace( array( '-', '_' ), ' ', $status ) );
+        }
+
+        /**
+         * Determine the default status slug.
+         *
+         * @return string
+         */
+        protected function get_default_status_slug() {
+            $definitions = $this->get_status_definitions();
+
+            if ( ! empty( $definitions ) ) {
+                $first = reset( $definitions );
+                if ( isset( $first['slug'] ) && '' !== $first['slug'] ) {
+                    return sanitize_title_with_dashes( $first['slug'] );
+                }
+            }
+
+            return 'new';
+        }
+
+        /**
+         * Normalise raw status labels into definition objects.
+         *
+         * @param array $raw_statuses Raw status label list.
+         * @return array
+         */
+        protected function normalise_status_definitions( $raw_statuses ) {
+            if ( empty( $raw_statuses ) || ! is_array( $raw_statuses ) ) {
+                return array();
+            }
+
+            $definitions = array();
+            $used_slugs  = array();
+
+            foreach ( $raw_statuses as $raw_status ) {
+                $label = is_string( $raw_status ) ? sanitize_text_field( $raw_status ) : '';
+                $label = trim( preg_replace( '/\s+/', ' ', $label ) );
+
+                if ( '' === $label ) {
+                    continue;
+                }
+
+                $slug = sanitize_title_with_dashes( $label );
+
+                if ( '' === $slug ) {
+                    continue;
+                }
+
+                $base_slug = $slug;
+                $counter   = 2;
+
+                while ( in_array( $slug, $used_slugs, true ) ) {
+                    $slug = $base_slug . '-' . $counter;
+                    $counter++;
+                }
+
+                $used_slugs[]  = $slug;
+                $definitions[] = array(
+                    'slug'  => $slug,
+                    'label' => $label,
+                );
+            }
+
+            return $definitions;
+        }
+
+        /**
+         * Prepare status data for client-side scripts.
+         *
+         * @param array $definitions Status definitions.
+         * @return array
+         */
+        protected function prepare_statuses_for_js( $definitions ) {
+            $items = array();
+            $map   = array();
+
+            foreach ( $definitions as $definition ) {
+                $slug  = isset( $definition['slug'] ) ? sanitize_title_with_dashes( $definition['slug'] ) : '';
+                $label = isset( $definition['label'] ) ? sanitize_text_field( $definition['label'] ) : $slug;
+
+                if ( '' === $slug ) {
+                    continue;
+                }
+
+                $items[]     = array(
+                    'slug'  => $slug,
+                    'label' => $label,
+                );
+                $map[ $slug ] = $label;
+            }
+
+            $default = ! empty( $items ) ? $items[0]['slug'] : 'new';
+
+            return array(
+                'items'   => $items,
+                'map'     => $map,
+                'default' => $default,
+            );
+        }
+
+        /**
+         * Generate textarea content for the status form.
+         *
+         * @param array $definitions Status definitions.
+         * @return string
+         */
+        protected function get_status_textarea_value( $definitions ) {
+            $labels = array();
+
+            foreach ( $definitions as $definition ) {
+                if ( isset( $definition['label'] ) ) {
+                    $labels[] = sanitize_text_field( $definition['label'] );
+                }
+            }
+
+            return implode( "\n", $labels );
+        }
+
+        /**
+         * Ensure a status value is valid, falling back to the default slug when required.
+         *
+         * @param string $status Raw status value.
+         * @return string
+         */
+        protected function sanitise_status_value( $status ) {
+            $status = sanitize_title_with_dashes( $status );
+
+            $map = $this->get_status_labels_map();
+
+            if ( isset( $map[ $status ] ) ) {
+                return $status;
+            }
+
+            return $this->get_default_status_slug();
+        }
+
+        /**
+         * Retrieve the configured default CC addresses.
+         *
+         * @return array
+         */
+        protected function get_default_cc_addresses() {
+            $stored = get_option( 'theme_leads_default_cc', array() );
+
+            if ( empty( $stored ) ) {
+                return array();
+            }
+
+            if ( ! is_array( $stored ) ) {
+                $stored = array( $stored );
+            }
+
+            return $this->parse_email_list( $stored );
+        }
+
+        /**
+         * Persist the default CC address list.
+         *
+         * @param array|string $addresses Address list.
+         */
+        protected function save_default_cc_addresses( $addresses ) {
+            update_option( 'theme_leads_default_cc', $this->parse_email_list( $addresses ) );
+        }
+
+        /**
+         * Prepare default CC data for client-side scripts.
+         *
+         * @param array $addresses Address list.
+         * @return array
+         */
+        protected function prepare_default_cc_for_js( $addresses ) {
+            $emails = $this->parse_email_list( $addresses );
+
+            return array(
+                'list'    => $emails,
+                'display' => implode( ', ', $emails ),
+            );
+        }
+
+        /**
+         * Combine two email lists and ensure they are unique.
+         *
+         * @param array $primary   Primary list.
+         * @param array $secondary Secondary list.
+         * @return array
+         */
+        protected function merge_email_lists( $primary, $secondary ) {
+            $merged = array();
+
+            foreach ( array_merge( (array) $primary, (array) $secondary ) as $email ) {
+                $clean = sanitize_email( $email );
+                if ( ! empty( $clean ) && ! in_array( $clean, $merged, true ) ) {
+                    $merged[] = $clean;
+                }
+            }
+
+            return $merged;
+        }
+
+        /**
+         * Normalise a list of email addresses from mixed input.
+         *
+         * @param array|string $value Raw list.
+         * @return array
+         */
+        protected function parse_email_list( $value ) {
+            if ( is_array( $value ) ) {
+                $parts = $value;
+            } else {
+                $parts = preg_split( '/[\r\n,;]+/', (string) $value );
+            }
+
+            $emails = array();
+
+            if ( empty( $parts ) || ! is_array( $parts ) ) {
+                return $emails;
+            }
+
+            foreach ( $parts as $part ) {
+                $email = sanitize_email( trim( wp_strip_all_tags( (string) $part ) ) );
+                if ( ! empty( $email ) && is_email( $email ) && ! in_array( $email, $emails, true ) ) {
+                    $emails[] = $email;
+                }
+            }
+
+            return array_values( $emails );
         }
 
         /**
@@ -224,7 +605,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             // Ensure the table schema is up to date before attempting to store additional lead details.
             $this->maybe_create_table( $table );
 
-            $status        = isset( $request['lead_status'] ) ? sanitize_text_field( wp_unslash( $request['lead_status'] ) ) : 'new';
+            $status_input  = isset( $request['lead_status'] ) ? wp_unslash( $request['lead_status'] ) : '';
+            $status        = $this->sanitise_status_value( $status_input );
             $submit_action = isset( $request['lead_submit_action'] ) ? sanitize_key( wp_unslash( $request['lead_submit_action'] ) ) : 'save';
 
             $has_client_name  = array_key_exists( 'lead_client_name', $request );
@@ -373,6 +755,15 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     return new WP_Error( 'theme_leads_missing_recipient', __( 'Please provide at least one email address.', 'wordprseo' ) );
                 }
 
+                $default_cc_addresses = $this->get_default_cc_addresses();
+                if ( ! empty( $default_cc_addresses ) ) {
+                    foreach ( $default_cc_addresses as $cc_email ) {
+                        if ( ! in_array( $cc_email, $recipient_emails, true ) ) {
+                            $recipient_emails[] = $cc_email;
+                        }
+                    }
+                }
+
                 $prepared_subject    = $this->apply_template_placeholders( $resolved_subject, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
                 $prepared_message    = $this->apply_template_placeholders( $resolved_message, $lead, $payload, $resolved_client_name, $resolved_client_phone, $resolved_brand, $resolved_link, $recipient_emails );
                 $prepared_recipients = $recipient_emails;
@@ -484,7 +875,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $updated_context     = $this->build_template_context_data( $updated_lead, $updated_payload );
             $response_history    = $this->get_response_history_markup( $updated_lead );
             $summary_name        = ! empty( $updated_lead->response_client_name ) ? $updated_lead->response_client_name : $this->extract_contact_name( $updated_payload );
-            $summary_status      = ucfirst( $updated_lead->status );
+            $summary_status      = $this->get_status_label( $updated_lead->status );
             $summary_last_reply  = ! empty( $updated_lead->response_sent ) ? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $updated_lead->response_sent ) : '';
             $recipients_display  = $this->format_recipient_list_for_display( $updated_lead->response_recipients );
             $response_sent_value = ! empty( $updated_lead->response_sent ) ? $updated_lead->response_sent : $response_sent_at;
@@ -508,6 +899,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 'summary'        => array(
                     'name'          => $summary_name,
                     'status_label'  => $summary_status,
+                    'status_slug'   => $updated_lead->status,
                     'last_response' => $summary_last_reply,
                 ),
                 'history_markup' => $response_history,
@@ -636,6 +1028,156 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         }
 
         /**
+         * Handle status management form submissions.
+         */
+        public function handle_statuses_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_statuses_save' );
+
+            $result = $this->process_statuses_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'statuses_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'statuses_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX status management requests.
+         */
+        public function handle_ajax_statuses_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_statuses_save' );
+
+            $result = $this->process_statuses_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_statuses_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
+         * Normalise and persist status updates.
+         *
+         * @param array $request Raw request data.
+         * @return array|WP_Error
+         */
+        protected function process_statuses_save_request( $request ) {
+            $raw_input = isset( $request['lead_statuses'] ) ? wp_unslash( $request['lead_statuses'] ) : '';
+            $lines     = preg_split( '/[\r\n]+/', (string) $raw_input );
+
+            $definitions = $this->normalise_status_definitions( $lines );
+
+            if ( empty( $definitions ) ) {
+                return new WP_Error( 'theme_leads_statuses_empty', __( 'Please enter at least one status.', 'wordprseo' ) );
+            }
+
+            $this->save_status_definitions( $definitions );
+
+            return array(
+                'statuses' => $this->prepare_statuses_for_js( $definitions ),
+                'textarea' => $this->get_status_textarea_value( $definitions ),
+            );
+        }
+
+        /**
+         * Handle default CC form submissions.
+         */
+        public function handle_default_cc_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_default_cc_save' );
+
+            $result = $this->process_default_cc_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'default_cc_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'default_cc_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX requests for default CC updates.
+         */
+        public function handle_ajax_default_cc_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_default_cc_save' );
+
+            $result = $this->process_default_cc_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_default_cc_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
+         * Normalise and persist default CC address updates.
+         *
+         * @param array $request Raw request data.
+         * @return array|WP_Error
+         */
+        protected function process_default_cc_save_request( $request ) {
+            $raw_input = isset( $request['lead_default_cc'] ) ? wp_unslash( $request['lead_default_cc'] ) : '';
+            $addresses = $this->parse_email_list( $raw_input );
+
+            $this->save_default_cc_addresses( $addresses );
+
+            return array(
+                'cc'       => $this->prepare_default_cc_for_js( $addresses ),
+                'textarea' => implode( "\n", $addresses ),
+            );
+        }
+
+        /**
          * Normalise and persist a template save request.
          *
          * @param array $request Raw request data.
@@ -737,6 +1279,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $forms      = $this->get_contact_forms();
             $templates  = $this->get_templates();
             $form_slug  = isset( $_GET['form'] ) ? sanitize_key( wp_unslash( $_GET['form'] ) ) : '';
+            $statuses   = $this->get_status_definitions();
+            $status_textarea_value = $this->get_status_textarea_value( $statuses );
+            $statuses_for_js       = $this->prepare_statuses_for_js( $statuses );
+            $default_cc_addresses  = $this->get_default_cc_addresses();
+            $default_cc_textarea   = implode( "\n", $default_cc_addresses );
+            $default_cc_for_js     = $this->prepare_default_cc_for_js( $default_cc_addresses );
 
             if ( empty( $form_slug ) && ! empty( $forms ) ) {
                 $first_form = reset( $forms );
@@ -745,6 +1293,38 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             echo '<div class="wrap">';
             echo '<h1>' . esc_html__( 'Leads', 'wordprseo' ) . '</h1>';
+
+            $notice_key     = isset( $_GET['theme_leads_notice'] ) ? sanitize_key( wp_unslash( $_GET['theme_leads_notice'] ) ) : '';
+            $notice_message = isset( $_GET['theme_leads_notice_message'] ) ? wp_unslash( $_GET['theme_leads_notice_message'] ) : '';
+            if ( $notice_message ) {
+                $notice_message = rawurldecode( $notice_message );
+            }
+
+            if ( $notice_key ) {
+                $notices = array(
+                    'statuses_saved'   => array(
+                        'class'   => 'notice-success',
+                        'message' => __( 'Statuses updated.', 'wordprseo' ),
+                    ),
+                    'statuses_error'   => array(
+                        'class'   => 'notice-error',
+                        'message' => $notice_message ? $notice_message : __( 'The statuses could not be updated.', 'wordprseo' ),
+                    ),
+                    'default_cc_saved' => array(
+                        'class'   => 'notice-success',
+                        'message' => __( 'Default CC recipients updated.', 'wordprseo' ),
+                    ),
+                    'default_cc_error' => array(
+                        'class'   => 'notice-error',
+                        'message' => $notice_message ? $notice_message : __( 'The default CC list could not be updated.', 'wordprseo' ),
+                    ),
+                );
+
+                if ( isset( $notices[ $notice_key ] ) ) {
+                    $notice = $notices[ $notice_key ];
+                    printf( '<div class="notice %1$s"><p>%2$s</p></div>', esc_attr( $notice['class'] ), esc_html( $notice['message'] ) );
+                }
+            }
 
             if ( empty( $forms ) ) {
                 echo '<p>' . esc_html__( 'No Contact Form 7 forms were found.', 'wordprseo' ) . '</p>';
@@ -768,16 +1348,58 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</form>';
 
             echo '<div class="theme-leads-toolbar-actions">';
-            echo '<button type="button" class="button theme-leads-template-toggle" aria-expanded="false">';
+            echo '<button type="button" class="button theme-leads-status-toggle" aria-expanded="false" aria-controls="theme-leads-status-panel">';
+            echo '<span class="dashicons dashicons-category" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Manage statuses', 'wordprseo' ) . '</span>';
+            echo '</button>';
+            echo '<button type="button" class="button theme-leads-defaults-toggle" aria-expanded="false" aria-controls="theme-leads-defaults-panel">';
+            echo '<span class="dashicons dashicons-email-alt2" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Manage default CC recipients', 'wordprseo' ) . '</span>';
+            echo '</button>';
+            echo '<button type="button" class="button theme-leads-template-toggle" aria-expanded="false" aria-controls="theme-leads-template-panel">';
             echo '<span class="dashicons dashicons-admin-generic" aria-hidden="true"></span>';
             echo '<span class="screen-reader-text">' . esc_html__( 'Manage templates', 'wordprseo' ) . '</span>';
             echo '</button>';
             echo '</div>';
             echo '</div>';
 
-            echo '<div class="theme-leads-template-panel" aria-hidden="true" hidden>';
-            echo '<div class="theme-leads-template-panel-inner">';
-            echo '<button type="button" class="button-link theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
+            echo '<div id="theme-leads-status-panel" class="theme-leads-panel theme-leads-status-panel" aria-hidden="true" hidden>';
+            echo '<div class="theme-leads-panel-inner">';
+            echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-status-close" aria-label="' . esc_attr__( 'Close status manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
+            echo '<h2>' . esc_html__( 'Lead statuses', 'wordprseo' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Enter one status per line. The first status will be applied to new leads.', 'wordprseo' ) . '</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-statuses-form">';
+            wp_nonce_field( 'theme_leads_statuses_save' );
+            echo '<input type="hidden" name="action" value="theme_leads_statuses_save" />';
+            echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
+            echo '<textarea name="lead_statuses" rows="6" class="large-text">' . esc_textarea( $status_textarea_value ) . '</textarea>';
+            echo '<p class="description">' . esc_html__( 'Statuses are saved in the order provided.', 'wordprseo' ) . '</p>';
+            echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save statuses', 'wordprseo' ) . '</button></p>';
+            echo '<div class="theme-leads-panel-feedback theme-leads-form-feedback theme-leads-statuses-feedback" aria-live="polite"></div>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+
+            echo '<div id="theme-leads-defaults-panel" class="theme-leads-panel theme-leads-defaults-panel" aria-hidden="true" hidden>';
+            echo '<div class="theme-leads-panel-inner">';
+            echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-defaults-close" aria-label="' . esc_attr__( 'Close default CC manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
+            echo '<h2>' . esc_html__( 'Default CC recipients', 'wordprseo' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Recipients listed here will be copied on every email you send from a lead.', 'wordprseo' ) . '</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-default-cc-form">';
+            wp_nonce_field( 'theme_leads_default_cc_save' );
+            echo '<input type="hidden" name="action" value="theme_leads_default_cc_save" />';
+            echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
+            echo '<textarea name="lead_default_cc" rows="5" class="large-text" placeholder="team@example.com">' . esc_textarea( $default_cc_textarea ) . '</textarea>';
+            echo '<p class="description">' . esc_html__( 'Separate addresses with commas or line breaks.', 'wordprseo' ) . '</p>';
+            echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save CC list', 'wordprseo' ) . '</button></p>';
+            echo '<div class="theme-leads-panel-feedback theme-leads-form-feedback theme-leads-default-cc-feedback" aria-live="polite"></div>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+
+            echo '<div id="theme-leads-template-panel" class="theme-leads-panel theme-leads-template-panel" aria-hidden="true" hidden>';
+            echo '<div class="theme-leads-panel-inner theme-leads-template-panel-inner">';
+            echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Response templates', 'wordprseo' ) . '</h2>';
             echo '<p>' . esc_html__( 'Use placeholders like %name%, %email%, %phone%, %brand%, %link%, %site_title%, %date%, %form_title%, or any Contact Form 7 field key (for example %your-name%) to personalise messages automatically.', 'wordprseo' ) . '</p>';
             echo '<p class="description">' . esc_html__( 'Available placeholders are pulled from the submission details of the lead you are viewing. Click a placeholder to insert it.', 'wordprseo' ) . '</p>';
@@ -973,7 +1595,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 }
                 echo '</td>';
 
-                echo '<td class="theme-leads-summary-status">' . esc_html( ucfirst( $lead->status ) ) . '</td>';
+                echo '<td class="theme-leads-summary-status" data-status="' . esc_attr( $lead->status ) . '">' . esc_html( $this->get_status_label( $lead->status ) ) . '</td>';
 
                 echo '<td>';
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-status-form theme-leads-no-toggle">';
@@ -983,9 +1605,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<input type="hidden" name="lead_id" value="' . absint( $lead->id ) . '" />';
                 echo '<label class="screen-reader-text" for="theme-lead-status-' . absint( $lead->id ) . '">' . esc_html__( 'Change status', 'wordprseo' ) . '</label>';
                 echo '<select id="theme-lead-status-' . absint( $lead->id ) . '" name="lead_status" class="theme-leads-status-select">';
-                $statuses = array( 'new', 'in-progress', 'won', 'lost', 'archived' );
-                foreach ( $statuses as $status ) {
-                    printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $status ), selected( $lead->status, $status, false ), esc_html( ucfirst( $status ) ) );
+                foreach ( $statuses as $status_definition ) {
+                    $status_slug  = isset( $status_definition['slug'] ) ? $status_definition['slug'] : '';
+                    $status_label = isset( $status_definition['label'] ) ? $status_definition['label'] : $status_slug;
+                    if ( '' === $status_slug ) {
+                        continue;
+                    }
+                    printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $status_slug ), selected( $lead->status, $status_slug, false ), esc_html( $status_label ) );
                 }
                 echo '</select>';
                 echo '</form>';
@@ -1049,8 +1675,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<div class="theme-leads-form-group theme-leads-form-group-status">';
                 echo '<label>' . esc_html__( 'Status', 'wordprseo' );
                 echo '<select name="lead_status" class="theme-leads-status-select">';
-                foreach ( $statuses as $status ) {
-                    printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $status ), selected( $lead->status, $status, false ), esc_html( ucfirst( $status ) ) );
+                foreach ( $statuses as $status_definition ) {
+                    $status_slug  = isset( $status_definition['slug'] ) ? $status_definition['slug'] : '';
+                    $status_label = isset( $status_definition['label'] ) ? $status_definition['label'] : $status_slug;
+                    if ( '' === $status_slug ) {
+                        continue;
+                    }
+                    printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $status_slug ), selected( $lead->status, $status_slug, false ), esc_html( $status_label ) );
                 }
                 echo '</select>';
                 echo '</label>';
@@ -1091,7 +1722,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
                 echo '<div class="theme-leads-form-group theme-leads-email-group">';
                 echo '<label>' . esc_html__( 'Client emails', 'wordprseo' );
-                echo '<span class="theme-leads-field-help">' . esc_html__( 'Use + to add CC recipients.', 'wordprseo' ) . '</span>';
+                echo '<span class="theme-leads-field-help">' . esc_html__( 'Use + to add CC recipients. Default CC recipients configured in the toolbar are added automatically.', 'wordprseo' ) . '</span>';
                 echo '<div class="theme-leads-email-fields">';
                 if ( empty( $stored_recipients ) ) {
                     $stored_recipients = array( '' );
@@ -1164,16 +1795,17 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
 
             echo '<style>
                 .theme-leads-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
-                .theme-leads-toolbar-actions { margin-left:auto; display:flex; align-items:center; }
+                .theme-leads-toolbar-actions { margin-left:auto; display:flex; align-items:center; gap:8px; }
+                .theme-leads-toolbar-actions .button { display:flex; align-items:center; gap:6px; }
                 .theme-leads-form-selector { display:flex; align-items:center; gap:8px; }
                 .theme-leads-form-selector select { min-width:220px; }
                 .theme-leads-template-toggle { display:flex; align-items:center; gap:6px; }
-                .theme-leads-template-panel { position:fixed; top:64px; right:32px; width:420px; max-width:90vw; max-height:80vh; overflow:auto; background:#fff; border:1px solid #ccd0d4; box-shadow:0 20px 40px rgba(0,0,0,0.2); padding:24px; display:none; z-index:9999; }
-                .theme-leads-template-panel[aria-hidden="false"] { display:block; }
-                .theme-leads-template-panel-inner { position:relative; display:flex; flex-direction:column; gap:16px; }
+                .theme-leads-panel { position:fixed; top:64px; right:32px; width:420px; max-width:90vw; max-height:80vh; overflow:auto; background:#fff; border:1px solid #ccd0d4; box-shadow:0 20px 40px rgba(0,0,0,0.2); padding:24px; display:none; z-index:9999; }
+                .theme-leads-panel[aria-hidden="false"] { display:block; }
+                .theme-leads-panel-inner { position:relative; display:flex; flex-direction:column; gap:16px; }
                 .theme-leads-spinner { display:inline-block; width:16px; height:16px; margin-left:6px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:themeLeadsSpin 1s linear infinite; vertical-align:middle; }
                 .theme-leads-spinner--inline { margin-left:8px; }
-                .theme-leads-template-close { position:absolute; top:8px; right:8px; color:#666; }
+                .theme-leads-panel-close { position:absolute; top:8px; right:8px; color:#666; }
                 .theme-leads-template-list { display:flex; flex-direction:column; gap:16px; }
                 .theme-leads-template-card { border:1px solid #e2e4e7; padding:16px; border-radius:4px; background:#f9fafb; }
                 .theme-leads-template-card form { margin:0; }
@@ -1231,6 +1863,16 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<script type="application/json" id="theme-leads-templates-data">' . str_replace( '</', '<\/', $templates_json ) . '</script>';
             }
 
+            $statuses_json = wp_json_encode( $statuses_for_js );
+            if ( $statuses_json ) {
+                echo '<script type="application/json" id="theme-leads-statuses-data">' . str_replace( '</', '<\/', $statuses_json ) . '</script>';
+            }
+
+            $default_cc_json = wp_json_encode( $default_cc_for_js );
+            if ( $default_cc_json ) {
+                echo '<script type="application/json" id="theme-leads-default-cc-data">' . str_replace( '</', '<\/', $default_cc_json ) . '</script>';
+            }
+
             $remove_email_label_json      = wp_json_encode( __( 'Remove email', 'wordprseo' ) );
             $sending_label_json           = wp_json_encode( __( 'Sending…', 'wordprseo' ) );
             $saving_label_json            = wp_json_encode( __( 'Saving…', 'wordprseo' ) );
@@ -1252,6 +1894,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $changes_saved_message_json   = wp_json_encode( __( 'Changes saved.', 'wordprseo' ) );
             $form_placeholders_heading_json   = wp_json_encode( __( 'Form fields', 'wordprseo' ) );
             $system_placeholders_heading_json = wp_json_encode( __( 'Lead details', 'wordprseo' ) );
+            $statuses_saved_label_json        = wp_json_encode( __( 'Statuses saved.', 'wordprseo' ) );
+            $statuses_error_label_json        = wp_json_encode( __( 'Unable to save statuses. Please try again.', 'wordprseo' ) );
+            $default_cc_saved_label_json      = wp_json_encode( __( 'Default CC recipients saved.', 'wordprseo' ) );
+            $default_cc_error_label_json      = wp_json_encode( __( 'Unable to save the default CC list. Please try again.', 'wordprseo' ) );
 
             $script = <<<JS
 <script>
@@ -1265,6 +1911,49 @@ document.addEventListener("DOMContentLoaded", function() {
             templates = {};
         }
     }
+
+    const statusDataElement = document.getElementById("theme-leads-statuses-data");
+    let statusData = { items: [], map: {}, default: "" };
+    if (statusDataElement) {
+        try {
+            const parsedStatuses = JSON.parse(statusDataElement.textContent);
+            if (parsedStatuses && typeof parsedStatuses === "object") {
+                statusData = parsedStatuses;
+            }
+        } catch (error) {
+            statusData = { items: [], map: {}, default: "" };
+        }
+    }
+    if (!Array.isArray(statusData.items)) {
+        statusData.items = [];
+    }
+    if (!statusData.map || typeof statusData.map !== "object") {
+        statusData.map = {};
+    }
+    if (typeof statusData.default !== "string") {
+        statusData.default = "";
+    }
+    let statusLabelsMap = statusData.map || {};
+
+    const defaultCcDataElement = document.getElementById("theme-leads-default-cc-data");
+    let defaultCcData = { list: [], display: "" };
+    if (defaultCcDataElement) {
+        try {
+            const parsedDefaultCc = JSON.parse(defaultCcDataElement.textContent);
+            if (parsedDefaultCc && typeof parsedDefaultCc === "object") {
+                defaultCcData = parsedDefaultCc;
+            }
+        } catch (error) {
+            defaultCcData = { list: [], display: "" };
+        }
+    }
+    if (!Array.isArray(defaultCcData.list)) {
+        defaultCcData.list = [];
+    }
+    if (typeof defaultCcData.display !== "string") {
+        defaultCcData.display = defaultCcData.list.join(", ") || "";
+    }
+    let defaultCcList = defaultCcData.list.slice();
 
     const removeEmailLabel = {$remove_email_label_json};
     const sendingLabel = {$sending_label_json};
@@ -1290,49 +1979,427 @@ document.addEventListener("DOMContentLoaded", function() {
     const ajaxUrl = typeof window.ajaxurl !== "undefined" ? window.ajaxurl : "";
     const spinnerClass = "theme-leads-spinner";
     const spinnerInlineClass = "theme-leads-spinner--inline";
+    const statusesSavedMessage = {$statuses_saved_label_json};
+    const statusesErrorMessage = {$statuses_error_label_json};
+    const defaultCcSavedMessage = {$default_cc_saved_label_json};
+    const defaultCcErrorMessage = {$default_cc_error_label_json};
 
     const templateToggle = document.querySelector(".theme-leads-template-toggle");
     const templatePanel = document.querySelector(".theme-leads-template-panel");
-    const templateClose = document.querySelector(".theme-leads-template-close");
     const templateList = document.querySelector(".theme-leads-template-list");
+    const statusToggle = document.querySelector(".theme-leads-status-toggle");
+    const statusPanel = document.querySelector(".theme-leads-status-panel");
+    const defaultToggle = document.querySelector(".theme-leads-defaults-toggle");
+    const defaultPanel = document.querySelector(".theme-leads-defaults-panel");
     let activeTemplateField = null;
+    const statusForm = document.querySelector(".theme-leads-statuses-form");
+    const defaultCcForm = document.querySelector(".theme-leads-default-cc-form");
 
-    function setTemplatePanel(open) {
-        if (!templatePanel || !templateToggle) {
+    const panelConfigs = [
+        { toggle: templateToggle, panel: templatePanel, onOpen: refreshTemplatePlaceholderButtons },
+        { toggle: statusToggle, panel: statusPanel },
+        { toggle: defaultToggle, panel: defaultPanel }
+    ];
+
+    panelConfigs.forEach(function(config) {
+        if (!config.toggle || !config.panel) {
             return;
         }
-        templateToggle.setAttribute("aria-expanded", open ? "true" : "false");
-        templatePanel.setAttribute("aria-hidden", open ? "false" : "true");
-        if (open) {
-            templatePanel.removeAttribute("hidden");
-        } else {
-            templatePanel.setAttribute("hidden", "hidden");
-        }
-        if (open) {
-            refreshTemplatePlaceholderButtons();
-        }
-    }
 
-    if (templateToggle && templatePanel) {
-        templateToggle.addEventListener("click", function(event) {
-            event.preventDefault();
-            const expanded = templateToggle.getAttribute("aria-expanded") === "true";
-            setTemplatePanel(!expanded);
-        });
-    }
+        const closeButton = config.panel.querySelector(".theme-leads-panel-close");
+        config.closeButton = closeButton;
 
-    if (templateClose) {
-        templateClose.addEventListener("click", function(event) {
+        config.toggle.addEventListener("click", function(event) {
             event.preventDefault();
-            setTemplatePanel(false);
+            const expanded = config.toggle.getAttribute("aria-expanded") === "true";
+            setPanelState(config, !expanded);
         });
-    }
+
+        if (closeButton) {
+            closeButton.addEventListener("click", function(event) {
+                event.preventDefault();
+                setPanelState(config, false);
+            });
+        }
+    });
 
     document.addEventListener("keydown", function(event) {
         if (event.key === "Escape") {
-            setTemplatePanel(false);
+            closeAllPanels();
         }
     });
+
+    closeAllPanels();
+
+    function setPanelState(config, open) {
+        panelConfigs.forEach(function(entry) {
+            if (!entry.panel || !entry.toggle) {
+                return;
+            }
+
+            const shouldOpen = entry === config && open;
+            entry.toggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+            entry.panel.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+
+            if (shouldOpen) {
+                entry.panel.removeAttribute("hidden");
+                if (typeof entry.onOpen === "function") {
+                    entry.onOpen();
+                }
+            } else {
+                entry.panel.setAttribute("hidden", "hidden");
+            }
+        });
+    }
+
+    function closeAllPanels() {
+        panelConfigs.forEach(function(entry) {
+            if (!entry.panel || !entry.toggle) {
+                return;
+            }
+            entry.toggle.setAttribute("aria-expanded", "false");
+            entry.panel.setAttribute("aria-hidden", "true");
+            entry.panel.setAttribute("hidden", "hidden");
+        });
+    }
+
+    if (statusForm) {
+        statusForm.addEventListener("submit", function(event) {
+            if (!ajaxUrl) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (statusForm._themeLeadsSubmitting) {
+                return;
+            }
+
+            statusForm._themeLeadsSubmitting = true;
+
+            const submitButton = statusForm.querySelector("button[type='submit']");
+            const feedbackEl = statusForm.querySelector(".theme-leads-statuses-feedback");
+
+            if (feedbackEl) {
+                feedbackEl.textContent = "";
+                feedbackEl.classList.remove("is-error", "is-success");
+            }
+
+            if (submitButton) {
+                setBusyState(submitButton, true);
+            } else {
+                setBusyState(statusForm, true);
+            }
+
+            const formData = new FormData(statusForm);
+            formData.set("action", "theme_leads_statuses_save");
+            const nonceValue = formData.get("_wpnonce");
+            if (nonceValue && !formData.get("_ajax_nonce")) {
+                formData.set("_ajax_nonce", nonceValue);
+            }
+
+            fetch(ajaxUrl, {
+                method: "POST",
+                credentials: "same-origin",
+                body: formData
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error(statusesErrorMessage);
+                    }
+                    return response.json();
+                })
+                .then(function(payload) {
+                    if (!payload || typeof payload !== "object") {
+                        throw new Error(statusesErrorMessage);
+                    }
+                    if (payload.success) {
+                        handleStatusesSaveSuccess(payload.data || {}, statusForm, feedbackEl);
+                    } else {
+                        const message = payload.data && payload.data.message ? payload.data.message : statusesErrorMessage;
+                        throw new Error(message);
+                    }
+                })
+                .catch(function(error) {
+                    if (feedbackEl) {
+                        feedbackEl.textContent = error && error.message ? error.message : statusesErrorMessage;
+                        feedbackEl.classList.remove("is-success");
+                        feedbackEl.classList.add("is-error");
+                    } else {
+                        window.alert(error && error.message ? error.message : statusesErrorMessage);
+                    }
+                })
+                .finally(function() {
+                    if (submitButton) {
+                        setBusyState(submitButton, false);
+                    } else {
+                        setBusyState(statusForm, false);
+                    }
+                    statusForm._themeLeadsSubmitting = false;
+                });
+        });
+    }
+
+    if (defaultCcForm) {
+        defaultCcForm.addEventListener("submit", function(event) {
+            if (!ajaxUrl) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (defaultCcForm._themeLeadsSubmitting) {
+                return;
+            }
+
+            defaultCcForm._themeLeadsSubmitting = true;
+
+            const submitButton = defaultCcForm.querySelector("button[type='submit']");
+            const feedbackEl = defaultCcForm.querySelector(".theme-leads-default-cc-feedback");
+
+            if (feedbackEl) {
+                feedbackEl.textContent = "";
+                feedbackEl.classList.remove("is-error", "is-success");
+            }
+
+            if (submitButton) {
+                setBusyState(submitButton, true);
+            } else {
+                setBusyState(defaultCcForm, true);
+            }
+
+            const formData = new FormData(defaultCcForm);
+            formData.set("action", "theme_leads_default_cc_save");
+            const nonceValue = formData.get("_wpnonce");
+            if (nonceValue && !formData.get("_ajax_nonce")) {
+                formData.set("_ajax_nonce", nonceValue);
+            }
+
+            fetch(ajaxUrl, {
+                method: "POST",
+                credentials: "same-origin",
+                body: formData
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error(defaultCcErrorMessage);
+                    }
+                    return response.json();
+                })
+                .then(function(payload) {
+                    if (!payload || typeof payload !== "object") {
+                        throw new Error(defaultCcErrorMessage);
+                    }
+                    if (payload.success) {
+                        handleDefaultCcSaveSuccess(payload.data || {}, defaultCcForm, feedbackEl);
+                    } else {
+                        const message = payload.data && payload.data.message ? payload.data.message : defaultCcErrorMessage;
+                        throw new Error(message);
+                    }
+                })
+                .catch(function(error) {
+                    if (feedbackEl) {
+                        feedbackEl.textContent = error && error.message ? error.message : defaultCcErrorMessage;
+                        feedbackEl.classList.remove("is-success");
+                        feedbackEl.classList.add("is-error");
+                    } else {
+                        window.alert(error && error.message ? error.message : defaultCcErrorMessage);
+                    }
+                })
+                .finally(function() {
+                    if (submitButton) {
+                        setBusyState(submitButton, false);
+                    } else {
+                        setBusyState(defaultCcForm, false);
+                    }
+                    defaultCcForm._themeLeadsSubmitting = false;
+                });
+        });
+    }
+
+    function handleStatusesSaveSuccess(data, form, feedbackEl) {
+        if (data && typeof data === "object" && data.statuses && typeof data.statuses === "object") {
+            const items = Array.isArray(data.statuses.items) ? data.statuses.items : [];
+            const map = data.statuses.map && typeof data.statuses.map === "object" ? data.statuses.map : {};
+            const defaultSlug = typeof data.statuses.default === "string" ? data.statuses.default : "";
+            statusData = {
+                items: items,
+                map: map,
+                default: defaultSlug
+            };
+            statusLabelsMap = map;
+            refreshStatusSelects();
+            refreshStatusDisplays();
+        }
+
+        if (data && typeof data === "object" && data.textarea) {
+            const textarea = form ? form.querySelector("textarea[name='lead_statuses']") : null;
+            if (textarea) {
+                textarea.value = data.textarea;
+            }
+        }
+
+        if (data && typeof data === "object" && data.save_nonce) {
+            const nonceField = form ? form.querySelector("input[name='_wpnonce']") : null;
+            if (nonceField) {
+                nonceField.value = data.save_nonce;
+            }
+        }
+
+        if (feedbackEl) {
+            feedbackEl.textContent = statusesSavedMessage;
+            feedbackEl.classList.remove("is-error");
+            feedbackEl.classList.add("is-success");
+        }
+    }
+
+    function handleDefaultCcSaveSuccess(data, form, feedbackEl) {
+        if (data && typeof data === "object" && data.cc && typeof data.cc === "object") {
+            const list = Array.isArray(data.cc.list) ? data.cc.list : [];
+            const display = typeof data.cc.display === "string" ? data.cc.display : list.join(", ") || "";
+            defaultCcData = {
+                list: list,
+                display: display
+            };
+            defaultCcList = list.slice();
+            refreshDefaultCcDisplay(defaultCcList);
+        }
+
+        if (data && typeof data === "object" && data.textarea) {
+            const textarea = form ? form.querySelector("textarea[name='lead_default_cc']") : null;
+            if (textarea) {
+                textarea.value = data.textarea;
+            }
+        }
+
+        if (data && typeof data === "object" && data.save_nonce) {
+            const nonceField = form ? form.querySelector("input[name='_wpnonce']") : null;
+            if (nonceField) {
+                nonceField.value = data.save_nonce;
+            }
+        }
+
+        if (feedbackEl) {
+            feedbackEl.textContent = defaultCcSavedMessage;
+            feedbackEl.classList.remove("is-error");
+            feedbackEl.classList.add("is-success");
+        }
+    }
+
+    function refreshStatusSelects() {
+        const items = Array.isArray(statusData.items) ? statusData.items : [];
+        const defaultSlug = typeof statusData.default === "string" && statusData.default ? statusData.default : (items.length ? items[0].slug : "");
+
+        document.querySelectorAll(".theme-leads-status-select").forEach(function(select) {
+            const previousValue = select.value;
+
+            while (select.firstChild) {
+                select.removeChild(select.firstChild);
+            }
+
+            const values = [];
+
+            items.forEach(function(item) {
+                if (!item || typeof item !== "object") {
+                    return;
+                }
+                const slug = item.slug || "";
+                if (!slug) {
+                    return;
+                }
+                const label = item.label || slug;
+                const option = document.createElement("option");
+                option.value = slug;
+                option.textContent = label;
+                select.appendChild(option);
+                values.push(slug);
+            });
+
+            let targetValue = previousValue && values.indexOf(previousValue) !== -1 ? previousValue : "";
+            if (!targetValue) {
+                targetValue = defaultSlug && values.indexOf(defaultSlug) !== -1 ? defaultSlug : "";
+            }
+            if (!targetValue && values.length) {
+                targetValue = values[0];
+            }
+
+            if (targetValue) {
+                select.value = targetValue;
+            }
+
+            select.disabled = values.length === 0;
+        });
+    }
+
+    function refreshStatusDisplays() {
+        document.querySelectorAll(".theme-leads-summary-status").forEach(function(cell) {
+            const slug = cell.getAttribute("data-status") || "";
+            if (slug && statusLabelsMap[slug]) {
+                cell.textContent = statusLabelsMap[slug];
+            } else if (!slug) {
+                cell.textContent = "";
+            } else {
+                cell.textContent = slug;
+            }
+        });
+
+        document.querySelectorAll(".theme-leads-template-context").forEach(function(contextEl) {
+            const statusSlug = contextEl.dataset.statusSlug || contextEl.dataset.status || "";
+            const label = statusSlug && statusLabelsMap[statusSlug] ? statusLabelsMap[statusSlug] : (contextEl.dataset.status || statusSlug);
+            contextEl.dataset.statusSlug = statusSlug || "";
+            contextEl.dataset.status = label || "";
+        });
+    }
+
+    function refreshDefaultCcDisplay(list) {
+        const ccList = Array.isArray(list) ? list.slice() : [];
+        const ccString = ccList.join(", ");
+
+        document.querySelectorAll(".theme-leads-template-context").forEach(function(contextEl) {
+            const baseList = parseEmailList(contextEl.dataset.ccBase || "");
+            contextEl.dataset.defaultCc = ccString;
+            const combined = mergeEmailLists(baseList, ccList);
+            contextEl.dataset.cc = combined.join(", ");
+        });
+    }
+
+    function parseEmailList(value) {
+        if (!value) {
+            return [];
+        }
+        if (Array.isArray(value)) {
+            return value.filter(function(item) { return !!item; }).map(function(item) { return String(item).trim(); }).filter(Boolean);
+        }
+        return String(value)
+            .split(/[\r\n,;]+/)
+            .map(function(item) { return item.trim(); })
+            .filter(Boolean);
+    }
+
+    function mergeEmailLists(primary, secondary) {
+        const seen = new Set();
+        const merged = [];
+
+        [].concat(primary || [], secondary || []).forEach(function(item) {
+            if (!item) {
+                return;
+            }
+            const email = String(item).trim();
+            if (!email) {
+                return;
+            }
+            if (!seen.has(email.toLowerCase())) {
+                seen.add(email.toLowerCase());
+                merged.push(email);
+            }
+        });
+
+        return merged;
+    }
+
+    refreshStatusSelects();
+    refreshStatusDisplays();
+    refreshDefaultCcDisplay(defaultCcList);
 
     setTemplatePanel(false);
 
@@ -2036,7 +3103,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function gatherPlaceholderTokens() {
-        const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%link%', '%status%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%site_title%', '%recipient%', '%cc%'];
+        const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%link%', '%status%', '%status_slug%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%site_title%', '%recipient%', '%cc%', '%default_cc%'];
         const displaySystemTokens = ['%brand%', '%link%', '%status%', '%site_title%'];
         const systemTokens = new Set(defaultSystemTokens);
         const formTokens = new Set();
@@ -2192,7 +3259,16 @@ document.addEventListener("DOMContentLoaded", function() {
             data.phone = contextEl.dataset.phone || "";
             data.brand = contextEl.dataset.brand || "";
             data.link = contextEl.dataset.link || "";
-            data.status = contextEl.dataset.status || "";
+            const datasetStatusSlug = contextEl.dataset.statusSlug || "";
+            const datasetStatusLabel = contextEl.dataset.status || "";
+            data.status_slug = datasetStatusSlug;
+            if (datasetStatusSlug && statusLabelsMap[datasetStatusSlug]) {
+                data.status = statusLabelsMap[datasetStatusSlug];
+            } else if (datasetStatusLabel) {
+                data.status = datasetStatusLabel;
+            } else {
+                data.status = datasetStatusSlug;
+            }
             data.date = contextEl.dataset.date || "";
             data.form_title = contextEl.dataset.formTitle || "";
             data.date_short = contextEl.dataset.dateShort || "";
@@ -2200,6 +3276,8 @@ document.addEventListener("DOMContentLoaded", function() {
             data.site_title = contextEl.dataset.siteTitle || contextEl.dataset.siteName || "";
             data.recipient = contextEl.dataset.recipient || "";
             data.cc = contextEl.dataset.cc || "";
+            data.default_cc = contextEl.dataset.defaultCc || "";
+            data.cc_base = contextEl.dataset.ccBase || "";
 
             if (contextEl.dataset.placeholders) {
                 try {
@@ -2232,6 +3310,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         const emailInputs = form.querySelectorAll(".theme-leads-email-field input[name='lead_client_emails[]']");
+        let formCcAddresses = [];
         if (emailInputs.length) {
             const addresses = Array.from(emailInputs)
                 .map(function(input) { return input.value || ""; })
@@ -2240,9 +3319,17 @@ document.addEventListener("DOMContentLoaded", function() {
             if (addresses.length) {
                 data.email = addresses[0];
                 data.recipient = addresses[0];
-                data.cc = addresses.slice(1).join(", ");
+                formCcAddresses = addresses.slice(1);
             }
         }
+
+        const baseCcList = parseEmailList(contextEl ? contextEl.dataset.ccBase || "" : data.cc_base || "");
+        const defaultCcListLocal = parseEmailList(contextEl ? contextEl.dataset.defaultCc || "" : data.default_cc || "");
+        let combinedCc = mergeEmailLists(formCcAddresses, baseCcList);
+        combinedCc = mergeEmailLists(combinedCc, defaultCcListLocal);
+        data.cc = combinedCc.join(", ");
+        data.default_cc = defaultCcListLocal.join(", ");
+        data.cc_base = baseCcList.join(", ");
 
         const phoneField = form.querySelector("input[name='lead_client_phone']");
         if (phoneField && phoneField.value) {
@@ -2266,7 +3353,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const statusField = form.querySelector("select[name='lead_status']");
         if (statusField && statusField.value) {
-            data.status = statusField.value;
+            data.status_slug = statusField.value;
+            data.status = statusLabelsMap[data.status_slug] || data.status_slug || "";
         }
 
         return data;
@@ -2501,6 +3589,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (Object.prototype.hasOwnProperty.call(context, "status")) {
             contextEl.dataset.status = context.status || "";
         }
+        if (Object.prototype.hasOwnProperty.call(context, "status_slug")) {
+            contextEl.dataset.statusSlug = context.status_slug || "";
+        }
         if (Object.prototype.hasOwnProperty.call(context, "date")) {
             contextEl.dataset.date = context.date || "";
         }
@@ -2521,6 +3612,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         if (Object.prototype.hasOwnProperty.call(context, "cc")) {
             contextEl.dataset.cc = context.cc || "";
+        }
+        if (Object.prototype.hasOwnProperty.call(context, "default_cc")) {
+            contextEl.dataset.defaultCc = context.default_cc || "";
+        }
+        if (Object.prototype.hasOwnProperty.call(context, "cc_base")) {
+            contextEl.dataset.ccBase = context.cc_base || "";
         }
         if (context.payload) {
             try {
@@ -2549,6 +3646,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 const statusCell = summaryRow.querySelector(".theme-leads-summary-status");
                 if (statusCell) {
                     statusCell.textContent = data.summary.status_label;
+                    const statusSlugValue = data.summary.status_slug || data.status || "";
+                    if (statusSlugValue) {
+                        statusCell.setAttribute("data-status", statusSlugValue);
+                    }
                 }
             }
 
@@ -2865,13 +3966,18 @@ JS;
             $stored_link = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
             $stored_link = $this->normalise_link_value( $stored_link );
 
+            $status_slug           = ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug();
+            $status_label          = $this->get_status_label( $status_slug );
+            $default_cc_addresses  = $this->get_default_cc_addresses();
+
             $context = array(
                 'name'       => ! empty( $lead->response_client_name ) ? $lead->response_client_name : $this->extract_contact_name( $payload ),
                 'email'      => ! empty( $lead->email ) ? sanitize_email( $lead->email ) : '',
                 'phone'      => ! empty( $lead->response_phone ) ? $lead->response_phone : $this->extract_phone_from_payload( $payload ),
                 'brand'      => ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload ),
                 'link'       => $stored_link,
-                'status'     => ! empty( $lead->status ) ? $lead->status : 'new',
+                'status'     => $status_label,
+                'status_slug'=> $status_slug,
                 'date'       => mysql2date( 'Y-m-d\TH:i:sP', $submitted_at ),
                 'date_short' => mysql2date( 'd/m/Y', $submitted_at ),
                 'form_title' => ! empty( $lead->form_title ) ? $lead->form_title : '',
@@ -2880,26 +3986,61 @@ JS;
                 'payload'    => $this->prepare_payload_for_js( $payload ),
                 'recipient'  => '',
                 'cc'         => '',
+                'cc_base'    => '',
+                'default_cc' => implode( ', ', $default_cc_addresses ),
             );
 
+            $stored_recipients = array();
             if ( ! empty( $lead->response_recipients ) ) {
                 $decoded = json_decode( $lead->response_recipients, true );
                 if ( is_array( $decoded ) && ! empty( $decoded ) ) {
-                    $clean = array();
                     foreach ( $decoded as $email ) {
                         $sanitised = sanitize_email( $email );
                         if ( ! empty( $sanitised ) ) {
-                            $clean[] = $sanitised;
-                        }
-                    }
-
-                    if ( ! empty( $clean ) ) {
-                        $context['recipient'] = $clean[0];
-                        if ( count( $clean ) > 1 ) {
-                            $context['cc'] = implode( ', ', array_slice( $clean, 1 ) );
+                            $stored_recipients[] = $sanitised;
                         }
                     }
                 }
+            }
+
+            if ( ! empty( $stored_recipients ) ) {
+                $context['recipient'] = $stored_recipients[0];
+            }
+
+            $stored_cc = array();
+            if ( count( $stored_recipients ) > 1 ) {
+                $stored_cc = array_slice( $stored_recipients, 1 );
+            }
+
+            if ( ! empty( $stored_cc ) && ! empty( $default_cc_addresses ) ) {
+                $default_lookup = array();
+                foreach ( $default_cc_addresses as $default_cc_email ) {
+                    $default_lookup[ strtolower( $default_cc_email ) ] = true;
+                }
+
+                $stored_cc = array_values(
+                    array_filter(
+                        $stored_cc,
+                        function ( $email ) use ( $default_lookup ) {
+                            $key = strtolower( $email );
+                            return ! isset( $default_lookup[ $key ] );
+                        }
+                    )
+                );
+            }
+
+            $combined_cc          = $this->merge_email_lists( $stored_cc, $default_cc_addresses );
+
+            if ( ! empty( $stored_cc ) ) {
+                $context['cc_base'] = implode( ', ', $stored_cc );
+            }
+
+            if ( ! empty( $default_cc_addresses ) ) {
+                $context['default_cc'] = implode( ', ', $default_cc_addresses );
+            }
+
+            if ( ! empty( $combined_cc ) ) {
+                $context['cc'] = implode( ', ', $combined_cc );
             }
 
             $context['placeholders'] = $this->build_placeholder_tokens( $context, $payload );
@@ -2952,7 +4093,7 @@ JS;
          * @return array
          */
         protected function build_placeholder_tokens( $context, $payload = array() ) {
-            $system_keys   = array( 'name', 'email', 'phone', 'brand', 'link', 'status', 'date', 'date_short', 'form_title', 'site_name', 'site_title', 'recipient', 'cc' );
+            $system_keys   = array( 'name', 'email', 'phone', 'brand', 'link', 'status', 'status_slug', 'date', 'date_short', 'form_title', 'site_name', 'site_title', 'recipient', 'cc', 'default_cc' );
             $system_tokens = array();
 
             foreach ( $system_keys as $key ) {
@@ -3046,6 +4187,7 @@ JS;
                 'data-brand'      => esc_attr( $context['brand'] ),
                 'data-link'       => esc_attr( $context['link'] ),
                 'data-status'     => esc_attr( $context['status'] ),
+                'data-status-slug'=> esc_attr( $context['status_slug'] ),
                 'data-date'       => esc_attr( $context['date'] ),
                 'data-date-short' => esc_attr( $context['date_short'] ),
                 'data-form-title' => esc_attr( $context['form_title'] ),
@@ -3053,6 +4195,8 @@ JS;
                 'data-site-title' => esc_attr( $context['site_title'] ),
                 'data-recipient'  => esc_attr( $context['recipient'] ),
                 'data-cc'         => esc_attr( $context['cc'] ),
+                'data-cc-base'    => esc_attr( $context['cc_base'] ),
+                'data-default-cc' => esc_attr( $context['default_cc'] ),
             );
 
             if ( ! empty( $context['payload'] ) ) {
@@ -3148,6 +4292,8 @@ JS;
             }
 
             $lead_email = ( $lead && ! empty( $lead->email ) ) ? $lead->email : '';
+            $status_slug  = $lead && ! empty( $lead->status ) ? $lead->status : $this->get_default_status_slug();
+            $status_label = $this->get_status_label( $status_slug );
 
             if ( empty( $lead_email ) && ! empty( $recipient_emails ) ) {
                 $lead_email = reset( $recipient_emails );
@@ -3175,12 +4321,14 @@ JS;
                 '%phone%'       => $client_phone,
                 '%brand%'       => $client_brand,
                 '%link%'        => $client_link,
-                '%status%'      => $lead ? $lead->status : '',
+                '%status%'      => $status_label,
+                '%status_slug%' => $status_slug,
                 '%date%'        => $lead ? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $lead->submitted_at ) : '',
                 '%date_short%'  => $lead ? mysql2date( 'd/m/Y', $lead->submitted_at ) : '',
                 '%form_title%'  => $lead ? $lead->form_title : '',
                 '%site_name%'   => get_bloginfo( 'name' ),
                 '%site_title%'  => get_bloginfo( 'name' ),
+                '%default_cc%'  => implode( ', ', $this->get_default_cc_addresses() ),
             );
 
             if ( ! empty( $recipient_emails ) ) {
@@ -3881,11 +5029,12 @@ JS;
             global $wpdb;
 
             $charset_collate = $wpdb->get_charset_collate();
+            $default_status  = esc_sql( $this->get_default_status_slug() );
 
             $sql = "CREATE TABLE {$table} (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                 submitted_at datetime NOT NULL,
-                status varchar(50) NOT NULL DEFAULT 'new',
+                status varchar(50) NOT NULL DEFAULT '{$default_status}',
                 email varchar(190) DEFAULT '',
                 payload longtext,
                 form_title varchar(255) DEFAULT '',
