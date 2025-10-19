@@ -144,6 +144,20 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         }
 
         /**
+         * Retrieve the capability required to manage leads.
+         *
+         * @return string
+         */
+        protected function get_required_capability() {
+            /**
+             * Filters the capability required to access and manage leads.
+             *
+             * @param string $capability Capability name.
+             */
+            return apply_filters( 'theme_leads_required_capability', 'edit_posts' );
+        }
+
+        /**
          * Retrieve the default set of lead statuses.
          *
          * @return array
@@ -715,7 +729,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             add_menu_page(
                 __( 'Leads', 'wordprseo' ),
                 __( 'Leads', 'wordprseo' ),
-                'manage_options',
+                $this->get_required_capability(),
                 'theme-leads',
                 array( $this, 'render_admin_page' ),
                 'dashicons-id-alt',
@@ -727,7 +741,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle admin form submission for status updates and replies.
          */
         public function handle_status_update() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -749,7 +763,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle generic AJAX lead updates.
          */
         public function handle_ajax_update_lead() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
@@ -1145,7 +1159,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle admin deletion of a lead entry.
          */
         public function handle_delete() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1175,7 +1189,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle saving (creating/updating) a response template.
          */
         public function handle_template_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1198,7 +1212,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle deleting a response template.
          */
         public function handle_template_delete() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1221,7 +1235,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle AJAX template save requests.
          */
         public function handle_ajax_template_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
@@ -1243,7 +1257,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle AJAX template delete requests.
          */
         public function handle_ajax_template_delete() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
@@ -1265,7 +1279,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle default CC form submissions.
          */
         public function handle_default_cc_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1295,7 +1309,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle AJAX requests for default CC updates.
          */
         public function handle_ajax_default_cc_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
@@ -1346,7 +1360,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle status management form submissions.
          */
         public function handle_statuses_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1376,7 +1390,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle AJAX status management requests.
          */
         public function handle_ajax_statuses_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
@@ -1432,7 +1446,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle SMTP mailer settings submissions.
          */
         public function handle_mailer_settings_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
             }
 
@@ -1462,7 +1476,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * Handle AJAX requests for SMTP mailer updates.
          */
         public function handle_ajax_mailer_settings_save() {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_send_json_error(
                     array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
                     403
