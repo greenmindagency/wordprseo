@@ -11,6 +11,13 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
     class Theme_Leads_Manager {
 
         /**
+         * Mailer settings currently being applied to PHPMailer.
+         *
+         * @var array|null
+         */
+        protected $active_mailer_settings = null;
+
+        /**
          * Bootstraps hooks.
          */
         public function __construct() {
@@ -37,12 +44,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'admin_post_theme_leads_template_delete', array( $this, 'handle_template_delete' ) );
                 add_action( 'admin_post_theme_leads_statuses_save', array( $this, 'handle_statuses_save' ) );
                 add_action( 'admin_post_theme_leads_default_cc_save', array( $this, 'handle_default_cc_save' ) );
+                add_action( 'admin_post_theme_leads_mailer_save', array( $this, 'handle_mailer_settings_save' ) );
                 add_action( 'wp_ajax_theme_leads_update', array( $this, 'handle_ajax_update_lead' ) );
                 add_action( 'wp_ajax_theme_leads_send_email', array( $this, 'handle_ajax_send_email' ) );
                 add_action( 'wp_ajax_theme_leads_template_save', array( $this, 'handle_ajax_template_save' ) );
                 add_action( 'wp_ajax_theme_leads_template_delete', array( $this, 'handle_ajax_template_delete' ) );
                 add_action( 'wp_ajax_theme_leads_statuses_save', array( $this, 'handle_ajax_statuses_save' ) );
                 add_action( 'wp_ajax_theme_leads_default_cc_save', array( $this, 'handle_ajax_default_cc_save' ) );
+                add_action( 'wp_ajax_theme_leads_mailer_save', array( $this, 'handle_ajax_mailer_settings_save' ) );
             }
         }
 
@@ -508,6 +517,194 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         }
 
         /**
+         * Retrieve stored SMTP mailer settings.
+         *
+         * @return array
+         */
+        protected function get_mailer_settings() {
+            $stored = get_option( 'theme_leads_mailer_settings', array() );
+
+            if ( ! is_array( $stored ) ) {
+                $stored = array();
+            }
+
+            $defaults = array(
+                'host'       => '',
+                'port'       => '',
+                'encryption' => '',
+                'username'   => '',
+                'password'   => '',
+                'from_email' => '',
+                'from_name'  => '',
+            );
+
+            $settings = wp_parse_args( $stored, $defaults );
+
+            return $this->sanitise_mailer_settings( $settings );
+        }
+
+        /**
+         * Persist SMTP mailer settings.
+         *
+         * @param array $settings Raw settings.
+         */
+        protected function save_mailer_settings( $settings ) {
+            $sanitised = $this->sanitise_mailer_settings( $settings );
+            update_option( 'theme_leads_mailer_settings', $sanitised );
+        }
+
+        /**
+         * Sanitise SMTP settings input.
+         *
+         * @param array $raw_settings Raw settings.
+         * @return array
+         */
+        protected function sanitise_mailer_settings( $raw_settings ) {
+            if ( ! is_array( $raw_settings ) ) {
+                $raw_settings = array();
+            }
+
+            $host = isset( $raw_settings['host'] ) ? sanitize_text_field( wp_unslash( $raw_settings['host'] ) ) : '';
+            $port = isset( $raw_settings['port'] ) ? absint( $raw_settings['port'] ) : 0;
+            $encryption = isset( $raw_settings['encryption'] ) ? sanitize_key( wp_unslash( $raw_settings['encryption'] ) ) : '';
+
+            if ( ! in_array( $encryption, array( 'ssl', 'tls' ), true ) ) {
+                $encryption = '';
+            }
+
+            $username_raw  = isset( $raw_settings['username'] ) ? wp_unslash( $raw_settings['username'] ) : '';
+            $username_email = sanitize_email( $username_raw );
+            $username       = $username_email ? $username_email : sanitize_text_field( $username_raw );
+
+            $password = isset( $raw_settings['password'] ) ? $this->sanitise_mailer_password( $raw_settings['password'] ) : '';
+
+            $from_email_raw = isset( $raw_settings['from_email'] ) ? wp_unslash( $raw_settings['from_email'] ) : '';
+            $from_email     = sanitize_email( $from_email_raw );
+
+            $from_name = isset( $raw_settings['from_name'] ) ? sanitize_text_field( wp_unslash( $raw_settings['from_name'] ) ) : '';
+
+            return array(
+                'host'       => $host,
+                'port'       => $port ? (string) $port : '',
+                'encryption' => $encryption,
+                'username'   => $username,
+                'password'   => $password,
+                'from_email' => $from_email,
+                'from_name'  => $from_name,
+            );
+        }
+
+        /**
+         * Sanitise the SMTP password while retaining special characters.
+         *
+         * @param string $password Raw password input.
+         * @return string
+         */
+        protected function sanitise_mailer_password( $password ) {
+            $password = (string) wp_unslash( $password );
+            $password = preg_replace( '/[\r\n]+/', '', $password );
+            $password = wp_strip_all_tags( $password );
+
+            return trim( $password );
+        }
+
+        /**
+         * Prepare mailer settings for client-side scripts.
+         *
+         * @param array $settings Raw settings.
+         * @return array
+         */
+        protected function prepare_mailer_settings_for_js( $settings ) {
+            $sanitised = $this->sanitise_mailer_settings( $settings );
+
+            return array(
+                'host'       => $sanitised['host'],
+                'port'       => $sanitised['port'],
+                'encryption' => $sanitised['encryption'],
+                'username'   => $sanitised['username'],
+                'password'   => $sanitised['password'],
+                'from_email' => $sanitised['from_email'],
+                'from_name'  => $sanitised['from_name'],
+            );
+        }
+
+        /**
+         * Determine whether custom SMTP settings should be applied.
+         *
+         * @param array $settings Mailer settings.
+         * @return bool
+         */
+        protected function should_use_custom_mailer( $settings ) {
+            $sanitised = $this->sanitise_mailer_settings( $settings );
+
+            return ! empty( $sanitised['host'] ) && ! empty( $sanitised['username'] ) && ! empty( $sanitised['password'] );
+        }
+
+        /**
+         * Configure PHPMailer with custom SMTP details for lead responses.
+         *
+         * @param PHPMailer $phpmailer PHPMailer instance.
+         */
+        public function configure_phpmailer( $phpmailer ) {
+            if ( empty( $this->active_mailer_settings ) || ! is_object( $phpmailer ) ) {
+                return;
+            }
+
+            $settings = $this->sanitise_mailer_settings( $this->active_mailer_settings );
+
+            if ( empty( $settings['host'] ) || empty( $settings['username'] ) || empty( $settings['password'] ) ) {
+                return;
+            }
+
+            $phpmailer->isSMTP();
+            $phpmailer->Host       = $settings['host'];
+            $phpmailer->SMTPAuth   = true;
+            $phpmailer->Username   = $settings['username'];
+            $phpmailer->Password   = $settings['password'];
+            $phpmailer->Port       = $settings['port'] ? absint( $settings['port'] ) : 587;
+            $phpmailer->SMTPAutoTLS = true;
+
+            if ( 'ssl' === $settings['encryption'] ) {
+                if ( class_exists( '\PHPMailer\PHPMailer\PHPMailer' ) ) {
+                    $phpmailer->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                } else {
+                    $phpmailer->SMTPSecure = 'ssl';
+                }
+            } elseif ( 'tls' === $settings['encryption'] ) {
+                if ( class_exists( '\PHPMailer\PHPMailer\PHPMailer' ) ) {
+                    $phpmailer->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                } else {
+                    $phpmailer->SMTPSecure = 'tls';
+                }
+            } else {
+                $phpmailer->SMTPSecure = '';
+                $phpmailer->SMTPAutoTLS = false;
+            }
+
+            $from_email = '';
+
+            if ( ! empty( $settings['from_email'] ) && is_email( $settings['from_email'] ) ) {
+                $from_email = $settings['from_email'];
+            } elseif ( ! empty( $settings['username'] ) && is_email( $settings['username'] ) ) {
+                $from_email = $settings['username'];
+            }
+
+            $from_name = $settings['from_name'];
+
+            if ( $from_email ) {
+                try {
+                    $phpmailer->setFrom( $from_email, $from_name, false );
+                } catch ( Exception $e ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+                    // If PHPMailer throws, continue with existing values.
+                }
+                $phpmailer->From = $from_email;
+                if ( ! empty( $from_name ) ) {
+                    $phpmailer->FromName = $from_name;
+                }
+            }
+        }
+
+        /**
          * Register the leads management page in the admin area.
          */
         public function register_menu() {
@@ -803,6 +1000,21 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     }
                 }
 
+                $mailer_settings   = $this->get_mailer_settings();
+                $use_custom_mailer = $this->should_use_custom_mailer( $mailer_settings );
+
+                if ( $use_custom_mailer ) {
+                    if ( ! empty( $mailer_settings['from_email'] ) && is_email( $mailer_settings['from_email'] ) ) {
+                        $sender_email = $mailer_settings['from_email'];
+                    } elseif ( ! empty( $mailer_settings['username'] ) && is_email( $mailer_settings['username'] ) ) {
+                        $sender_email = $mailer_settings['username'];
+                    }
+
+                    if ( ! empty( $mailer_settings['from_name'] ) ) {
+                        $sender_name = $mailer_settings['from_name'];
+                    }
+                }
+
                 if ( empty( $sender_email ) ) {
                     $sender_email = get_option( 'admin_email' );
                 }
@@ -821,7 +1033,20 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     $headers[] = 'Cc: ' . $cc_email;
                 }
 
+                $custom_mailer_applied = false;
+
+                if ( $use_custom_mailer ) {
+                    $this->active_mailer_settings = $mailer_settings;
+                    add_action( 'phpmailer_init', array( $this, 'configure_phpmailer' ) );
+                    $custom_mailer_applied = true;
+                }
+
                 $email_sent = wp_mail( $to, $prepared_subject, wpautop( $prepared_message ), $headers );
+
+                if ( $custom_mailer_applied ) {
+                    remove_action( 'phpmailer_init', array( $this, 'configure_phpmailer' ) );
+                    $this->active_mailer_settings = null;
+                }
 
                 if ( $email_sent ) {
                     $response_sent_at      = current_time( 'mysql' );
@@ -1178,6 +1403,236 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         }
 
         /**
+         * Handle status management form submissions.
+         */
+        public function handle_statuses_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_statuses_save' );
+
+            $result = $this->process_statuses_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'statuses_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'statuses_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX status management requests.
+         */
+        public function handle_ajax_statuses_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_statuses_save' );
+
+            $result = $this->process_statuses_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_statuses_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
+         * Normalise and persist status updates.
+         *
+         * @param array $request Raw request data.
+         * @return array|WP_Error
+         */
+        protected function process_statuses_save_request( $request ) {
+            $raw_input = isset( $request['lead_statuses'] ) ? wp_unslash( $request['lead_statuses'] ) : '';
+            $lines     = preg_split( '/[\r\n]+/', (string) $raw_input );
+
+            $definitions = $this->normalise_status_definitions( $lines );
+
+            if ( empty( $definitions ) ) {
+                return new WP_Error( 'theme_leads_statuses_empty', __( 'Please enter at least one status.', 'wordprseo' ) );
+            }
+
+            $this->save_status_definitions( $definitions );
+
+            return array(
+                'statuses' => $this->prepare_statuses_for_js( $definitions ),
+                'textarea' => $this->get_status_textarea_value( $definitions ),
+            );
+        }
+
+        /**
+         * Handle default CC form submissions.
+         */
+        public function handle_default_cc_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_default_cc_save' );
+
+            $result = $this->process_default_cc_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'default_cc_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'default_cc_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX requests for default CC updates.
+         */
+        public function handle_ajax_default_cc_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_default_cc_save' );
+
+            $result = $this->process_default_cc_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_default_cc_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
+         * Normalise and persist default CC address updates.
+         *
+         * @param array $request Raw request data.
+         * @return array|WP_Error
+         */
+        protected function process_default_cc_save_request( $request ) {
+            $raw_input = isset( $request['lead_default_cc'] ) ? wp_unslash( $request['lead_default_cc'] ) : '';
+            $addresses = $this->parse_email_list( $raw_input );
+
+            $this->save_default_cc_addresses( $addresses );
+
+            return array(
+                'cc'       => $this->prepare_default_cc_for_js( $addresses ),
+                'textarea' => implode( "\n", $addresses ),
+            );
+        }
+
+        /**
+         * Handle SMTP mailer settings submissions.
+         */
+        public function handle_mailer_settings_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_mailer_save' );
+
+            $result = $this->process_mailer_settings_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'mailer_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'mailer_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX requests for SMTP mailer updates.
+         */
+        public function handle_ajax_mailer_settings_save() {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_mailer_save' );
+
+            $result = $this->process_mailer_settings_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_mailer_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
+         * Normalise and persist SMTP mailer updates.
+         *
+         * @param array $request Raw request.
+         * @return array|WP_Error
+         */
+        protected function process_mailer_settings_save_request( $request ) {
+            $settings = array(
+                'host'       => isset( $request['mailer_host'] ) ? wp_unslash( $request['mailer_host'] ) : '',
+                'port'       => isset( $request['mailer_port'] ) ? wp_unslash( $request['mailer_port'] ) : '',
+                'encryption' => isset( $request['mailer_encryption'] ) ? wp_unslash( $request['mailer_encryption'] ) : '',
+                'username'   => isset( $request['mailer_username'] ) ? wp_unslash( $request['mailer_username'] ) : '',
+                'password'   => isset( $request['mailer_password'] ) ? wp_unslash( $request['mailer_password'] ) : '',
+                'from_email' => isset( $request['mailer_from_email'] ) ? wp_unslash( $request['mailer_from_email'] ) : '',
+                'from_name'  => isset( $request['mailer_from_name'] ) ? wp_unslash( $request['mailer_from_name'] ) : '',
+            );
+
+            $sanitised = $this->sanitise_mailer_settings( $settings );
+
+            $this->save_mailer_settings( $sanitised );
+
+            return array(
+                'mailer' => $this->prepare_mailer_settings_for_js( $sanitised ),
+            );
+        }
+
+        /**
          * Normalise and persist a template save request.
          *
          * @param array $request Raw request data.
@@ -1285,6 +1740,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $default_cc_addresses  = $this->get_default_cc_addresses();
             $default_cc_textarea   = implode( "\n", $default_cc_addresses );
             $default_cc_for_js     = $this->prepare_default_cc_for_js( $default_cc_addresses );
+            $mailer_settings       = $this->get_mailer_settings();
+            $mailer_settings_for_js = $this->prepare_mailer_settings_for_js( $mailer_settings );
 
             if ( empty( $form_slug ) && ! empty( $forms ) ) {
                 $first_form = reset( $forms );
@@ -1317,6 +1774,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                     'default_cc_error' => array(
                         'class'   => 'notice-error',
                         'message' => $notice_message ? $notice_message : __( 'The default CC list could not be updated.', 'wordprseo' ),
+                    ),
+                    'mailer_saved'     => array(
+                        'class'   => 'notice-success',
+                        'message' => __( 'Email sender settings updated.', 'wordprseo' ),
+                    ),
+                    'mailer_error'     => array(
+                        'class'   => 'notice-error',
+                        'message' => $notice_message ? $notice_message : __( 'The email sender settings could not be updated.', 'wordprseo' ),
                     ),
                 );
 
@@ -1356,6 +1821,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '<span class="dashicons dashicons-email-alt2" aria-hidden="true"></span>';
             echo '<span class="screen-reader-text">' . esc_html__( 'Manage default CC recipients', 'wordprseo' ) . '</span>';
             echo '</button>';
+            echo '<button type="button" class="button theme-leads-mailer-toggle" aria-expanded="false" aria-controls="theme-leads-mailer-panel">';
+            echo '<span class="dashicons dashicons-email" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Configure email sender', 'wordprseo' ) . '</span>';
+            echo '</button>';
             echo '<button type="button" class="button theme-leads-template-toggle" aria-expanded="false" aria-controls="theme-leads-template-panel">';
             echo '<span class="dashicons dashicons-admin-generic" aria-hidden="true"></span>';
             echo '<span class="screen-reader-text">' . esc_html__( 'Manage templates', 'wordprseo' ) . '</span>';
@@ -1393,6 +1862,67 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '<p class="description">' . esc_html__( 'Separate addresses with commas or line breaks.', 'wordprseo' ) . '</p>';
             echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save CC list', 'wordprseo' ) . '</button></p>';
             echo '<div class="theme-leads-panel-feedback theme-leads-form-feedback theme-leads-default-cc-feedback" aria-live="polite"></div>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+
+            echo '<div id="theme-leads-mailer-panel" class="theme-leads-panel theme-leads-mailer-panel" aria-hidden="true" hidden>';
+            echo '<div class="theme-leads-panel-inner">';
+            echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-mailer-close" aria-label="' . esc_attr__( 'Close email sender settings', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
+            echo '<h2>' . esc_html__( 'Email sender', 'wordprseo' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Configure SMTP details for replies sent from the leads screen. Leave fields blank to use Contact Form 7 defaults.', 'wordprseo' ) . '</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-mailer-form">';
+            wp_nonce_field( 'theme_leads_mailer_save' );
+            echo '<input type="hidden" name="action" value="theme_leads_mailer_save" />';
+            echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-host">' . esc_html__( 'SMTP host', 'wordprseo' ) . '</label>';
+            echo '<input type="text" class="widefat" id="theme-leads-mailer-host" name="mailer_host" value="' . esc_attr( $mailer_settings['host'] ) . '" />';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-port">' . esc_html__( 'SMTP port', 'wordprseo' ) . '</label>';
+            echo '<input type="number" class="small-text" id="theme-leads-mailer-port" name="mailer_port" min="0" step="1" value="' . esc_attr( $mailer_settings['port'] ) . '" />';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-encryption">' . esc_html__( 'Encryption', 'wordprseo' ) . '</label>';
+            echo '<select id="theme-leads-mailer-encryption" name="mailer_encryption" class="widefat">';
+            $encryption_options = array(
+                ''    => __( 'None', 'wordprseo' ),
+                'tls' => __( 'STARTTLS', 'wordprseo' ),
+                'ssl' => __( 'SMTPS', 'wordprseo' ),
+            );
+            foreach ( $encryption_options as $value => $label ) {
+                printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $mailer_settings['encryption'], $value, false ), esc_html( $label ) );
+            }
+            echo '</select>';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-username">' . esc_html__( 'Username', 'wordprseo' ) . '</label>';
+            echo '<input type="text" class="widefat" id="theme-leads-mailer-username" name="mailer_username" autocomplete="username" value="' . esc_attr( $mailer_settings['username'] ) . '" />';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-password">' . esc_html__( 'Password', 'wordprseo' ) . '</label>';
+            echo '<input type="password" class="widefat" id="theme-leads-mailer-password" name="mailer_password" autocomplete="new-password" value="' . esc_attr( $mailer_settings['password'] ) . '" />';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-from-email">' . esc_html__( 'From email address', 'wordprseo' ) . '</label>';
+            echo '<input type="email" class="widefat" id="theme-leads-mailer-from-email" name="mailer_from_email" value="' . esc_attr( $mailer_settings['from_email'] ) . '" />';
+            echo '</div>';
+
+            echo '<div class="theme-leads-form-group">';
+            echo '<label for="theme-leads-mailer-from-name">' . esc_html__( 'From name', 'wordprseo' ) . '</label>';
+            echo '<input type="text" class="widefat" id="theme-leads-mailer-from-name" name="mailer_from_name" value="' . esc_attr( $mailer_settings['from_name'] ) . '" />';
+            echo '</div>';
+
+            echo '<p class="description">' . esc_html__( 'If the credentials are left blank, the Contact Form 7 sender will be used instead.', 'wordprseo' ) . '</p>';
+            echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save email sender', 'wordprseo' ) . '</button></p>';
+            echo '<div class="theme-leads-panel-feedback theme-leads-form-feedback theme-leads-mailer-feedback" aria-live="polite"></div>';
             echo '</form>';
             echo '</div>';
             echo '</div>';
@@ -1873,6 +2403,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<script type="application/json" id="theme-leads-default-cc-data">' . str_replace( '</', '<\/', $default_cc_json ) . '</script>';
             }
 
+            $mailer_settings_json = wp_json_encode( $mailer_settings_for_js );
+            if ( $mailer_settings_json ) {
+                echo '<script type="application/json" id="theme-leads-mailer-data">' . str_replace( '</', '<\/', $mailer_settings_json ) . '</script>';
+            }
+
             $remove_email_label_json      = wp_json_encode( __( 'Remove email', 'wordprseo' ) );
             $sending_label_json           = wp_json_encode( __( 'Sending…', 'wordprseo' ) );
             $saving_label_json            = wp_json_encode( __( 'Saving…', 'wordprseo' ) );
@@ -1898,6 +2433,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $statuses_error_label_json        = wp_json_encode( __( 'Unable to save statuses. Please try again.', 'wordprseo' ) );
             $default_cc_saved_label_json      = wp_json_encode( __( 'Default CC recipients saved.', 'wordprseo' ) );
             $default_cc_error_label_json      = wp_json_encode( __( 'Unable to save the default CC list. Please try again.', 'wordprseo' ) );
+            $mailer_saved_label_json          = wp_json_encode( __( 'Email sender settings saved.', 'wordprseo' ) );
+            $mailer_error_label_json          = wp_json_encode( __( 'Unable to save the email sender settings. Please try again.', 'wordprseo' ) );
 
             $script = <<<JS
 <script>
@@ -1955,6 +2492,25 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     let defaultCcList = defaultCcData.list.slice();
 
+    const mailerDefaults = { host: "", port: "", encryption: "", username: "", password: "", from_email: "", from_name: "" };
+    const mailerDataElement = document.getElementById("theme-leads-mailer-data");
+    let mailerData = Object.assign({}, mailerDefaults);
+    if (mailerDataElement) {
+        try {
+            const parsedMailer = JSON.parse(mailerDataElement.textContent);
+            if (parsedMailer && typeof parsedMailer === "object") {
+                mailerData = Object.assign({}, mailerDefaults, parsedMailer);
+            }
+        } catch (error) {
+            mailerData = Object.assign({}, mailerDefaults);
+        }
+    }
+    Object.keys(mailerDefaults).forEach(function(key) {
+        if (typeof mailerData[key] !== "string") {
+            mailerData[key] = "";
+        }
+    });
+
     const removeEmailLabel = {$remove_email_label_json};
     const sendingLabel = {$sending_label_json};
     const savingLabel = {$saving_label_json};
@@ -1983,6 +2539,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const statusesErrorMessage = {$statuses_error_label_json};
     const defaultCcSavedMessage = {$default_cc_saved_label_json};
     const defaultCcErrorMessage = {$default_cc_error_label_json};
+    const mailerSavedMessage = {$mailer_saved_label_json};
+    const mailerErrorMessage = {$mailer_error_label_json};
 
     const templateToggle = document.querySelector(".theme-leads-template-toggle");
     const templatePanel = document.querySelector(".theme-leads-template-panel");
@@ -1991,15 +2549,36 @@ document.addEventListener("DOMContentLoaded", function() {
     const statusPanel = document.querySelector(".theme-leads-status-panel");
     const defaultToggle = document.querySelector(".theme-leads-defaults-toggle");
     const defaultPanel = document.querySelector(".theme-leads-defaults-panel");
+    const mailerToggle = document.querySelector(".theme-leads-mailer-toggle");
+    const mailerPanel = document.querySelector(".theme-leads-mailer-panel");
     let activeTemplateField = null;
     const statusForm = document.querySelector(".theme-leads-statuses-form");
     const defaultCcForm = document.querySelector(".theme-leads-default-cc-form");
+    const mailerForm = document.querySelector(".theme-leads-mailer-form");
 
     const panelConfigs = [
-        { toggle: templateToggle, panel: templatePanel, onOpen: refreshTemplatePlaceholderButtons },
         { toggle: statusToggle, panel: statusPanel },
-        { toggle: defaultToggle, panel: defaultPanel }
+        { toggle: defaultToggle, panel: defaultPanel },
+        { toggle: mailerToggle, panel: mailerPanel },
+        { toggle: templateToggle, panel: templatePanel, onOpen: refreshTemplatePlaceholderButtons }
     ];
+
+    function closestElement(node, selector) {
+        if (!node) {
+            return null;
+        }
+        if (typeof node.closest === "function") {
+            return node.closest(selector);
+        }
+        let element = node.nodeType === 1 ? node : node.parentElement;
+        while (element) {
+            if (element.matches && element.matches(selector)) {
+                return element;
+            }
+            element = element.parentElement;
+        }
+        return null;
+    }
 
     panelConfigs.forEach(function(config) {
         if (!config.toggle || !config.panel) {
@@ -2217,6 +2796,85 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    if (mailerForm) {
+        updateMailerForm(mailerForm, mailerData);
+
+        mailerForm.addEventListener("submit", function(event) {
+            if (!ajaxUrl) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (mailerForm._themeLeadsSubmitting) {
+                return;
+            }
+
+            mailerForm._themeLeadsSubmitting = true;
+
+            const submitButton = mailerForm.querySelector("button[type='submit']");
+            const feedbackEl = mailerForm.querySelector(".theme-leads-mailer-feedback");
+
+            if (feedbackEl) {
+                feedbackEl.textContent = "";
+                feedbackEl.classList.remove("is-error", "is-success");
+            }
+
+            if (submitButton) {
+                setBusyState(submitButton, true);
+            } else {
+                setBusyState(mailerForm, true);
+            }
+
+            const formData = new FormData(mailerForm);
+            formData.set("action", "theme_leads_mailer_save");
+            const nonceValue = formData.get("_wpnonce");
+            if (nonceValue && !formData.get("_ajax_nonce")) {
+                formData.set("_ajax_nonce", nonceValue);
+            }
+
+            fetch(ajaxUrl, {
+                method: "POST",
+                credentials: "same-origin",
+                body: formData
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error(mailerErrorMessage);
+                    }
+                    return response.json();
+                })
+                .then(function(payload) {
+                    if (!payload || typeof payload !== "object") {
+                        throw new Error(mailerErrorMessage);
+                    }
+                    if (payload.success) {
+                        handleMailerSaveSuccess(payload.data || {}, mailerForm, feedbackEl);
+                    } else {
+                        const message = payload.data && payload.data.message ? payload.data.message : mailerErrorMessage;
+                        throw new Error(message);
+                    }
+                })
+                .catch(function(error) {
+                    if (feedbackEl) {
+                        feedbackEl.textContent = error && error.message ? error.message : mailerErrorMessage;
+                        feedbackEl.classList.remove("is-success");
+                        feedbackEl.classList.add("is-error");
+                    } else {
+                        window.alert(error && error.message ? error.message : mailerErrorMessage);
+                    }
+                })
+                .finally(function() {
+                    if (submitButton) {
+                        setBusyState(submitButton, false);
+                    } else {
+                        setBusyState(mailerForm, false);
+                    }
+                    mailerForm._themeLeadsSubmitting = false;
+                });
+        });
+    }
+
     function handleStatusesSaveSuccess(data, form, feedbackEl) {
         if (data && typeof data === "object" && data.statuses && typeof data.statuses === "object") {
             const items = Array.isArray(data.statuses.items) ? data.statuses.items : [];
@@ -2281,6 +2939,31 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (feedbackEl) {
             feedbackEl.textContent = defaultCcSavedMessage;
+            feedbackEl.classList.remove("is-error");
+            feedbackEl.classList.add("is-success");
+        }
+    }
+
+    function handleMailerSaveSuccess(data, form, feedbackEl) {
+        if (data && typeof data === "object" && data.mailer && typeof data.mailer === "object") {
+            mailerData = Object.assign({}, mailerDefaults, data.mailer);
+            Object.keys(mailerDefaults).forEach(function(key) {
+                if (typeof mailerData[key] !== "string") {
+                    mailerData[key] = "";
+                }
+            });
+            updateMailerForm(form, mailerData);
+        }
+
+        if (data && typeof data === "object" && data.save_nonce) {
+            const nonceField = form ? form.querySelector("input[name='_wpnonce']") : null;
+            if (nonceField) {
+                nonceField.value = data.save_nonce;
+            }
+        }
+
+        if (feedbackEl) {
+            feedbackEl.textContent = mailerSavedMessage;
             feedbackEl.classList.remove("is-error");
             feedbackEl.classList.add("is-success");
         }
@@ -2363,6 +3046,41 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    function updateMailerForm(form, data) {
+        if (!form) {
+            return;
+        }
+
+        const mapping = {
+            mailer_host: "host",
+            mailer_port: "port",
+            mailer_encryption: "encryption",
+            mailer_username: "username",
+            mailer_password: "password",
+            mailer_from_email: "from_email",
+            mailer_from_name: "from_name"
+        };
+
+        Object.keys(mapping).forEach(function(fieldName) {
+            const field = form.querySelector('[name="' + fieldName + '"]');
+            if (!field) {
+                return;
+            }
+
+            const key = mapping[fieldName];
+            const value = data && typeof data === "object" && typeof data[key] === "string" ? data[key] : "";
+
+            if (field.tagName === "SELECT") {
+                field.value = value;
+                if (field.value !== value && field.options.length) {
+                    field.selectedIndex = 0;
+                }
+            } else {
+                field.value = value;
+            }
+        });
+    }
+
     function parseEmailList(value) {
         if (!value) {
             return [];
@@ -2401,12 +3119,10 @@ document.addEventListener("DOMContentLoaded", function() {
     refreshStatusDisplays();
     refreshDefaultCcDisplay(defaultCcList);
 
-    setTemplatePanel(false);
-
     const rows = document.querySelectorAll(".theme-leads-summary");
     rows.forEach(function(row) {
         row.addEventListener("click", function(event) {
-            if (event.target.closest(".theme-leads-no-toggle") || event.target.closest("a") || event.target.closest("button")) {
+            if (closestElement(event.target, ".theme-leads-no-toggle") || closestElement(event.target, "a") || closestElement(event.target, "button")) {
                 return;
             }
             const leadId = row.getAttribute("data-lead");
@@ -2486,10 +3202,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (emailFields) {
             emailFields.addEventListener("click", function(event) {
-                const removeButton = event.target.closest(".theme-leads-email-remove");
+                const removeButton = closestElement(event.target, ".theme-leads-email-remove");
                 if (removeButton) {
                     event.preventDefault();
-                    const field = removeButton.closest(".theme-leads-email-field");
+                    const field = closestElement(removeButton, ".theme-leads-email-field");
                     if (!field) {
                         return;
                     }
@@ -2640,7 +3356,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function initializeTemplateManager() {
         if (templatePanel) {
             templatePanel.addEventListener("click", function(event) {
-                const placeholderButton = event.target.closest(".theme-leads-placeholder-button");
+                const placeholderButton = closestElement(event.target, ".theme-leads-placeholder-button");
                 if (placeholderButton) {
                     event.preventDefault();
                     insertPlaceholder(placeholderButton.dataset.placeholder || "");
