@@ -69,6 +69,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             $posted_data = $submission->get_posted_data();
+            $posted_data = $this->enrich_payload_with_uploaded_files( $posted_data, $submission );
             $email       = $this->extract_email_from_submission( $posted_data );
 
             global $wpdb;
@@ -114,6 +115,238 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             return '';
+        }
+
+        /**
+         * Merge uploaded file information into the stored payload.
+         *
+         * @param mixed             $posted_data Submission payload.
+         * @param WPCF7_Submission  $submission  Submission instance.
+         * @return array
+         */
+        protected function enrich_payload_with_uploaded_files( $posted_data, $submission ) {
+            if ( ! is_array( $posted_data ) ) {
+                $posted_data = array();
+            }
+
+            $uploaded_files = $this->get_uploaded_files_payload( $submission );
+
+            if ( empty( $uploaded_files ) ) {
+                return $posted_data;
+            }
+
+            foreach ( $uploaded_files as $field_key => $file_entries ) {
+                if ( isset( $posted_data[ $field_key ] ) ) {
+                    $posted_data[ $field_key ] = array(
+                        'value' => $posted_data[ $field_key ],
+                        'files' => $file_entries,
+                    );
+                } else {
+                    $posted_data[ $field_key ] = array(
+                        'files' => $file_entries,
+                    );
+                }
+            }
+
+            return $posted_data;
+        }
+
+        /**
+         * Extract uploaded file information from the submission.
+         *
+         * @param WPCF7_Submission $submission Submission instance.
+         * @return array
+         */
+        protected function get_uploaded_files_payload( $submission ) {
+            if ( ! $submission || ! is_callable( array( $submission, 'uploaded_files' ) ) ) {
+                return array();
+            }
+
+            $uploaded_files = $submission->uploaded_files();
+
+            if ( empty( $uploaded_files ) || ! is_array( $uploaded_files ) ) {
+                return array();
+            }
+
+            $prepared = array();
+
+            foreach ( $uploaded_files as $field_key => $file_paths ) {
+                if ( empty( $file_paths ) ) {
+                    continue;
+                }
+
+                $paths = is_array( $file_paths ) ? $file_paths : array( $file_paths );
+                $paths = array_filter( array_map( 'trim', $paths ) );
+
+                if ( empty( $paths ) ) {
+                    continue;
+                }
+
+                $entries = array();
+
+                foreach ( $paths as $path ) {
+                    $entry = $this->normalise_uploaded_file_entry( $path );
+
+                    if ( ! empty( $entry ) ) {
+                        $entries[] = $entry;
+                    }
+                }
+
+                if ( empty( $entries ) ) {
+                    continue;
+                }
+
+                $prepared[ $field_key ] = $entries;
+            }
+
+            return $prepared;
+        }
+
+        /**
+         * Normalise a file path into stored payload data.
+         *
+         * @param string $file_path Absolute file path.
+         * @return array|null
+         */
+        protected function normalise_uploaded_file_entry( $file_path ) {
+            if ( empty( $file_path ) || ! is_string( $file_path ) ) {
+                return null;
+            }
+
+            $file_path = wp_normalize_path( $file_path );
+            $file_name = wp_basename( $file_path );
+
+            if ( '' === $file_name ) {
+                return null;
+            }
+
+            $file_data = array(
+                'file_name' => sanitize_text_field( $file_name ),
+            );
+
+            $uploads = wp_upload_dir();
+
+            if ( empty( $uploads['error'] ) && ! empty( $uploads['basedir'] ) && ! empty( $uploads['baseurl'] ) ) {
+                $basedir = wp_normalize_path( trailingslashit( $uploads['basedir'] ) );
+                $baseurl = trailingslashit( $uploads['baseurl'] );
+
+                if ( strpos( $file_path, $basedir ) === 0 ) {
+                    $relative = ltrim( substr( $file_path, strlen( $basedir ) ), '/' );
+                    $relative = str_replace( '\\', '/', $relative );
+
+                    $file_data['file_url'] = esc_url_raw( $baseurl . $relative );
+                }
+            }
+
+            return $file_data;
+        }
+
+        /**
+         * Prepare payload markup for display in the admin table.
+         *
+         * @param mixed $value Payload value.
+         * @return string
+         */
+        protected function get_payload_value_display_markup( $value ) {
+            if ( is_array( $value ) && isset( $value['files'] ) && is_array( $value['files'] ) ) {
+                $parts = array();
+
+                if ( array_key_exists( 'value', $value ) ) {
+                    $text_value = $this->normalise_payload_value( $value['value'] );
+
+                    if ( '' !== $text_value ) {
+                        $parts[] = esc_html( $text_value );
+                    }
+                }
+
+                $files_markup = $this->build_uploaded_file_links_markup( $value['files'] );
+
+                if ( '' !== $files_markup ) {
+                    $parts[] = $files_markup;
+                }
+
+                if ( ! empty( $parts ) ) {
+                    return implode( ' ', $parts );
+                }
+
+                return esc_html( $this->normalise_payload_value( $value ) );
+            }
+
+            if ( $this->payload_value_is_uploaded_file( $value ) ) {
+                $link_markup = $this->build_uploaded_file_link_markup( $value );
+
+                if ( '' !== $link_markup ) {
+                    return $link_markup;
+                }
+            }
+
+            return esc_html( $this->normalise_payload_value( $value ) );
+        }
+
+        /**
+         * Build markup for a list of uploaded files.
+         *
+         * @param array $files Uploaded files.
+         * @return string
+         */
+        protected function build_uploaded_file_links_markup( $files ) {
+            if ( empty( $files ) ) {
+                return '';
+            }
+
+            if ( ! is_array( $files ) ) {
+                $files = array( $files );
+            }
+
+            $links = array();
+
+            foreach ( $files as $file_entry ) {
+                $link_markup = $this->build_uploaded_file_link_markup( $file_entry );
+
+                if ( '' !== $link_markup ) {
+                    $links[] = $link_markup;
+                }
+            }
+
+            if ( empty( $links ) ) {
+                return '';
+            }
+
+            return implode( ', ', $links );
+        }
+
+        /**
+         * Build markup for a single uploaded file entry.
+         *
+         * @param array $file_entry Uploaded file entry.
+         * @return string
+         */
+        protected function build_uploaded_file_link_markup( $file_entry ) {
+            if ( ! $this->payload_value_is_uploaded_file( $file_entry ) ) {
+                return '';
+            }
+
+            $url   = isset( $file_entry['file_url'] ) ? $file_entry['file_url'] : '';
+
+            if ( '' === $url ) {
+                return '';
+            }
+
+            $label = isset( $file_entry['file_name'] ) && '' !== $file_entry['file_name'] ? $file_entry['file_name'] : $url;
+
+            return '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $label ) . '</a>';
+        }
+
+        /**
+         * Determine if the provided payload value represents an uploaded file entry.
+         *
+         * @param mixed $value Payload value.
+         * @return bool
+         */
+        protected function payload_value_is_uploaded_file( $value ) {
+            return is_array( $value )
+                && ! empty( $value['file_url'] )
+                && is_string( $value['file_url'] );
         }
 
         /**
@@ -2111,10 +2344,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 if ( ! empty( $payload ) ) {
                     echo '<ul class="theme-leads-payload">';
                     foreach ( $payload as $key => $value ) {
-                        if ( is_array( $value ) ) {
-                            $value = implode( ', ', $value );
-                        }
-                        printf( '<li><strong>%1$s:</strong> %2$s</li>', esc_html( $key ), esc_html( $value ) );
+                        printf(
+                            '<li><strong>%1$s:</strong> %2$s</li>',
+                            esc_html( $key ),
+                            $this->get_payload_value_display_markup( $value )
+                        );
                     }
                     echo '</ul>';
                 } else {
