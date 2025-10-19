@@ -33,6 +33,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             }
 
             $this->maybe_create_templates_table();
+            $this->maybe_create_options_table();
 
             add_action( 'wpcf7_before_send_mail', array( $this, 'capture_submission' ), 10, 3 );
 
@@ -177,7 +178,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @return array
          */
         protected function get_status_definitions() {
-            $stored      = get_option( 'theme_leads_statuses', array() );
+            $stored      = $this->get_module_option( 'statuses', array() );
             $definitions = array();
 
             if ( is_array( $stored ) ) {
@@ -238,7 +239,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param array $definitions Status definitions.
          */
         protected function save_status_definitions( $definitions ) {
-            update_option( 'theme_leads_statuses', array_values( $definitions ) );
+            $this->update_module_option( 'statuses', array_values( $definitions ) );
         }
 
         /**
@@ -430,7 +431,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @return array
          */
         protected function get_default_cc_addresses() {
-            $stored = get_option( 'theme_leads_default_cc', array() );
+            $stored = $this->get_module_option( 'default_cc', array() );
 
             if ( empty( $stored ) ) {
                 return array();
@@ -449,7 +450,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @param array|string $addresses Address list.
          */
         protected function save_default_cc_addresses( $addresses ) {
-            update_option( 'theme_leads_default_cc', $this->parse_email_list( $addresses ) );
+            $this->update_module_option( 'default_cc', $this->parse_email_list( $addresses ) );
         }
 
         /**
@@ -522,7 +523,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          * @return array
          */
         protected function get_mailer_settings() {
-            $stored = get_option( 'theme_leads_mailer_settings', array() );
+            $stored = $this->get_module_option( 'mailer_settings', array() );
 
             if ( ! is_array( $stored ) ) {
                 $stored = array();
@@ -550,7 +551,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
          */
         protected function save_mailer_settings( $settings ) {
             $sanitised = $this->sanitise_mailer_settings( $settings );
-            update_option( 'theme_leads_mailer_settings', $sanitised );
+            $this->update_module_option( 'mailer_settings', $sanitised );
         }
 
         /**
@@ -5513,7 +5514,7 @@ JS;
         protected function get_templates_table_name() {
             global $wpdb;
 
-            return $wpdb->prefix . 'lead_templates';
+            return $wpdb->prefix . 'leads_templates';
         }
 
         /**
@@ -5523,6 +5524,12 @@ JS;
             global $wpdb;
 
             $table           = $this->get_templates_table_name();
+            $legacy_table    = $wpdb->prefix . 'lead_templates';
+
+            if ( $legacy_table !== $table && $this->table_exists( $legacy_table ) ) {
+                $this->maybe_migrate_legacy_table( $legacy_table, $table );
+            }
+
             $charset_collate = $wpdb->get_charset_collate();
             $sql             = "CREATE TABLE {$table} (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -5539,6 +5546,179 @@ JS;
 
             require_once ABSPATH . 'wp-admin/includes/upgrade.php';
             dbDelta( $sql );
+        }
+
+        /**
+         * Retrieve the database table name for module options.
+         *
+         * @return string
+         */
+        protected function get_options_table_name() {
+            global $wpdb;
+
+            return $wpdb->prefix . 'leads_options';
+        }
+
+        /**
+         * Ensure the module options table exists and legacy options are migrated.
+         */
+        protected function maybe_create_options_table() {
+            global $wpdb;
+
+            $table           = $this->get_options_table_name();
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql             = "CREATE TABLE {$table} (
+                option_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                option_name varchar(191) NOT NULL,
+                option_value longtext NOT NULL,
+                autoload varchar(20) NOT NULL DEFAULT 'no',
+                PRIMARY KEY  (option_id),
+                UNIQUE KEY option_name (option_name)
+            ) {$charset_collate};";
+
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            dbDelta( $sql );
+
+            $this->maybe_migrate_options_from_wp_options();
+        }
+
+        /**
+         * Determine whether a module option already exists.
+         *
+         * @param string $name Option name.
+         * @return bool
+         */
+        protected function module_option_exists( $name ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return false;
+            }
+
+            $existing = $wpdb->get_var( $wpdb->prepare( "SELECT option_name FROM {$table} WHERE option_name = %s LIMIT 1", $name ) );
+
+            return null !== $existing;
+        }
+
+        /**
+         * Migrate legacy options stored in wp_options into the module options table.
+         */
+        protected function maybe_migrate_options_from_wp_options() {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $mappings = array(
+                'theme_leads_statuses'        => 'statuses',
+                'theme_leads_default_cc'      => 'default_cc',
+                'theme_leads_mailer_settings' => 'mailer_settings',
+            );
+
+            foreach ( $mappings as $legacy_key => $new_key ) {
+                if ( $this->module_option_exists( $new_key ) ) {
+                    continue;
+                }
+
+                $value = get_option( $legacy_key, '__theme_leads_missing__' );
+
+                if ( '__theme_leads_missing__' === $value ) {
+                    continue;
+                }
+
+                $wpdb->replace(
+                    $table,
+                    array(
+                        'option_name'  => $new_key,
+                        'option_value' => maybe_serialize( $value ),
+                        'autoload'     => 'no',
+                    ),
+                    array( '%s', '%s', '%s' )
+                );
+
+                delete_option( $legacy_key );
+            }
+        }
+
+        /**
+         * Retrieve a module option from the dedicated table.
+         *
+         * @param string $name    Option name.
+         * @param mixed  $default Default value when the option is missing.
+         * @return mixed
+         */
+        protected function get_module_option( $name, $default = null ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                $this->maybe_create_options_table();
+
+                if ( ! $this->table_exists( $table ) ) {
+                    return $default;
+                }
+            }
+
+            $value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$table} WHERE option_name = %s LIMIT 1", $name ) );
+
+            if ( null === $value ) {
+                return $default;
+            }
+
+            return maybe_unserialize( $value );
+        }
+
+        /**
+         * Persist a module option to the dedicated table.
+         *
+         * @param string $name  Option name.
+         * @param mixed  $value Option value.
+         */
+        protected function update_module_option( $name, $value ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                $this->maybe_create_options_table();
+            }
+
+            $wpdb->replace(
+                $table,
+                array(
+                    'option_name'  => $name,
+                    'option_value' => maybe_serialize( $value ),
+                    'autoload'     => 'no',
+                ),
+                array( '%s', '%s', '%s' )
+            );
+        }
+
+        /**
+         * Delete a module option from the dedicated table.
+         *
+         * @param string $name Option name.
+         */
+        protected function delete_module_option( $name ) {
+            global $wpdb;
+
+            $table = $this->get_options_table_name();
+
+            if ( ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $wpdb->delete(
+                $table,
+                array( 'option_name' => $name ),
+                array( '%s' )
+            );
         }
 
         /**
@@ -5627,6 +5807,7 @@ JS;
             require_once ABSPATH . 'wp-admin/includes/upgrade.php';
             if ( ! $this->table_exists( $table ) ) {
                 dbDelta( $sql );
+                $this->drop_empty_copy_table( $table . '_copy' );
                 return;
             }
 
@@ -5655,6 +5836,8 @@ JS;
             if ( $needs_update ) {
                 dbDelta( $sql );
             }
+
+            $this->drop_empty_copy_table( $table . '_copy' );
         }
 
         /**
@@ -5669,6 +5852,35 @@ JS;
             $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 
             return $exists === $table;
+        }
+
+        /**
+         * Drop an empty manually duplicated copy table when detected.
+         *
+         * @param string $table Table name to inspect.
+         */
+        protected function drop_empty_copy_table( $table ) {
+            if ( empty( $table ) || '_copy' !== substr( $table, -5 ) ) {
+                return;
+            }
+
+            if ( ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $quoted_table = $this->quote_identifier( $table );
+
+            if ( '' === $quoted_table ) {
+                return;
+            }
+
+            global $wpdb;
+
+            $row_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$quoted_table}" );
+
+            if ( 0 === $row_count ) {
+                $wpdb->query( "DROP TABLE {$quoted_table}" );
+            }
         }
     }
 
