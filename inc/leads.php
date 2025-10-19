@@ -44,6 +44,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'admin_post_theme_leads_template_save', array( $this, 'handle_template_save' ) );
                 add_action( 'admin_post_theme_leads_template_delete', array( $this, 'handle_template_delete' ) );
                 add_action( 'admin_post_theme_leads_statuses_save', array( $this, 'handle_statuses_save' ) );
+                add_action( 'admin_post_theme_leads_columns_save', array( $this, 'handle_columns_save' ) );
                 add_action( 'admin_post_theme_leads_default_cc_save', array( $this, 'handle_default_cc_save' ) );
                 add_action( 'admin_post_theme_leads_mailer_save', array( $this, 'handle_mailer_settings_save' ) );
                 add_action( 'admin_post_theme_leads_download', array( $this, 'handle_uploaded_file_download' ) );
@@ -52,6 +53,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'wp_ajax_theme_leads_template_save', array( $this, 'handle_ajax_template_save' ) );
                 add_action( 'wp_ajax_theme_leads_template_delete', array( $this, 'handle_ajax_template_delete' ) );
                 add_action( 'wp_ajax_theme_leads_statuses_save', array( $this, 'handle_ajax_statuses_save' ) );
+                add_action( 'wp_ajax_theme_leads_columns_save', array( $this, 'handle_ajax_columns_save' ) );
                 add_action( 'wp_ajax_theme_leads_default_cc_save', array( $this, 'handle_ajax_default_cc_save' ) );
                 add_action( 'wp_ajax_theme_leads_mailer_save', array( $this, 'handle_ajax_mailer_settings_save' ) );
             }
@@ -2111,6 +2113,113 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         }
 
         /**
+         * Normalise and persist table column selections.
+         *
+         * @param array $request Raw request data.
+         * @return array|WP_Error
+         */
+        protected function process_columns_save_request( $request ) {
+            $form_slug = '';
+
+            if ( isset( $request['current_form'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['current_form'] ) );
+            } elseif ( isset( $request['form_slug'] ) ) {
+                $form_slug = sanitize_key( wp_unslash( $request['form_slug'] ) );
+            }
+
+            $raw_columns = array();
+
+            if ( isset( $request['table_columns'] ) ) {
+                $raw_columns = wp_unslash( $request['table_columns'] );
+            }
+
+            if ( ! is_array( $raw_columns ) ) {
+                $raw_columns = array( $raw_columns );
+            }
+
+            $normalised_columns = array();
+
+            foreach ( $raw_columns as $column_key ) {
+                $normalised_key = $this->normalise_table_column_key( $column_key );
+
+                if ( '' !== $normalised_key ) {
+                    $normalised_columns[] = $normalised_key;
+                }
+            }
+
+            $contact_form    = $this->get_contact_form_by_slug( $form_slug );
+            $form_field_keys = $this->get_form_field_keys( $contact_form );
+            $allowed_keys    = $this->get_table_column_candidate_keys( $form_field_keys );
+
+            $columns = array_values( array_intersect( array_unique( $normalised_columns ), $allowed_keys ) );
+
+            if ( empty( $columns ) ) {
+                return new WP_Error( 'theme_leads_columns_empty', __( 'Please choose at least one column to display.', 'wordprseo' ) );
+            }
+
+            $this->save_table_columns_selection( $columns, $form_slug );
+
+            return array(
+                'columns'   => $columns,
+                'form_slug' => $form_slug,
+            );
+        }
+
+        /**
+         * Handle table column configuration submissions.
+         */
+        public function handle_columns_save() {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_columns_save' );
+
+            $result = $this->process_columns_save_request( $_POST );
+
+            $args = array( 'page' => 'theme-leads' );
+
+            $current_form = isset( $_POST['current_form'] ) ? sanitize_key( wp_unslash( $_POST['current_form'] ) ) : '';
+            if ( ! empty( $current_form ) ) {
+                $args['form'] = $current_form;
+            }
+
+            if ( is_wp_error( $result ) ) {
+                $args['theme_leads_notice']         = 'columns_error';
+                $args['theme_leads_notice_message'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['theme_leads_notice'] = 'columns_saved';
+            }
+
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        /**
+         * Handle AJAX table column configuration updates.
+         */
+        public function handle_ajax_columns_save() {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
+                wp_send_json_error(
+                    array( 'message' => esc_html__( 'You do not have permission to perform this action.', 'wordprseo' ) ),
+                    403
+                );
+            }
+
+            check_ajax_referer( 'theme_leads_columns_save' );
+
+            $result = $this->process_columns_save_request( $_POST );
+
+            if ( is_wp_error( $result ) ) {
+                wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+            }
+
+            $result['save_nonce'] = wp_create_nonce( 'theme_leads_columns_save' );
+
+            wp_send_json_success( $result );
+        }
+
+        /**
          * Handle status management form submissions.
          */
         public function handle_statuses_save() {
@@ -2444,6 +2553,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                         'class'   => 'notice-error',
                         'message' => $notice_message ? $notice_message : __( 'The default CC list could not be updated.', 'wordprseo' ),
                     ),
+                    'columns_saved'    => array(
+                        'class'   => 'notice-success',
+                        'message' => __( 'Table columns updated.', 'wordprseo' ),
+                    ),
+                    'columns_error'    => array(
+                        'class'   => 'notice-error',
+                        'message' => $notice_message ? $notice_message : __( 'The table columns could not be updated.', 'wordprseo' ),
+                    ),
                     'mailer_saved'     => array(
                         'class'   => 'notice-success',
                         'message' => __( 'Email sender settings updated.', 'wordprseo' ),
@@ -2469,6 +2586,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $contact_form       = $this->get_contact_form_by_slug( $form_slug );
             $form_field_keys    = $this->get_form_field_keys( $contact_form );
             $form_placeholder_tokens = $this->prepare_form_placeholder_tokens( $form_field_keys );
+            $table_column_candidates = $this->get_table_column_candidates( $form_field_keys );
+            $selected_table_columns  = $this->get_selected_table_columns( $form_slug, $form_field_keys );
 
             echo '<div class="theme-leads-toolbar">';
             echo '<form method="get" action="" class="theme-leads-form-selector">';
@@ -2486,6 +2605,10 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</form>';
 
             echo '<div class="theme-leads-toolbar-actions">';
+            echo '<button type="button" class="button theme-leads-columns-toggle" aria-expanded="false" aria-controls="theme-leads-columns-panel">';
+            echo '<span class="dashicons dashicons-visibility" aria-hidden="true"></span>';
+            echo '<span class="screen-reader-text">' . esc_html__( 'Choose table columns', 'wordprseo' ) . '</span>';
+            echo '</button>';
             echo '<button type="button" class="button theme-leads-status-toggle" aria-expanded="false" aria-controls="theme-leads-status-panel">';
             echo '<span class="dashicons dashicons-category" aria-hidden="true"></span>';
             echo '<span class="screen-reader-text">' . esc_html__( 'Manage statuses', 'wordprseo' ) . '</span>';
@@ -2505,7 +2628,73 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</div>';
             echo '</div>';
 
-            echo '<div id="theme-leads-status-panel" class="theme-leads-panel theme-leads-status-panel" aria-hidden="true" hidden>';
+            echo '<div id="theme-leads-columns-panel" class="theme-leads-panel theme-leads-columns-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>';
+            echo '<div class="theme-leads-panel-inner">';
+            echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-columns-close" aria-label="' . esc_attr__( 'Close column manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
+            echo '<h2>' . esc_html__( 'Table columns', 'wordprseo' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Select the lead details and form fields you want to display in the leads table.', 'wordprseo' ) . '</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-columns-form">';
+            wp_nonce_field( 'theme_leads_columns_save' );
+            echo '<input type="hidden" name="action" value="theme_leads_columns_save" />';
+            echo '<input type="hidden" name="current_form" value="' . esc_attr( $form_slug ) . '" />';
+
+            $column_groups = array();
+            foreach ( $table_column_candidates as $candidate ) {
+                $group = isset( $candidate['group'] ) ? $candidate['group'] : 'form';
+                if ( ! isset( $column_groups[ $group ] ) ) {
+                    $column_groups[ $group ] = array();
+                }
+                $column_groups[ $group ][] = $candidate;
+            }
+
+            $group_labels = array(
+                'lead' => __( 'Lead details', 'wordprseo' ),
+                'form' => __( 'Form fields', 'wordprseo' ),
+            );
+
+            echo '<div class="theme-leads-columns-options">';
+            foreach ( $column_groups as $group => $items ) {
+                if ( empty( $items ) ) {
+                    continue;
+                }
+
+                $group_label = isset( $group_labels[ $group ] ) ? $group_labels[ $group ] : __( 'Fields', 'wordprseo' );
+                echo '<fieldset class="theme-leads-columns-fieldset">';
+                echo '<legend>' . esc_html( $group_label ) . '</legend>';
+                echo '<div class="theme-leads-columns-list">';
+
+                foreach ( $items as $candidate ) {
+                    $key   = isset( $candidate['key'] ) ? $candidate['key'] : '';
+                    $label = isset( $candidate['label'] ) ? $candidate['label'] : $key;
+
+                    if ( '' === $key ) {
+                        continue;
+                    }
+
+                    $input_id = 'theme-leads-column-' . sanitize_html_class( $key );
+                    $checked  = in_array( $key, $selected_table_columns, true );
+
+                    printf(
+                        '<label class="theme-leads-columns-option" for="%1$s"><input type="checkbox" id="%1$s" name="table_columns[]" value="%2$s" %3$s /> %4$s</label>',
+                        esc_attr( $input_id ),
+                        esc_attr( $key ),
+                        checked( $checked, true, false ),
+                        esc_html( $label )
+                    );
+                }
+
+                echo '</div>';
+                echo '</fieldset>';
+            }
+            echo '</div>';
+
+            echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save columns', 'wordprseo' ) . '</button></p>';
+            echo '<div class="theme-leads-panel-feedback theme-leads-form-feedback theme-leads-columns-feedback" aria-live="polite"></div>';
+            echo '</form>';
+            echo '</div>';
+            echo '</div>';
+
+            echo '<div id="theme-leads-status-panel" class="theme-leads-panel theme-leads-status-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>';
             echo '<div class="theme-leads-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-status-close" aria-label="' . esc_attr__( 'Close status manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Lead statuses', 'wordprseo' ) . '</h2>';
@@ -2522,7 +2711,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</div>';
             echo '</div>';
 
-            echo '<div id="theme-leads-defaults-panel" class="theme-leads-panel theme-leads-defaults-panel" aria-hidden="true" hidden>';
+            echo '<div id="theme-leads-defaults-panel" class="theme-leads-panel theme-leads-defaults-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>';
             echo '<div class="theme-leads-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-defaults-close" aria-label="' . esc_attr__( 'Close default CC manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Default CC recipients', 'wordprseo' ) . '</h2>';
@@ -2539,7 +2728,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</div>';
             echo '</div>';
 
-            echo '<div id="theme-leads-mailer-panel" class="theme-leads-panel theme-leads-mailer-panel" aria-hidden="true" hidden>';
+            echo '<div id="theme-leads-mailer-panel" class="theme-leads-panel theme-leads-mailer-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>';
             echo '<div class="theme-leads-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-mailer-close" aria-label="' . esc_attr__( 'Close email sender settings', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Email sender', 'wordprseo' ) . '</h2>';
@@ -2600,7 +2789,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             echo '</div>';
             echo '</div>';
 
-            echo '<div id="theme-leads-template-panel" class="theme-leads-panel theme-leads-template-panel" aria-hidden="true" hidden>';
+            echo '<div id="theme-leads-template-panel" class="theme-leads-panel theme-leads-template-panel" role="dialog" aria-modal="false" aria-hidden="true" hidden>';
             echo '<div class="theme-leads-panel-inner theme-leads-template-panel-inner">';
             echo '<button type="button" class="button-link theme-leads-panel-close theme-leads-template-close" aria-label="' . esc_attr__( 'Close template manager', 'wordprseo' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span></button>';
             echo '<h2>' . esc_html__( 'Response templates', 'wordprseo' ) . '</h2>';
@@ -2718,13 +2907,15 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<table class="widefat fixed striped theme-leads-table">';
                 echo '<thead><tr>';
                 echo '<th>' . esc_html__( 'Submitted', 'wordprseo' ) . '</th>';
-                echo '<th>' . esc_html__( 'Name', 'wordprseo' ) . '</th>';
-                echo '<th>' . esc_html__( 'Email', 'wordprseo' ) . '</th>';
-                echo '<th>' . esc_html__( 'Phone', 'wordprseo' ) . '</th>';
+                foreach ( $selected_table_columns as $column_key ) {
+                    echo '<th>' . esc_html( $this->get_table_column_header_label( $column_key ) ) . '</th>';
+                }
                 echo '<th>' . esc_html__( 'Status', 'wordprseo' ) . '</th>';
                 echo '<th>' . esc_html__( 'Update status', 'wordprseo' ) . '</th>';
                 echo '<th>' . esc_html__( 'Actions', 'wordprseo' ) . '</th>';
                 echo '</tr></thead><tbody>';
+
+                $summary_column_count = 4 + count( $selected_table_columns );
 
                 foreach ( $leads as $lead ) {
                 $payload      = $this->normalise_payload( $lead->payload );
@@ -2737,6 +2928,14 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $client_brand_value = ! empty( $lead->response_brand ) ? $lead->response_brand : $this->extract_brand_from_payload( $payload );
                 $client_link_value  = ! empty( $lead->response_link ) ? $lead->response_link : $this->extract_link_from_payload( $payload );
                 $client_link_value  = $this->normalise_link_value( $client_link_value );
+                $column_context      = array(
+                    'lead_name'    => $lead_name,
+                    'lead_phone'   => $lead_phone,
+                    'client_name'  => $client_name_value,
+                    'client_phone' => $client_phone_value,
+                    'client_brand' => $client_brand_value,
+                    'client_link'  => $client_link_value,
+                );
                 $stored_recipients = array();
 
                 if ( ! empty( $lead->response_recipients ) ) {
@@ -2772,31 +2971,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '<span class="theme-leads-submitted-text">' . esc_html( $formatted_at ) . '</span>';
                 echo '</td>';
 
-                echo '<td class="theme-leads-summary-name">';
-                echo '<span class="theme-leads-name-text">' . esc_html( $lead_name ? $lead_name : __( 'Unknown', 'wordprseo' ) ) . '</span>';
-                echo '</td>';
-
-                echo '<td>';
-                if ( ! empty( $lead->email ) ) {
-                    echo '<a href="mailto:' . esc_attr( $lead->email ) . '">' . esc_html( $lead->email ) . '</a>';
-                } else {
-                    echo '&mdash;';
+                foreach ( $selected_table_columns as $column_key ) {
+                    echo $this->render_summary_table_column_cell( $column_key, $lead, $payload, $column_context, $form_slug );
                 }
-
-                if ( ! empty( $lead->response_sent ) ) {
-                    echo '<div class="theme-leads-meta theme-leads-last-response"><small>' . esc_html__( 'Last response', 'wordprseo' ) . ': ' . esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $lead->response_sent ) ) . '</small></div>';
-                }
-                echo '</td>';
-
-                echo '<td class="theme-leads-summary-phone" data-role="lead-phone">';
-                if ( ! empty( $lead_phone ) ) {
-                    $tel_href = preg_replace( '/[^0-9\+]/', '', $lead_phone );
-                    $tel_href = $tel_href ? $tel_href : $lead_phone;
-                    echo '<a class="theme-leads-phone-link" href="tel:' . esc_attr( $tel_href ) . '" data-number="' . esc_attr( $tel_href ) . '">' . esc_html( $lead_phone ) . '</a>';
-                } else {
-                    echo '&mdash;';
-                }
-                echo '</td>';
 
                 echo '<td class="theme-leads-summary-status" data-status="' . esc_attr( $lead->status ) . '">' . esc_html( $this->get_status_label( $lead->status, $form_slug ) ) . '</td>';
 
@@ -2848,7 +3025,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</tr>';
 
                 echo '<tr class="theme-leads-details" id="' . esc_attr( $detail_id ) . '" data-lead="' . absint( $lead->id ) . '" aria-hidden="true">';
-                echo '<td colspan="7">';
+                echo '<td colspan="' . absint( $summary_column_count ) . '">';
                 echo '<div class="theme-leads-details-inner">';
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-detail-form">';
                 wp_nonce_field( 'theme_leads_update' );
@@ -3058,6 +3235,12 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-placeholder-button { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; border:1px solid #ccd0d4; background:#f6f7f7; cursor:pointer; font-size:12px; line-height:1.4; color:#1d2327; transition:all .2s ease; font-family:inherit; }
                 .theme-leads-placeholder-button:hover, .theme-leads-placeholder-button:focus { background:#2271b1; border-color:#2271b1; color:#fff; outline:0; }
                 .theme-leads-placeholder-empty { font-size:12px; color:#666; }
+                .theme-leads-columns-options { display:flex; flex-direction:column; gap:16px; }
+                .theme-leads-columns-fieldset { border:1px solid #e2e4e7; border-radius:4px; padding:12px 16px; margin:0; background:#f9fafb; }
+                .theme-leads-columns-fieldset legend { font-size:12px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; padding:0 4px; }
+                .theme-leads-columns-list { display:flex; flex-direction:column; gap:8px; margin:0; }
+                .theme-leads-columns-option { display:flex; align-items:center; gap:8px; font-weight:500; }
+                .theme-leads-columns-option input { margin:0; }
                 .theme-leads-template-context { display:none; }
                 @keyframes themeLeadsSpin { to { transform:rotate(360deg); } }
             </style>';
@@ -3114,6 +3297,9 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $default_cc_error_label_json      = wp_json_encode( __( 'Unable to save the default CC list. Please try again.', 'wordprseo' ) );
             $mailer_saved_label_json          = wp_json_encode( __( 'Email sender settings saved.', 'wordprseo' ) );
             $mailer_error_label_json          = wp_json_encode( __( 'Unable to save the email sender settings. Please try again.', 'wordprseo' ) );
+            $columns_saved_label_json         = wp_json_encode( __( 'Table columns saved. Reloading…', 'wordprseo' ) );
+            $columns_error_label_json         = wp_json_encode( __( 'Unable to save the table columns. Please try again.', 'wordprseo' ) );
+            $columns_missing_label_json       = wp_json_encode( __( 'Select at least one column.', 'wordprseo' ) );
             $email_split_pattern_json         = wp_json_encode( '[\\r\\n,;]+' );
             if ( false === $email_split_pattern_json ) {
                 $email_split_pattern_json = '"[\\\\r\\\\n,;]+"';
@@ -3224,11 +3410,17 @@ document.addEventListener("DOMContentLoaded", function() {
     const defaultCcErrorMessage = {$default_cc_error_label_json};
     const mailerSavedMessage = {$mailer_saved_label_json};
     const mailerErrorMessage = {$mailer_error_label_json};
+    const columnsSavedMessage = {$columns_saved_label_json};
+    const columnsErrorMessage = {$columns_error_label_json};
+    const columnsMissingMessage = {$columns_missing_label_json};
     const emailSplitRegex = new RegExp({$email_split_pattern_json});
 
     const formSelect = document.getElementById("theme-leads-form");
     let currentFormSlug = formSelect && typeof formSelect.value === "string" ? formSelect.value : "";
 
+    const columnsToggle = document.querySelector(".theme-leads-columns-toggle");
+    const columnsPanel = document.querySelector(".theme-leads-columns-panel");
+    const columnsForm = document.querySelector(".theme-leads-columns-form");
     const templateToggle = document.querySelector(".theme-leads-template-toggle");
     const templatePanel = document.querySelector(".theme-leads-template-panel");
     const templateList = document.querySelector(".theme-leads-template-list");
@@ -3253,6 +3445,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const mailerForm = document.querySelector(".theme-leads-mailer-form");
 
     const panelConfigs = [
+        { toggle: columnsToggle, panel: columnsPanel },
         { toggle: statusToggle, panel: statusPanel },
         { toggle: defaultToggle, panel: defaultPanel },
         { toggle: mailerToggle, panel: mailerPanel },
@@ -3315,6 +3508,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const shouldOpen = entry === config && open;
             entry.toggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
             entry.panel.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+            entry.panel.setAttribute("aria-modal", shouldOpen ? "true" : "false");
 
             if (shouldOpen) {
                 entry.panel.removeAttribute("hidden");
@@ -3334,7 +3528,98 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             entry.toggle.setAttribute("aria-expanded", "false");
             entry.panel.setAttribute("aria-hidden", "true");
+            entry.panel.setAttribute("aria-modal", "false");
             entry.panel.setAttribute("hidden", "hidden");
+        });
+    }
+
+    if (columnsForm) {
+        columnsForm.addEventListener("submit", function(event) {
+            if (!ajaxUrl) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (columnsForm._themeLeadsSubmitting) {
+                return;
+            }
+
+            const feedbackEl = columnsForm.querySelector(".theme-leads-columns-feedback");
+
+            if (feedbackEl) {
+                feedbackEl.textContent = "";
+                feedbackEl.classList.remove("is-error", "is-success");
+            }
+
+            const selected = columnsForm.querySelectorAll("input[name='table_columns[]']:checked");
+            if (!selected.length) {
+                if (feedbackEl) {
+                    feedbackEl.textContent = columnsMissingMessage;
+                    feedbackEl.classList.remove("is-success");
+                    feedbackEl.classList.add("is-error");
+                } else {
+                    window.alert(columnsMissingMessage);
+                }
+                return;
+            }
+
+            columnsForm._themeLeadsSubmitting = true;
+
+            const submitButton = columnsForm.querySelector("button[type='submit']");
+
+            if (submitButton) {
+                setBusyState(submitButton, true);
+            } else {
+                setBusyState(columnsForm, true);
+            }
+
+            const formData = new FormData(columnsForm);
+            formData.set("action", "theme_leads_columns_save");
+            const nonceValue = formData.get("_wpnonce");
+            if (nonceValue && !formData.get("_ajax_nonce")) {
+                formData.set("_ajax_nonce", nonceValue);
+            }
+
+            fetch(ajaxUrl, {
+                method: "POST",
+                credentials: "same-origin",
+                body: formData
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error(columnsErrorMessage);
+                    }
+                    return response.json();
+                })
+                .then(function(payload) {
+                    if (!payload || typeof payload !== "object") {
+                        throw new Error(columnsErrorMessage);
+                    }
+                    if (payload.success) {
+                        handleColumnsSaveSuccess(payload.data || {}, columnsForm, feedbackEl);
+                    } else {
+                        const message = payload.data && payload.data.message ? payload.data.message : columnsErrorMessage;
+                        throw new Error(message);
+                    }
+                })
+                .catch(function(error) {
+                    if (feedbackEl) {
+                        feedbackEl.textContent = error && error.message ? error.message : columnsErrorMessage;
+                        feedbackEl.classList.remove("is-success");
+                        feedbackEl.classList.add("is-error");
+                    } else {
+                        window.alert(error && error.message ? error.message : columnsErrorMessage);
+                    }
+                })
+                .finally(function() {
+                    if (submitButton) {
+                        setBusyState(submitButton, false);
+                    } else {
+                        setBusyState(columnsForm, false);
+                    }
+                    columnsForm._themeLeadsSubmitting = false;
+                });
         });
     }
 
@@ -3569,6 +3854,25 @@ document.addEventListener("DOMContentLoaded", function() {
                     mailerForm._themeLeadsSubmitting = false;
                 });
         });
+    }
+
+    function handleColumnsSaveSuccess(data, form, feedbackEl) {
+        if (feedbackEl) {
+            feedbackEl.textContent = columnsSavedMessage;
+            feedbackEl.classList.remove("is-error");
+            feedbackEl.classList.add("is-success");
+        }
+
+        if (form && data && typeof data === "object" && typeof data.save_nonce === "string") {
+            const nonceField = form.querySelector("input[name='_wpnonce']");
+            if (nonceField) {
+                nonceField.value = data.save_nonce;
+            }
+        }
+
+        window.setTimeout(function() {
+            window.location.reload();
+        }, 600);
     }
 
     function handleStatusesSaveSuccess(data, form, feedbackEl) {
@@ -6819,6 +7123,404 @@ JS;
                 ),
                 array( '%s', '%s' )
             );
+        }
+
+        /**
+         * Format a Contact Form 7 field key into a human readable label.
+         *
+         * @param string $field_key Field key.
+         * @return string
+         */
+        protected function format_table_column_field_label( $field_key ) {
+            $label = strtolower( (string) $field_key );
+            $label = str_replace( array( '_', '-' ), ' ', $label );
+            $label = preg_replace( '/\s+/', ' ', trim( $label ) );
+
+            if ( '' === $label ) {
+                return (string) $field_key;
+            }
+
+            return ucwords( $label );
+        }
+
+        /**
+         * Normalise a table column key for storage and comparison.
+         *
+         * @param string $key Raw column key.
+         * @return string
+         */
+        protected function normalise_table_column_key( $key ) {
+            $key = strtolower( (string) $key );
+            $key = trim( $key );
+
+            if ( '' === $key ) {
+                return '';
+            }
+
+            if ( 0 === strpos( $key, '__' ) ) {
+                $core = substr( $key, 2 );
+                $core = preg_replace( '/[^a-z0-9_\-]/', '', $core );
+
+                return '' === $core ? '' : '__' . $core;
+            }
+
+            $key = preg_replace( '/[^a-z0-9_\-]/', '', $key );
+
+            return $key;
+        }
+
+        /**
+         * Retrieve the available table column candidates for a form.
+         *
+         * @param array $form_field_keys Contact Form 7 field keys.
+         * @return array
+         */
+        protected function get_table_column_candidates( $form_field_keys = array() ) {
+            $candidates = array();
+            $seen       = array();
+
+            $special_columns = array(
+                array(
+                    'key'   => '__name',
+                    'label' => __( 'Name', 'wordprseo' ),
+                    'group' => 'lead',
+                ),
+                array(
+                    'key'   => '__email',
+                    'label' => __( 'Email', 'wordprseo' ),
+                    'group' => 'lead',
+                ),
+                array(
+                    'key'   => '__phone',
+                    'label' => __( 'Phone', 'wordprseo' ),
+                    'group' => 'lead',
+                ),
+                array(
+                    'key'   => '__brand',
+                    'label' => __( 'Brand', 'wordprseo' ),
+                    'group' => 'lead',
+                ),
+                array(
+                    'key'   => '__link',
+                    'label' => __( 'Website', 'wordprseo' ),
+                    'group' => 'lead',
+                ),
+            );
+
+            foreach ( $special_columns as $column ) {
+                $normalised_key = $this->normalise_table_column_key( $column['key'] );
+
+                if ( '' === $normalised_key || isset( $seen[ $normalised_key ] ) ) {
+                    continue;
+                }
+
+                $seen[ $normalised_key ] = true;
+                $candidates[]            = array(
+                    'key'   => $normalised_key,
+                    'label' => $column['label'],
+                    'group' => $column['group'],
+                );
+            }
+
+            if ( ! empty( $form_field_keys ) && is_array( $form_field_keys ) ) {
+                foreach ( $form_field_keys as $field_key ) {
+                    $normalised_key = $this->normalise_table_column_key( $field_key );
+
+                    if ( '' === $normalised_key || isset( $seen[ $normalised_key ] ) ) {
+                        continue;
+                    }
+
+                    $seen[ $normalised_key ] = true;
+                    $candidates[]            = array(
+                        'key'   => $normalised_key,
+                        'label' => $this->format_table_column_field_label( $field_key ),
+                        'group' => 'form',
+                    );
+                }
+            }
+
+            return $candidates;
+        }
+
+        /**
+         * Retrieve the default table column keys.
+         *
+         * @return array
+         */
+        protected function get_default_table_column_keys() {
+            return array( '__name', '__email', '__phone' );
+        }
+
+        /**
+         * Retrieve the valid table column keys for a form.
+         *
+         * @param array $form_field_keys Contact Form 7 field keys.
+         * @return array
+         */
+        protected function get_table_column_candidate_keys( $form_field_keys = array() ) {
+            $candidates = $this->get_table_column_candidates( $form_field_keys );
+
+            if ( empty( $candidates ) ) {
+                return array();
+            }
+
+            $keys = array();
+
+            foreach ( $candidates as $candidate ) {
+                if ( empty( $candidate['key'] ) ) {
+                    continue;
+                }
+
+                $keys[] = $candidate['key'];
+            }
+
+            return array_values( array_unique( $keys ) );
+        }
+
+        /**
+         * Persist the selected table columns for a form.
+         *
+         * @param array  $columns   Selected columns.
+         * @param string $form_slug Form slug.
+         */
+        protected function save_table_columns_selection( $columns, $form_slug = '' ) {
+            if ( ! is_array( $columns ) ) {
+                $columns = array( $columns );
+            }
+
+            $normalised = array();
+
+            foreach ( $columns as $column_key ) {
+                $normalised_key = $this->normalise_table_column_key( $column_key );
+
+                if ( '' !== $normalised_key ) {
+                    $normalised[] = $normalised_key;
+                }
+            }
+
+            $normalised = array_values( array_unique( $normalised ) );
+
+            $this->update_module_option( 'table_columns', $normalised, $form_slug );
+        }
+
+        /**
+         * Retrieve the table columns selected for a form.
+         *
+         * @param string $form_slug       Form slug.
+         * @param array  $form_field_keys Field keys for the form.
+         * @return array
+         */
+        protected function get_selected_table_columns( $form_slug, $form_field_keys = array() ) {
+            $stored = $this->get_option_for_form( 'table_columns', null, $form_slug );
+
+            if ( ! is_array( $stored ) ) {
+                $stored = array();
+            }
+
+            $stored = array_map( array( $this, 'normalise_table_column_key' ), $stored );
+            $stored = array_filter( $stored );
+
+            $allowed_keys = $this->get_table_column_candidate_keys( $form_field_keys );
+
+            $selected = array_values( array_intersect( $stored, $allowed_keys ) );
+
+            if ( empty( $selected ) ) {
+                $fallback = array_values( array_intersect( $this->get_default_table_column_keys(), $allowed_keys ) );
+
+                if ( empty( $fallback ) ) {
+                    $fallback = $allowed_keys;
+                }
+
+                $selected = $fallback;
+            }
+
+            return $selected;
+        }
+
+        /**
+         * Retrieve the display label for a table column header.
+         *
+         * @param string $column_key Column key.
+         * @return string
+         */
+        protected function get_table_column_header_label( $column_key ) {
+            $column_key = $this->normalise_table_column_key( $column_key );
+
+            switch ( $column_key ) {
+                case '__name':
+                    return __( 'Name', 'wordprseo' );
+                case '__email':
+                    return __( 'Email', 'wordprseo' );
+                case '__phone':
+                    return __( 'Phone', 'wordprseo' );
+                case '__brand':
+                    return __( 'Brand', 'wordprseo' );
+                case '__link':
+                    return __( 'Website', 'wordprseo' );
+            }
+
+            return $this->format_table_column_field_label( $column_key );
+        }
+
+        /**
+         * Locate a raw payload value for a table column.
+         *
+         * @param array  $payload    Submission payload.
+         * @param string $column_key Column key.
+         * @return mixed|null
+         */
+        protected function find_raw_payload_value_for_column( $payload, $column_key ) {
+            if ( empty( $payload ) || ! is_array( $payload ) ) {
+                return null;
+            }
+
+            if ( array_key_exists( $column_key, $payload ) ) {
+                return $payload[ $column_key ];
+            }
+
+            foreach ( $payload as $key => $value ) {
+                if ( ! is_string( $key ) ) {
+                    continue;
+                }
+
+                if ( $this->normalise_table_column_key( $key ) === $column_key ) {
+                    return $value;
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Render a summary table cell for a lead and column key.
+         *
+         * @param string $column_key Column key.
+         * @param object $lead       Lead record.
+         * @param array  $payload    Submission payload.
+         * @param array  $context    Contextual values.
+         * @param string $form_slug  Form slug.
+         * @return string
+         */
+        protected function render_summary_table_column_cell( $column_key, $lead, $payload, $context = array(), $form_slug = '' ) {
+            $column_key = $this->normalise_table_column_key( $column_key );
+
+            $classes = array( 'theme-leads-column' );
+            $base_class = str_replace( '__', '', $column_key );
+            $base_class = str_replace( array( '_', '-' ), '-', $base_class );
+
+            if ( '' !== $base_class ) {
+                $classes[] = 'theme-leads-column--' . sanitize_html_class( $base_class );
+            }
+
+            $attributes = array();
+            $content    = '&mdash;';
+
+            switch ( $column_key ) {
+                case '__name':
+                    $classes[] = 'theme-leads-summary-name';
+                    $name_value = '';
+
+                    if ( isset( $context['client_name'] ) && '' !== $context['client_name'] ) {
+                        $name_value = $context['client_name'];
+                    } elseif ( isset( $context['lead_name'] ) && '' !== $context['lead_name'] ) {
+                        $name_value = $context['lead_name'];
+                    }
+
+                    if ( '' === $name_value ) {
+                        $name_value = __( 'Unknown', 'wordprseo' );
+                    }
+
+                    $content = '<span class="theme-leads-name-text">' . esc_html( $name_value ) . '</span>';
+                    break;
+
+                case '__email':
+                    $email_value = '';
+
+                    if ( ! empty( $lead->email ) ) {
+                        $email_value = sanitize_email( $lead->email );
+                    }
+
+                    if ( empty( $email_value ) ) {
+                        $email_value = sanitize_email( $this->find_payload_value( $payload, array( 'email', 'your-email', 'contact-email' ) ) );
+                    }
+
+                    $parts = array();
+
+                    if ( ! empty( $email_value ) ) {
+                        $parts[] = '<a href="mailto:' . esc_attr( $email_value ) . '">' . esc_html( $email_value ) . '</a>';
+                    } else {
+                        $parts[] = '&mdash;';
+                    }
+
+                    if ( ! empty( $lead->response_sent ) ) {
+                        $parts[] = '<div class="theme-leads-meta theme-leads-last-response"><small>' . esc_html__( 'Last response', 'wordprseo' ) . ': ' . esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $lead->response_sent ) ) . '</small></div>';
+                    }
+
+                    $content = implode( '', $parts );
+                    break;
+
+                case '__phone':
+                    $classes[]               = 'theme-leads-summary-phone';
+                    $attributes['data-role'] = 'lead-phone';
+                    $phone_value             = '';
+
+                    if ( isset( $context['client_phone'] ) && '' !== $context['client_phone'] ) {
+                        $phone_value = $context['client_phone'];
+                    } elseif ( isset( $context['lead_phone'] ) && '' !== $context['lead_phone'] ) {
+                        $phone_value = $context['lead_phone'];
+                    }
+
+                    if ( '' !== $phone_value ) {
+                        $tel_href = preg_replace( '/[^0-9\+]/', '', $phone_value );
+                        $tel_href = $tel_href ? $tel_href : $phone_value;
+                        $content  = '<a class="theme-leads-phone-link" href="tel:' . esc_attr( $tel_href ) . '" data-number="' . esc_attr( $tel_href ) . '">' . esc_html( $phone_value ) . '</a>';
+                    }
+                    break;
+
+                case '__brand':
+                    $brand_value = isset( $context['client_brand'] ) ? $context['client_brand'] : '';
+                    $content     = '' !== $brand_value ? esc_html( $brand_value ) : '&mdash;';
+                    break;
+
+                case '__link':
+                    $link_value = isset( $context['client_link'] ) ? $context['client_link'] : '';
+
+                    if ( ! empty( $link_value ) ) {
+                        $content = '<a href="' . esc_url( $link_value ) . '" target="_blank" rel="noreferrer noopener">' . esc_html( $link_value ) . '</a>';
+                    } else {
+                        $content = '&mdash;';
+                    }
+                    break;
+
+                default:
+                    $raw_value = $this->find_raw_payload_value_for_column( $payload, $column_key );
+
+                    if ( null !== $raw_value ) {
+                        $content = $this->get_payload_value_display_markup( $raw_value, $lead, $form_slug, $column_key );
+                    } else {
+                        $fallback = $this->find_payload_value( $payload, array( $column_key ) );
+                        $content  = $fallback ? esc_html( $fallback ) : '&mdash;';
+                    }
+                    break;
+            }
+
+            $attributes_string = '';
+
+            if ( ! empty( $classes ) ) {
+                $attributes_string .= ' class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '"';
+            }
+
+            if ( ! empty( $attributes ) ) {
+                foreach ( $attributes as $attr_key => $attr_value ) {
+                    if ( '' === $attr_value ) {
+                        continue;
+                    }
+
+                    $attributes_string .= ' ' . $attr_key . '="' . esc_attr( $attr_value ) . '"';
+                }
+            }
+
+            return '<td' . $attributes_string . '>' . $content . '</td>';
         }
 
         /**
