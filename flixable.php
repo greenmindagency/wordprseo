@@ -2144,7 +2144,21 @@ $postscount  = get_sub_field('postscount');
 $addmore     = get_sub_field('addmore');
 $sameheight  = get_sub_field('sameheight');
 
-$product_terms_raw = get_sub_field('postsrelatedproducts');
+// 1. Retrieve the values from the two Taxonomy fields you set up
+$selected_cats = get_sub_field('postsrelatedcat'); // Field 3 in your screenshot
+$selected_tags = get_sub_field('relatedtag');     // Field 4 in your screenshot
+
+// 2. Initialize the raw terms array
+$product_terms_raw = array();
+
+// 3. Merge the selected categories and tags into the single raw variable
+if ( is_array( $selected_cats ) ) {
+    $product_terms_raw = array_merge( $product_terms_raw, $selected_cats );
+}
+
+if ( is_array( $selected_tags ) ) {
+    $product_terms_raw = array_merge( $product_terms_raw, $selected_tags );
+}
 $product_term_map  = array();
 $first_selected_term = null;
 
