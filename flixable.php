@@ -2133,7 +2133,7 @@ if ($addmore) { // Code to display if the addmore checkbox is checked
 
 <!-- postsrelatedproducts -->
 
-<?php elseif( get_row_layout() == 'postsrelatedproducts' ): ?>
+<?php elseif( get_row_layout() == 'postsrelatedproducts♣' ): ?>
 
 <?php
 // Mirror the post related layout options so editors can reuse the same UI.
@@ -2144,8 +2144,107 @@ $postscount  = get_sub_field('postscount');
 $addmore     = get_sub_field('addmore');
 $sameheight  = get_sub_field('sameheight');
 
-$product_terms = get_sub_field('postsrelatedproducts');
-$product_terms = is_array( $product_terms ) ? array_filter( array_map( 'intval', $product_terms ) ) : array();
+$product_terms_raw = get_sub_field('postsrelatedproducts');
+$product_term_map  = array();
+$first_selected_term = null;
+
+if ( is_array( $product_terms_raw ) ) {
+    foreach ( $product_terms_raw as $term_item ) {
+        $term_id  = 0;
+        $taxonomy = '';
+
+        if ( is_object( $term_item ) ) {
+            if ( isset( $term_item->term_id ) ) {
+                $term_id = (int) $term_item->term_id;
+            }
+
+            if ( isset( $term_item->taxonomy ) ) {
+                $taxonomy = (string) $term_item->taxonomy;
+            }
+        } elseif ( is_array( $term_item ) ) {
+            if ( isset( $term_item['term_id'] ) ) {
+                $term_id = (int) $term_item['term_id'];
+            } elseif ( isset( $term_item['id'] ) ) {
+                $term_id = (int) $term_item['id'];
+            }
+
+            if ( isset( $term_item['taxonomy'] ) ) {
+                $taxonomy = (string) $term_item['taxonomy'];
+            }
+        } elseif ( is_string( $term_item ) ) {
+            $term_item = trim( $term_item );
+
+            if ( '' === $term_item ) {
+                continue;
+            }
+
+            if ( false !== strpos( $term_item, ':' ) ) {
+                $parts = explode( ':', $term_item );
+
+                if ( count( $parts ) >= 2 ) {
+                    $taxonomy = array_shift( $parts );
+                    $term_id  = (int) end( $parts );
+                }
+            } elseif ( false !== strpos( $term_item, '_' ) ) {
+                $parts = explode( '_', $term_item );
+                $maybe_id = array_pop( $parts );
+
+                if ( is_numeric( $maybe_id ) ) {
+                    $term_id  = (int) $maybe_id;
+                    $taxonomy = implode( '_', $parts );
+                }
+            } elseif ( is_numeric( $term_item ) ) {
+                $term_id = (int) $term_item;
+            }
+        } elseif ( is_numeric( $term_item ) ) {
+            $term_id = (int) $term_item;
+        }
+
+        if ( ! $term_id ) {
+            continue;
+        }
+
+        if ( empty( $taxonomy ) || ! taxonomy_exists( $taxonomy ) ) {
+            $taxonomy = 'product_cat';
+        }
+
+        if ( ! isset( $product_term_map[ $taxonomy ] ) ) {
+            $product_term_map[ $taxonomy ] = array();
+        }
+
+        $product_term_map[ $taxonomy ][] = $term_id;
+
+        if ( ! $first_selected_term ) {
+            $first_selected_term = array(
+                'taxonomy' => $taxonomy,
+                'term_id'  => $term_id,
+            );
+        }
+    }
+}
+
+$product_tax_query = array();
+
+foreach ( $product_term_map as $taxonomy => $term_ids ) {
+    $term_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $term_ids ) ) ) );
+
+    if ( empty( $term_ids ) ) {
+        continue;
+    }
+
+    $product_tax_query[] = array(
+        'taxonomy' => $taxonomy,
+        'field'    => 'term_id',
+        'terms'    => $term_ids,
+    );
+}
+
+if ( count( $product_tax_query ) > 1 ) {
+    $product_tax_query = array_merge(
+        array( 'relation' => 'OR' ),
+        $product_tax_query
+    );
+}
 
 $current_sort = isset( $_GET['product_sort'] ) ? sanitize_text_field( wp_unslash( $_GET['product_sort'] ) ) : 'default';
 $sort_options = array(
@@ -2165,8 +2264,8 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
     echo '<p>' . esc_html__( 'WooCommerce must be activated to display related products.', 'wordprseo' ) . '</p>';
 } elseif ( ! wordprseo_is_woocommerce_ready() ) {
     echo '<p>' . esc_html__( 'Your WooCommerce store needs at least one published product and product category before products can be displayed here.', 'wordprseo' ) . '</p>';
-} elseif ( empty( $product_terms ) ) {
-    echo '<p>' . esc_html__( 'No product categories selected.', 'wordprseo' ) . '</p>';
+} elseif ( empty( $product_tax_query ) ) {
+    echo '<p>' . esc_html__( 'No product categories or tags selected.', 'wordprseo' ) . '</p>';
 } else {
     $columns   = $columns ? $columns : 3;
     $imagesize = $imagesize ? $imagesize : 'medium';
@@ -2237,14 +2336,11 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
               'post_status'    => 'publish',
               'paged'          => $paged,
               'posts_per_page' => get_option('posts_per_page'),
-              'tax_query'      => array(
-                  array(
-                      'taxonomy' => 'product_cat',
-                      'field'    => 'term_id',
-                      'terms'    => $product_terms,
-                  ),
-              ),
           );
+
+          if ( ! empty( $product_tax_query ) ) {
+              $args['tax_query'] = $product_tax_query;
+          }
 
           $args = array_merge( $args, $sorting_args );
 
@@ -2431,7 +2527,7 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
 
         <div class="postsrelatedcat">
 
-        <?php if( $product_terms ): ?>
+        <?php if ( ! empty( $product_tax_query ) ): ?>
 
         <div class="container-fluid bg-light">
         <div class="py-spacer container">
@@ -2475,14 +2571,11 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
             'post_type'      => 'product',
             'post_status'    => 'publish',
             'posts_per_page' => $postscount ? intval( $postscount ) : -1,
-            'tax_query'      => array(
-                array(
-                    'taxonomy' => 'product_cat',
-                    'field'    => 'term_id',
-                    'terms'    => $product_terms,
-                ),
-            ),
         );
+
+        if ( ! empty( $product_tax_query ) ) {
+            $args['tax_query'] = $product_tax_query;
+        }
 
         $args = array_merge( $args, $sorting_args );
 
@@ -2571,9 +2664,8 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
         </div>
 
         <?php
-        if ( $addmore ) {
-            $first_category = $product_terms[0];
-            $term_object    = get_term( $first_category, 'product_cat' );
+        if ( $addmore && $first_selected_term ) {
+            $term_object = get_term( $first_selected_term['term_id'], $first_selected_term['taxonomy'] );
 
             if ( $term_object && ! is_wp_error( $term_object ) ) {
         ?>
@@ -2592,7 +2684,6 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
 
         </div>
         </div>
-        <?php else: // if not categories selected ?>
         <?php endif; ?>
 
         </div>
