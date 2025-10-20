@@ -24,15 +24,29 @@ if ( ! wordprseo_is_woocommerce_active() ) {
         $shop_id = 0;
     }
 
+    $shop_post     = $shop_id ? get_post( $shop_id ) : null;
+    $previous_post = null;
+
+    if ( $shop_post instanceof WP_Post ) {
+        global $post;
+
+        $previous_post = ( isset( $post ) && $post instanceof WP_Post ) ? $post : null;
+
+        $post = $shop_post;
+        setup_postdata( $post );
+
+        get_template_part( 'template-parts/page/hero' );
+    }
+
     if ( $shop_id && $shop_id > 0 && function_exists( 'have_rows' ) && have_rows( 'body', $shop_id ) ) {
         global $post;
 
-        $previous_post = isset( $post ) ? $post : null;
-        $shop_post     = get_post( $shop_id );
+        if ( ! ( $post instanceof WP_Post ) || $post->ID !== $shop_id ) {
+            $post = $shop_post instanceof WP_Post ? $shop_post : get_post( $shop_id );
 
-        if ( $shop_post instanceof WP_Post ) {
-            $post = $shop_post;
-            setup_postdata( $post );
+            if ( $post instanceof WP_Post ) {
+                setup_postdata( $post );
+            }
         }
 
         $term = $shop_post instanceof WP_Post ? $shop_post : $shop_id;
@@ -46,15 +60,18 @@ if ( ! wordprseo_is_woocommerce_active() ) {
 
         echo '</article>';
 
-        if ( $shop_post instanceof WP_Post ) {
-            wp_reset_postdata();
-            if ( $previous_post instanceof WP_Post ) {
-                $post = $previous_post;
-                setup_postdata( $post );
-            }
-        }
-
         $rendered_flexible = true;
+    }
+
+    if ( $shop_post instanceof WP_Post ) {
+        wp_reset_postdata();
+
+        if ( $previous_post instanceof WP_Post ) {
+            global $post;
+
+            $post = $previous_post;
+            setup_postdata( $post );
+        }
     }
 
     if ( ! $rendered_flexible ) {

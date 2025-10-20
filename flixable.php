@@ -2489,19 +2489,23 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
         <div class="postsrelatedcat">
 
         <?php
-          global $paged;
+          $paged = max(
+              1,
+              intval( get_query_var( 'paged' ) ),
+              intval( get_query_var( 'page' ) ),
+              isset( $_GET['paged'] ) ? intval( wp_unslash( $_GET['paged'] ) ) : 0,
+              isset( $_GET['page'] ) ? intval( wp_unslash( $_GET['page'] ) ) : 0
+          );
 
-          if ( is_front_page() && ! is_home() ) {
-              $paged = ( get_query_var('page') ) ? get_query_var('page') : 1;
-          } else {
-              $paged = ( get_query_var('paged') ) ? get_query_var('paged') : 1;
+          if ( $paged < 1 ) {
+              $paged = 1;
           }
 
           $args = array(
               'post_type'      => 'product',
               'post_status'    => 'publish',
               'paged'          => $paged,
-              'posts_per_page' => get_option('posts_per_page'),
+              'posts_per_page' => $postscount ? max( 1, intval( $postscount ) ) : max( 1, intval( get_option( 'posts_per_page' ) ) ),
           );
 
           if ( ! empty( $product_tax_query ) ) {
@@ -2577,7 +2581,16 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
                             }
 
                             $image_id = $product->get_image_id();
-                            $image    = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
+
+                            if ( ! $image_id ) {
+                                $gallery_image_ids = $product->get_gallery_image_ids();
+
+                                if ( ! empty( $gallery_image_ids ) ) {
+                                    $image_id = (int) reset( $gallery_image_ids );
+                                }
+                            }
+
+                            $image = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
 
                             ?>
 
@@ -2761,6 +2774,15 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
                 }
 
                 $image_id = $product->get_image_id();
+
+                if ( ! $image_id ) {
+                    $gallery_image_ids = $product->get_gallery_image_ids();
+
+                    if ( ! empty( $gallery_image_ids ) ) {
+                        $image_id = (int) reset( $gallery_image_ids );
+                    }
+                }
+
                 $image    = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
         ?>
 
