@@ -27,7 +27,9 @@ if ( ! wordprseo_is_woocommerce_active() ) {
     $shop_post     = $shop_id ? get_post( $shop_id ) : null;
     $previous_post = null;
 
-    if ( $shop_post instanceof WP_Post ) {
+    $is_shop_view = is_shop();
+
+    if ( $is_shop_view && $shop_post instanceof WP_Post ) {
         global $post;
 
         $previous_post = ( isset( $post ) && $post instanceof WP_Post ) ? $post : null;
@@ -38,7 +40,7 @@ if ( ! wordprseo_is_woocommerce_active() ) {
         get_template_part( 'template-parts/page/hero' );
     }
 
-    if ( $shop_id && $shop_id > 0 && function_exists( 'have_rows' ) && have_rows( 'body', $shop_id ) ) {
+    if ( $is_shop_view && $shop_id && $shop_id > 0 && function_exists( 'have_rows' ) && have_rows( 'body', $shop_id ) ) {
         global $post;
 
         if ( ! ( $post instanceof WP_Post ) || $post->ID !== $shop_id ) {
@@ -63,7 +65,7 @@ if ( ! wordprseo_is_woocommerce_active() ) {
         $rendered_flexible = true;
     }
 
-    if ( $shop_post instanceof WP_Post ) {
+    if ( $is_shop_view && $shop_post instanceof WP_Post ) {
         wp_reset_postdata();
 
         if ( $previous_post instanceof WP_Post ) {
