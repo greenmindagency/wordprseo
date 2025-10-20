@@ -2248,13 +2248,111 @@ if ( ! function_exists( 'wordprseo_normalize_product_term_selection' ) ) {
     }
 }
 
+if ( ! function_exists( 'wordprseo_detect_product_term_all_token' ) ) {
+    function wordprseo_detect_product_term_all_token( $term_item, $fallback_taxonomy = '' ) {
+        $candidates = array();
+
+        if ( is_object( $term_item ) ) {
+            $term_item = get_object_vars( $term_item );
+        }
+
+        if ( is_array( $term_item ) ) {
+            foreach ( $term_item as $value ) {
+                if ( is_string( $value ) || is_numeric( $value ) ) {
+                    $candidates[] = strtolower( trim( (string) $value ) );
+                }
+            }
+        } else {
+            $candidates[] = strtolower( trim( (string) $term_item ) );
+        }
+
+        foreach ( $candidates as $candidate ) {
+            if ( '' === $candidate || false === strpos( $candidate, 'all' ) ) {
+                continue;
+            }
+
+            $taxonomy = $fallback_taxonomy ? sanitize_key( $fallback_taxonomy ) : '';
+
+            if ( preg_match( '/^product_(cat|tag):all$/', $candidate, $matches ) ) {
+                $taxonomy = 'product_' . $matches[1];
+            } elseif ( false !== strpos( $candidate, 'tag' ) ) {
+                $taxonomy = 'product_tag';
+            } elseif ( false !== strpos( $candidate, 'cat' ) || false !== strpos( $candidate, 'categor' ) ) {
+                $taxonomy = 'product_cat';
+            }
+
+            if ( ! $taxonomy ) {
+                $taxonomy = 'product_cat';
+            }
+
+            return array(
+                'include_all' => true,
+                'taxonomy'    => $taxonomy,
+            );
+        }
+
+        return array(
+            'include_all' => false,
+            'taxonomy'    => $fallback_taxonomy,
+        );
+    }
+}
+
 if ( is_array( $product_terms_raw ) ) {
+    $all_terms_cache = array();
+
     foreach ( $product_terms_raw as $term_item ) {
         $normalized = wordprseo_normalize_product_term_selection( $term_item );
         $term_id    = $normalized['term_id'];
         $taxonomy   = $normalized['taxonomy'];
 
         if ( ! $term_id ) {
+            $all_token = wordprseo_detect_product_term_all_token( $term_item, $taxonomy );
+
+            if ( ! empty( $all_token['include_all'] ) ) {
+                $taxonomy = $all_token['taxonomy'];
+
+                if ( ! isset( $all_terms_cache[ $taxonomy ] ) ) {
+                    $all_terms = get_terms(
+                        array(
+                            'taxonomy'   => $taxonomy,
+                            'hide_empty' => false,
+                            'fields'     => 'ids',
+                        )
+                    );
+
+                    if ( is_wp_error( $all_terms ) ) {
+                        $all_terms = array();
+                    }
+
+                    $all_terms_cache[ $taxonomy ] = array_map( 'intval', (array) $all_terms );
+                }
+
+                if ( ! empty( $all_terms_cache[ $taxonomy ] ) ) {
+                    if ( ! isset( $product_term_map[ $taxonomy ] ) ) {
+                        $product_term_map[ $taxonomy ] = array();
+                    }
+
+                    $product_term_map[ $taxonomy ] = array_merge(
+                        $product_term_map[ $taxonomy ],
+                        $all_terms_cache[ $taxonomy ]
+                    );
+
+                    if ( ! $first_selected_term ) {
+                        $first_id = reset( $all_terms_cache[ $taxonomy ] );
+
+                        if ( $first_id ) {
+                            $first_selected_term = array(
+                                'taxonomy' => $taxonomy,
+                                'term_id'  => (int) $first_id,
+                            );
+                        }
+                    }
+                }
+
+                continue;
+            }
+
             continue;
         }
 
