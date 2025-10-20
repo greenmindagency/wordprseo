@@ -2131,6 +2131,481 @@ if ($addmore) { // Code to display if the addmore checkbox is checked
 
 
 
+<!-- postsrelatedproducts -->
+
+<?php elseif( get_row_layout() == 'postsrelatedproducts' ): ?>
+
+<?php
+// Mirror the post related layout options so editors can reuse the same UI.
+$imagesize   = get_sub_field('imagesize');
+$infinite    = get_sub_field('infinite');
+$columns     = get_sub_field('columns');
+$postscount  = get_sub_field('postscount');
+$addmore     = get_sub_field('addmore');
+$sameheight  = get_sub_field('sameheight');
+
+$product_terms = get_sub_field('postsrelatedproducts');
+$product_terms = is_array( $product_terms ) ? array_filter( array_map( 'intval', $product_terms ) ) : array();
+
+$current_sort = isset( $_GET['product_sort'] ) ? sanitize_text_field( wp_unslash( $_GET['product_sort'] ) ) : 'default';
+$sort_options = array(
+    'default'     => __( 'Default sorting', 'wordprseo' ),
+    'newest'      => __( 'Newest arrivals', 'wordprseo' ),
+    'price_low'   => __( 'Price: low to high', 'wordprseo' ),
+    'price_high'  => __( 'Price: high to low', 'wordprseo' ),
+    'rating'      => __( 'Customer rating', 'wordprseo' ),
+    'popularity'  => __( 'Popularity', 'wordprseo' ),
+);
+
+if ( ! array_key_exists( $current_sort, $sort_options ) ) {
+    $current_sort = 'default';
+}
+
+if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_woocommerce_active() ) {
+    echo '<p>' . esc_html__( 'WooCommerce must be activated to display related products.', 'wordprseo' ) . '</p>';
+} elseif ( ! wordprseo_is_woocommerce_ready() ) {
+    echo '<p>' . esc_html__( 'Your WooCommerce store needs at least one published product and product category before products can be displayed here.', 'wordprseo' ) . '</p>';
+} elseif ( empty( $product_terms ) ) {
+    echo '<p>' . esc_html__( 'No product categories selected.', 'wordprseo' ) . '</p>';
+} else {
+    $columns   = $columns ? $columns : 3;
+    $imagesize = $imagesize ? $imagesize : 'medium';
+
+    $sorting_args = array();
+
+    switch ( $current_sort ) {
+        case 'newest':
+            $sorting_args = array(
+                'orderby' => 'date',
+                'order'   => 'DESC',
+            );
+            break;
+        case 'price_low':
+            $sorting_args = array(
+                'meta_key' => '_price',
+                'orderby'  => 'meta_value_num',
+                'order'    => 'ASC',
+            );
+            break;
+        case 'price_high':
+            $sorting_args = array(
+                'meta_key' => '_price',
+                'orderby'  => 'meta_value_num',
+                'order'    => 'DESC',
+            );
+            break;
+        case 'rating':
+            $sorting_args = array(
+                'meta_key' => '_wc_average_rating',
+                'orderby'  => 'meta_value_num',
+                'order'    => 'DESC',
+            );
+            break;
+        case 'popularity':
+            $sorting_args = array(
+                'meta_key' => 'total_sales',
+                'orderby'  => 'meta_value_num',
+                'order'    => 'DESC',
+            );
+            break;
+        default:
+            $sorting_args = array(
+                'orderby' => array(
+                    'menu_order' => 'ASC',
+                    'title'      => 'ASC',
+                ),
+            );
+            break;
+    }
+
+    if ( $infinite ) {
+        ?>
+
+        <div class="postsrelatedcat">
+
+        <?php
+          global $paged;
+
+          if ( is_front_page() && ! is_home() ) {
+              $paged = ( get_query_var('page') ) ? get_query_var('page') : 1;
+          } else {
+              $paged = ( get_query_var('paged') ) ? get_query_var('paged') : 1;
+          }
+
+          $args = array(
+              'post_type'      => 'product',
+              'post_status'    => 'publish',
+              'paged'          => $paged,
+              'posts_per_page' => get_option('posts_per_page'),
+              'tax_query'      => array(
+                  array(
+                      'taxonomy' => 'product_cat',
+                      'field'    => 'term_id',
+                      'terms'    => $product_terms,
+                  ),
+              ),
+          );
+
+          $args = array_merge( $args, $sorting_args );
+
+          $the_query = new WP_Query($args);
+
+          if ( $the_query->have_posts() ) :
+              ?>
+
+              <div class="postsrelatedcat container-fluid">
+                <div class="container py-spacer container">
+
+                  <div class="text-center">
+                    <h3 class="fs-1 fw-bold">
+                      <?php
+                      $title = get_sub_field('title');
+                      if ($title) echo esc_html($title);
+                      ?>
+                    </h3>
+                    <p class="mt-4 mb-5">
+                      <?php
+                      $subtitle = get_sub_field('subtitle');
+                      if ($subtitle) echo esc_html($subtitle);
+                      ?>
+                    </p>
+                  </div>
+
+                  <div class="d-flex justify-content-end mb-4">
+                    <form class="d-flex gap-2" method="get">
+                      <?php
+                      foreach ( $_GET as $key => $value ) {
+                          if ( in_array( $key, array( 'product_sort', 'paged', 'page' ), true ) ) {
+                              continue;
+                          }
+
+                          if ( is_array( $value ) ) {
+                              continue;
+                          }
+
+                          echo '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( wp_unslash( $value ) ) . '" />';
+                      }
+                      ?>
+                      <label class="visually-hidden" for="product_sort_select"><?php esc_html_e( 'Sort products', 'wordprseo' ); ?></label>
+                      <select id="product_sort_select" name="product_sort" class="form-select" onchange="this.form.submit()">
+                        <?php foreach ( $sort_options as $sort_key => $label ) : ?>
+                          <option value="<?php echo esc_attr( $sort_key ); ?>" <?php selected( $current_sort, $sort_key ); ?>><?php echo esc_html( $label ); ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <noscript>
+                        <button type="submit" class="btn btn-primary"><?php esc_html_e( 'Apply', 'wordprseo' ); ?></button>
+                      </noscript>
+                    </form>
+                  </div>
+
+                  <div class="container-fluid p-0">
+                    <div class="row p-0">
+                      <div class="col-md-12 mb-5">
+                        <div class="row grid<?php if($sameheight) echo ' align-items-stretch'; ?>"<?php if(!$sameheight) echo ' data-masonry=\'{"percentPosition": true }\''; ?>>
+
+                        <?php
+                        while ( $the_query->have_posts() ) :
+                            $the_query->the_post();
+
+                            global $product;
+                            $product = wc_get_product( get_the_ID() );
+
+                            if ( ! $product ) {
+                                continue;
+                            }
+
+                            $image_id = $product->get_image_id();
+                            $image    = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
+
+                            ?>
+
+                            <div class="mb-4 col-md-<?php echo intval(12 / $columns); ?> grid-item<?php if($sameheight) echo ' d-flex'; ?>">
+                              <div class="shadow card d-flex flex-column<?php if($sameheight) echo ' h-100'; ?>">
+
+                                <?php if ( $image ) :
+                                    $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="' . intval( $image[1] ) . '" height="' . intval( $image[2] ) . '" viewBox="0 0 ' . intval( $image[1] ) . ' ' . intval( $image[2] ) . '"><rect width="100%" height="100%" fill="#f8f9fb"/></svg>'
+                                    );
+                                    ?>
+                                    <a href="<?php the_permalink(); ?>">
+                                      <img
+                                        src="<?php echo esc_url( $svg_placeholder ); ?>"
+                                        data-src="<?php echo esc_url( $image[0] ); ?>"
+                                        class="border-bottom m-0 img-fluid card-img-top lazyload"
+                                        alt="<?php the_title_attribute(); ?>"
+                                        width="<?php echo intval( $image[1] ); ?>"
+                                        height="<?php echo intval( $image[2] ); ?>"
+                                      >
+                                    </a>
+                                <?php else : ?>
+                                    <a href="<?php the_permalink(); ?>" class="card-img-top placeholder-glow">
+                                      <span class="placeholder col-12" style="min-height:200px;"></span>
+                                    </a>
+                                <?php endif; ?>
+
+                                <div class="card-body pb-4 d-flex flex-column flex-grow-1">
+                                  <small class="lh-lg text-muted"><?php echo wp_kses_post( wc_get_product_category_list( get_the_ID(), ', ' ) ); ?></small>
+
+                                  <a href="<?php the_permalink(); ?>" class="text-decoration-none"><p class="h3 fw-bold mt-2 text-dark card-title"><?php the_title(); ?></p></a>
+
+                                  <?php if ( wc_review_ratings_enabled() ) : ?>
+                                    <div class="mb-2">
+                                      <?php echo wc_get_rating_html( $product->get_average_rating(), $product->get_rating_count() ); ?>
+                                    </div>
+                                  <?php endif; ?>
+
+                                  <p class="h5 fw-bold text-primary mb-3"><?php echo wp_kses_post( $product->get_price_html() ); ?></p>
+
+                                  <?php
+                                  $short_description = $product->get_short_description();
+                                  if ( empty( $short_description ) ) {
+                                      $short_description = get_the_excerpt();
+                                  }
+
+                                  if ( $short_description ) :
+                                  ?>
+                                    <p class="card-text"><?php echo wp_kses_post( wp_trim_words( $short_description, 24, '&hellip;' ) ); ?></p>
+                                  <?php endif; ?>
+
+                                  <?php $cta_classes = $sameheight ? 'mt-auto pt-3' : 'mt-3'; ?>
+                                  <div class="<?php echo esc_attr($cta_classes); ?>">
+                                    <?php woocommerce_template_loop_add_to_cart(); ?>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                        <?php endwhile; ?>
+
+                        </div><!-- /.grid row -->
+
+                        <?php if ( $the_query->max_num_pages > 1 ) : ?>
+                          <div class="scroller-status">
+                            <div class="loader-ellips infinite-scroll-request col-1 ps-5 my-5 position-absolute start-50 translate-middle">
+                              <span class="loader-ellips__dot"></span>
+                              <span class="loader-ellips__dot"></span>
+                              <span class="loader-ellips__dot"></span>
+                              <span class="loader-ellips__dot"></span>
+                            </div>
+
+                            <p class="infinite-scroll-last"></p>
+                            <p class="infinite-scroll-error"></p>
+                          </div>
+                        <?php endif; ?>
+
+                        <p class="pagination">
+                          <?php
+                          if ( $the_query->max_num_pages > 1 ) {
+                              $total_pages = $the_query->max_num_pages;
+
+                              if ( $paged < $total_pages ) {
+                                  $next_page_link = get_pagenum_link( $paged + 1 );
+                                  $next_page_link = add_query_arg( 'product_sort', $current_sort, $next_page_link );
+                                  echo '<a href="' . esc_url( $next_page_link ) . '" class="pagination__next"></a>';
+                              }
+                          }
+                          ?>
+                        </p>
+
+                      </div><!-- /.col-md-12 -->
+                    </div><!-- /.row -->
+                  </div><!-- /.container-fluid -->
+
+                </div><!-- /.container -->
+              </div><!-- /.postsrelatedcat container-fluid -->
+
+        <?php
+          endif;
+
+          wp_reset_postdata();
+          if ( function_exists( 'wc_reset_loop' ) ) {
+              wc_reset_loop();
+          }
+        ?>
+
+        </div> <!-- /.postsrelatedcat -->
+
+        <?php
+    } else {
+        ?>
+
+        <div class="postsrelatedcat">
+
+        <?php if( $product_terms ): ?>
+
+        <div class="container-fluid bg-light">
+        <div class="py-spacer container">
+
+        <div class="text-center">
+        <h3 class="fs-1 fw-bold" ><?php $title = get_sub_field('title'); if ($title) echo esc_html($title); ?></h3>
+        <p class="mt-4 mb-5"><?php $subtitle = get_sub_field('subtitle'); if ($subtitle) echo esc_html($subtitle); ?></p>
+        </div>
+
+        <div class="d-flex justify-content-end mb-4">
+          <form class="d-flex gap-2" method="get">
+            <?php
+            foreach ( $_GET as $key => $value ) {
+                if ( in_array( $key, array( 'product_sort', 'paged', 'page' ), true ) ) {
+                    continue;
+                }
+
+                if ( is_array( $value ) ) {
+                    continue;
+                }
+
+                echo '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( wp_unslash( $value ) ) . '" />';
+            }
+            ?>
+            <label class="visually-hidden" for="product_sort_select_static"><?php esc_html_e( 'Sort products', 'wordprseo' ); ?></label>
+            <select id="product_sort_select_static" name="product_sort" class="form-select" onchange="this.form.submit()">
+              <?php foreach ( $sort_options as $sort_key => $label ) : ?>
+                <option value="<?php echo esc_attr( $sort_key ); ?>" <?php selected( $current_sort, $sort_key ); ?>><?php echo esc_html( $label ); ?></option>
+              <?php endforeach; ?>
+            </select>
+            <noscript>
+              <button type="submit" class="btn btn-primary"><?php esc_html_e( 'Apply', 'wordprseo' ); ?></button>
+            </noscript>
+          </form>
+        </div>
+
+        <div class="row mt-3<?php if($sameheight) echo ' align-items-stretch'; ?>" <?php if(!$sameheight) echo "data-masonry='{\"percentPosition\": true }'"; ?>>
+
+        <?php
+        $args = array(
+            'post_type'      => 'product',
+            'post_status'    => 'publish',
+            'posts_per_page' => $postscount ? intval( $postscount ) : -1,
+            'tax_query'      => array(
+                array(
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'term_id',
+                    'terms'    => $product_terms,
+                ),
+            ),
+        );
+
+        $args = array_merge( $args, $sorting_args );
+
+        $products_query = new WP_Query( $args );
+
+        $delay = 0;
+
+        if ( $products_query->have_posts() ) :
+            while ( $products_query->have_posts() ) :
+                $products_query->the_post();
+
+                global $product;
+                $product = wc_get_product( get_the_ID() );
+
+                if ( ! $product ) {
+                    continue;
+                }
+
+                $image_id = $product->get_image_id();
+                $image    = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
+        ?>
+
+        <div class="pb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>" data-aos="fade-up" data-aos-delay="<?php echo esc_attr( $delay ); ?>">
+          <div class="shadow card d-flex flex-column<?php if($sameheight) echo ' h-100'; ?>">
+
+            <?php if ( $image ) :
+                $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="' . intval( $image[1] ) . '" height="' . intval( $image[2] ) . '" viewBox="0 0 ' . intval( $image[1] ) . ' ' . intval( $image[2] ) . '"><rect width="100%" height="100%" fill="#f8f9fb"/></svg>'
+                );
+            ?>
+              <a href="<?php the_permalink(); ?>">
+                <img
+                  src="<?php echo esc_url( $svg_placeholder ); ?>"
+                  data-src="<?php echo esc_url( $image[0] ); ?>"
+                  class="border-bottom m-0 img-fluid card-img-top lazyload"
+                  alt="<?php the_title_attribute(); ?>"
+                  width="<?php echo intval( $image[1] ); ?>"
+                  height="<?php echo intval( $image[2] ); ?>"
+                >
+              </a>
+            <?php endif; ?>
+
+            <div class="card-body pb-4 d-flex flex-column flex-grow-1">
+              <small class="lh-lg text-muted"><?php echo wp_kses_post( wc_get_product_category_list( get_the_ID(), ', ' ) ); ?></small>
+
+              <a href="<?php the_permalink(); ?>" class="text-decoration-none"><p class="h3 fw-bold mt-2 text-dark card-title"><?php the_title(); ?></p></a>
+
+              <?php if ( wc_review_ratings_enabled() ) : ?>
+                <div class="mb-2">
+                  <?php echo wc_get_rating_html( $product->get_average_rating(), $product->get_rating_count() ); ?>
+                </div>
+              <?php endif; ?>
+
+              <p class="h5 fw-bold text-primary mb-3"><?php echo wp_kses_post( $product->get_price_html() ); ?></p>
+
+              <?php
+              $short_description = $product->get_short_description();
+              if ( empty( $short_description ) ) {
+                  $short_description = get_the_excerpt();
+              }
+
+              if ( $short_description ) :
+              ?>
+                <p class="card-text"><?php echo wp_kses_post( wp_trim_words( $short_description, 24, '&hellip;' ) ); ?></p>
+              <?php endif; ?>
+
+              <?php $cta_classes = $sameheight ? 'mt-auto pt-3' : 'mt-3'; ?>
+              <div class="<?php echo esc_attr($cta_classes); ?>">
+                <?php woocommerce_template_loop_add_to_cart(); ?>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <?php
+                $delay += 400;
+            endwhile;
+        endif;
+
+        wp_reset_postdata();
+        if ( function_exists( 'wc_reset_loop' ) ) {
+            wc_reset_loop();
+        }
+        ?>
+
+        </div>
+
+        <?php
+        if ( $addmore ) {
+            $first_category = $product_terms[0];
+            $term_object    = get_term( $first_category, 'product_cat' );
+
+            if ( $term_object && ! is_wp_error( $term_object ) ) {
+        ?>
+        <div class="my-4 justify-content-center text-center">
+            <a class="btn btn-primary" href="<?php echo esc_url( get_term_link( $term_object ) ); ?>">
+                <?php
+                /* translators: %s: product category name */
+                printf( esc_html__( 'Full List Of %s', 'wordprseo' ), esc_html( $term_object->name ) );
+                ?>
+            </a>
+        </div>
+        <?php
+            }
+        }
+        ?>
+
+        </div>
+        </div>
+        <?php else: // if not categories selected ?>
+        <?php endif; ?>
+
+        </div>
+
+        <?php
+    }
+}
+?>
+
+
+<!-- postsrelatedproducts -->
+
+
 <!-- postsrelatedcatslider -->
 
 <?php elseif( get_row_layout() == 'postsrelatedcatslider' ): ?>
