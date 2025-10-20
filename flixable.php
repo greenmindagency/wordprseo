@@ -2133,7 +2133,7 @@ if ($addmore) { // Code to display if the addmore checkbox is checked
 
 <!-- postsrelatedproducts -->
 
-<?php elseif( get_row_layout() == 'postsrelatedproducts♣' ): ?>
+<?php elseif( get_row_layout() == 'postsrelatedproducts' ): ?>
 
 <?php
 // Mirror the post related layout options so editors can reuse the same UI.
@@ -2148,57 +2148,111 @@ $product_terms_raw = get_sub_field('postsrelatedproducts');
 $product_term_map  = array();
 $first_selected_term = null;
 
-if ( is_array( $product_terms_raw ) ) {
-    foreach ( $product_terms_raw as $term_item ) {
-        $term_id  = 0;
+if ( ! function_exists( 'wordprseo_apply_product_term_token' ) ) {
+    function wordprseo_apply_product_term_token( $token, &$taxonomy, &$term_id ) {
+        if ( ! is_string( $token ) && ! is_numeric( $token ) ) {
+            return;
+        }
+
+        $token = trim( (string) $token );
+
+        if ( '' === $token ) {
+            return;
+        }
+
+        if ( false !== strpos( $token, ':' ) ) {
+            $parts          = explode( ':', $token );
+            $maybe_taxonomy = sanitize_key( array_shift( $parts ) );
+
+            if ( $maybe_taxonomy ) {
+                $taxonomy = $maybe_taxonomy;
+            }
+
+            $token = end( $parts );
+        }
+
+        if ( preg_match( '/term_(\d+)/', $token, $matches ) ) {
+            $term_id = (int) $matches[1];
+        } elseif ( preg_match( '/(\d+)/', $token, $matches ) ) {
+            $term_id = (int) $matches[1];
+        }
+
+        if ( ! $taxonomy ) {
+            foreach ( array( 'product_cat', 'product_tag' ) as $maybe_taxonomy ) {
+                if ( false !== strpos( $token, $maybe_taxonomy ) ) {
+                    $taxonomy = $maybe_taxonomy;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+if ( ! function_exists( 'wordprseo_normalize_product_term_selection' ) ) {
+    function wordprseo_normalize_product_term_selection( $term_item ) {
         $taxonomy = '';
+        $term_id  = 0;
 
         if ( is_object( $term_item ) ) {
-            if ( isset( $term_item->term_id ) ) {
-                $term_id = (int) $term_item->term_id;
-            }
+            $term_item = get_object_vars( $term_item );
+        }
 
-            if ( isset( $term_item->taxonomy ) ) {
-                $taxonomy = (string) $term_item->taxonomy;
-            }
-        } elseif ( is_array( $term_item ) ) {
-            if ( isset( $term_item['term_id'] ) ) {
-                $term_id = (int) $term_item['term_id'];
-            } elseif ( isset( $term_item['id'] ) ) {
-                $term_id = (int) $term_item['id'];
-            }
-
+        if ( is_array( $term_item ) ) {
             if ( isset( $term_item['taxonomy'] ) ) {
                 $taxonomy = (string) $term_item['taxonomy'];
             }
-        } elseif ( is_string( $term_item ) ) {
-            $term_item = trim( $term_item );
 
-            if ( '' === $term_item ) {
-                continue;
+            if ( isset( $term_item['term_id'] ) ) {
+                $term_id = (int) $term_item['term_id'];
+            } elseif ( isset( $term_item['termId'] ) ) {
+                $term_id = (int) $term_item['termId'];
+            } elseif ( isset( $term_item['id'] ) ) {
+                $term_id = (int) $term_item['id'];
+            } elseif ( isset( $term_item['term_taxonomy_id'] ) ) {
+                $term_id = (int) $term_item['term_taxonomy_id'];
             }
 
-            if ( false !== strpos( $term_item, ':' ) ) {
-                $parts = explode( ':', $term_item );
-
-                if ( count( $parts ) >= 2 ) {
-                    $taxonomy = array_shift( $parts );
-                    $term_id  = (int) end( $parts );
+            foreach ( array( 'value', 'slug' ) as $maybe_key ) {
+                if ( $term_id ) {
+                    break;
                 }
-            } elseif ( false !== strpos( $term_item, '_' ) ) {
-                $parts = explode( '_', $term_item );
-                $maybe_id = array_pop( $parts );
 
-                if ( is_numeric( $maybe_id ) ) {
-                    $term_id  = (int) $maybe_id;
-                    $taxonomy = implode( '_', $parts );
+                if ( isset( $term_item[ $maybe_key ] ) ) {
+                    wordprseo_apply_product_term_token( $term_item[ $maybe_key ], $taxonomy, $term_id );
                 }
-            } elseif ( is_numeric( $term_item ) ) {
-                $term_id = (int) $term_item;
             }
-        } elseif ( is_numeric( $term_item ) ) {
-            $term_id = (int) $term_item;
+
+            if ( ! $term_id ) {
+                foreach ( $term_item as $value ) {
+                    if ( is_string( $value ) ) {
+                        wordprseo_apply_product_term_token( $value, $taxonomy, $term_id );
+                    }
+
+                    if ( $term_id ) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            wordprseo_apply_product_term_token( $term_item, $taxonomy, $term_id );
         }
+
+        if ( ! $taxonomy ) {
+            $taxonomy = 'product_cat';
+        }
+
+        return array(
+            'taxonomy' => sanitize_key( $taxonomy ),
+            'term_id'  => (int) $term_id,
+        );
+    }
+}
+
+if ( is_array( $product_terms_raw ) ) {
+    foreach ( $product_terms_raw as $term_item ) {
+        $normalized = wordprseo_normalize_product_term_selection( $term_item );
+        $term_id    = $normalized['term_id'];
+        $taxonomy   = $normalized['taxonomy'];
 
         if ( ! $term_id ) {
             continue;
