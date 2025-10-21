@@ -99,18 +99,26 @@ $bodycode = get_sub_field('body_code');
 	
         
      
-<nav class="navbar fixed-top navbar-expand-lg 
-
-<?php 
+<?php
 $menu_color = get_field('menu_color', 2); // Get from current page/post
 
-if ($menu_color == 'black') { 
+if ( function_exists( 'is_product' ) && is_product() ) {
+    if ( empty( $menu_color ) || 'transparent' === $menu_color ) {
+        $menu_color = 'white';
+    }
+}
+?>
+
+<nav class="navbar fixed-top navbar-expand-lg
+
+<?php
+if ($menu_color == 'black') {
     echo 'menu-dynamic bg-dark text-white';
-} elseif ($menu_color == 'transparent') { 
+} elseif ($menu_color == 'transparent') {
     echo 'menu-dynamic bg-transparent text-white';
-} elseif ($menu_color == 'white') { 
+} elseif ($menu_color == 'white') {
     echo 'menu-dynamic shadow bg-light';
-} else { 
+} else {
     echo '';
 }
 ?>">
@@ -156,9 +164,7 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 
 
 
-<?php 
-
-    $menu_color = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
+<?php
 
     if ($menu_color == 'black') {  ?>
           
