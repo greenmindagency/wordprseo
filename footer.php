@@ -536,8 +536,9 @@ blockquote p {margin:1rem 0}
 .jarallax { position: relative; z-index: 0; }
 .jarallax > .jarallax-img {  position: absolute;  object-fit: cover; font-family: 'object-fit: cover;'; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
 
-.py-spacer {padding-top: 5rem !important; padding-bottom: 5rem !important}  
+.py-spacer {padding-top: 5rem !important; padding-bottom: 5rem !important}
 .px-spacer {padding-left: 5rem !important; padding-right: 5rem !important}  
+.py-spacer-2 {padding-top: 8rem !important; padding-bottom: 8rem !important}   
 
 .image-fill {object-fit: cover; width: 100%; height: 100%;}
 
