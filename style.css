@@ -72,7 +72,8 @@ Author URI: https://greenmindagency.com
 }
 
 .single-product .product-purchase-panel {
-    background-color: #f8f9fa;
+    background-color: #f1f3f5;
+    border-radius: 1rem;
 }
 
 .single-product .product-purchase-panel .single_add_to_cart_button {
@@ -87,6 +88,7 @@ Author URI: https://greenmindagency.com
 .single-product .product-add-to-cart-form input.qty {
     min-height: 3rem;
     font-weight: 600;
+    width: 100%;
 }
 
 .single-product .product-add-to-cart-form .single_add_to_cart_button {
@@ -97,7 +99,16 @@ Author URI: https://greenmindagency.com
 
 @media (min-width: 576px) {
     .single-product .product-add-to-cart-form .product-quantity {
-        max-width: 160px;
+        flex: 0 0 auto;
+        max-width: 120px;
+    }
+
+    .single-product .product-add-to-cart-form .quantity-input-group {
+        width: auto;
+    }
+
+    .single-product .product-add-to-cart-form .quantity-input-group .qty {
+        max-width: 110px;
     }
 }
 
@@ -129,4 +140,56 @@ Author URI: https://greenmindagency.com
 .py-spacer-2 {
     padding-top: 7rem !important;
     padding-bottom: 7rem !important;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    display: block;
+    padding-left: 0;
+    background-color: #ffffff;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes caption {
+    caption-side: top;
+    padding: 0.75rem 1rem;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes thead,
+.single-product .woocommerce-product-attributes.shop_attributes tbody {
+    display: block;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes tr:last-child {
+    border-bottom: 0;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes th {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+    display: block;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes td {
+    margin: 0;
+    text-align: right;
+    color: #495057;
+    display: block;
+}
+
+.single-product .woocommerce-product-attributes.shop_attributes p {
+    margin-bottom: 0;
 }

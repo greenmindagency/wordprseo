@@ -109,7 +109,6 @@ foreach ( array( 'additional_information', 'description' ) as $tab_key ) {
     }
 }
 
-$attributes             = array();
 $sale_flash_html        = '';
 $before_summary_extra   = '';
 $after_summary_extra    = '';
@@ -136,34 +135,6 @@ if ( $product instanceof WC_Product ) {
     do_action( 'woocommerce_before_single_product_summary' );
     $before_summary_extra = trim( ob_get_clean() );
 
-    foreach ( $product->get_attributes() as $attribute ) {
-        if ( $attribute->is_taxonomy() ) {
-            $values = wc_get_product_terms(
-                $product_id,
-                $attribute->get_name(),
-                array(
-                    'fields' => 'names',
-                )
-            );
-
-            if ( is_wp_error( $values ) ) {
-                continue;
-            }
-        } else {
-            $values = $attribute->get_options();
-        }
-
-        $values = array_filter( array_map( 'wp_strip_all_tags', (array) $values ) );
-
-        if ( empty( $values ) ) {
-            continue;
-        }
-
-        $attributes[] = array(
-            'label' => wc_attribute_label( $attribute->get_name() ),
-            'value' => implode( ', ', $values ),
-        );
-    }
 }
 
 $related_products = array();
@@ -365,17 +336,6 @@ $after_summary_extra = trim( ob_get_clean() );
                         </div>
                     <?php endif; ?>
 
-                    <?php if ( ! empty( $attributes ) ) : ?>
-                        <ul class="list-group list-group-flush mb-4 border">
-                            <?php foreach ( $attributes as $attribute ) : ?>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span class="fw-medium"><?php echo esc_html( $attribute['label'] ); ?>:</span>
-                                    <span><?php echo esc_html( $attribute['value'] ); ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-
                     <?php if ( $product instanceof WC_Product ) : ?>
                         <div class="product-meta-lines mb-4">
                             <?php if ( wc_product_sku_enabled() ) : ?>
@@ -396,7 +356,7 @@ $after_summary_extra = trim( ob_get_clean() );
                         </div>
                     <?php endif; ?>
 
-                    <div class="product-purchase-panel card border-0 shadow-sm p-4 mb-4">
+                    <div class="product-purchase-panel card border-0 shadow-sm p-4 mb-4 bg-light">
                         <?php woocommerce_template_single_add_to_cart(); ?>
                     </div>
 
@@ -482,18 +442,29 @@ $after_summary_extra = trim( ob_get_clean() );
                             $related_link      = get_permalink( $related_id );
                             $related_price     = $related_product->get_price_html();
                             $related_categories = function_exists( 'wc_get_product_category_list' ) ? wc_get_product_category_list( $related_id, ', ' ) : '';
-                            $related_image     = $related_product->get_image(
-                                'woocommerce_single',
-                                array(
-                                    'class' => 'card-img-top img-fluid',
-                                )
-                            );
+                            $related_image_id  = $related_product->get_image_id();
+                            $related_image     = '';
+                            $related_image_alt = wp_strip_all_tags( $related_title );
+
+                            if ( $related_image_id ) {
+                                $related_image = wp_get_attachment_image(
+                                    $related_image_id,
+                                    'woocommerce_single',
+                                    false,
+                                    array(
+                                        'class'    => 'card-img-top img-fluid',
+                                        'loading'  => 'lazy',
+                                        'decoding' => 'async',
+                                        'alt'      => $related_image_alt,
+                                    )
+                                );
+                            }
 
                             if ( ! $related_image ) {
                                 $related_image = sprintf(
-                                    '<img src="%1$s" alt="%2$s" class="card-img-top img-fluid" />',
+                                    '<img src="%1$s" alt="%2$s" class="card-img-top img-fluid" loading="lazy" decoding="async" />',
                                     esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
-                                    esc_attr( $related_title )
+                                    esc_attr( $related_image_alt )
                                 );
                             }
 
