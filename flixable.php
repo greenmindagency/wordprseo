@@ -1733,7 +1733,7 @@ if( $infinite ) {
   // If categories exist...
   if ( $catinfinite ) :
     echo '<div class="postsrelatedcat container-fluid">';
-    echo '<div class="container py-spacer container">';
+    echo '<div class="container py-spacer-2">';
 ?>
 
     <div class="text-center">
@@ -2520,7 +2520,7 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
               ?>
 
               <div class="postsrelatedcat container-fluid">
-                <div class="container py-spacer container">
+                <div class="container py-spacer-2">
 
                   <div class="text-center">
                     <h3 class="fs-1 fw-bold">
