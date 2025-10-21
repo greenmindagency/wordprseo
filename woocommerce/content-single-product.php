@@ -189,7 +189,7 @@ do_action( 'woocommerce_after_single_product_summary' );
 $after_summary_extra = trim( ob_get_clean() );
 ?>
 
-<main id="primary" class="site-main">
+<main id="primary" class="site-main mt-4">
     <article id="product-<?php the_ID(); ?>" <?php wc_product_class( 'single-product', get_the_ID() ); ?>>
         <div class="container py-spacer-2">
             <section class="row g-5">
