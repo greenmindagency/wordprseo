@@ -100,6 +100,7 @@ if ( wordprseo_is_woocommerce_active() ) {
     add_action( 'woocommerce_before_main_content', 'wordprseo_woocommerce_before_main_content', 5 );
     add_action( 'woocommerce_after_main_content', 'wordprseo_woocommerce_after_main_content', 50 );
     add_action( 'admin_notices', 'wordprseo_maybe_display_woocommerce_notice' );
+    add_filter( 'woocommerce_product_single_add_to_cart_html', 'wordprseo_bootstrap_single_add_to_cart_html', 10, 2 );
 
     // Flush cached setup data when products or categories change.
     add_action( 'save_post_product', 'wordprseo_flush_woocommerce_setup_cache' );
@@ -134,6 +135,35 @@ if ( ! function_exists( 'wordprseo_register_woocommerce_support' ) ) {
         add_theme_support( 'wc-product-gallery-zoom' );
         add_theme_support( 'wc-product-gallery-lightbox' );
         add_theme_support( 'wc-product-gallery-slider' );
+    }
+}
+
+if ( ! function_exists( 'wordprseo_bootstrap_single_add_to_cart_html' ) ) {
+    /**
+     * Replaces the default WooCommerce button classes with Bootstrap variants on single products.
+     *
+     * @param string      $html    The generated add to cart HTML.
+     * @param WC_Product  $product The product object.
+     *
+     * @return string
+     */
+    function wordprseo_bootstrap_single_add_to_cart_html( $html, $product ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+        if ( false === strpos( $html, 'single_add_to_cart_button' ) ) {
+            return $html;
+        }
+
+        $replacement_classes = 'single_add_to_cart_button btn btn-primary btn-lg w-100';
+        $html                = preg_replace(
+            '/single_add_to_cart_button\s+button\s+alt/',
+            $replacement_classes,
+            $html
+        );
+
+        if ( false === strpos( $html, 'btn btn-primary' ) ) {
+            $html = str_replace( 'single_add_to_cart_button', $replacement_classes, $html );
+        }
+
+        return $html;
     }
 }
 

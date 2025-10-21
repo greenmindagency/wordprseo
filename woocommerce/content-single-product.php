@@ -42,6 +42,16 @@ $carousel_id  = 'productCarousel-' . $product_id;
 
 $tabs = apply_filters( 'woocommerce_product_tabs', array() );
 
+$primary_tabs   = array();
+$remaining_tabs = $tabs;
+
+foreach ( array( 'description', 'additional_information' ) as $tab_key ) {
+    if ( isset( $remaining_tabs[ $tab_key ] ) ) {
+        $primary_tabs[ $tab_key ] = $remaining_tabs[ $tab_key ];
+        unset( $remaining_tabs[ $tab_key ] );
+    }
+}
+
 $attributes             = array();
 $sale_flash_html        = '';
 $before_summary_extra   = '';
@@ -130,7 +140,7 @@ $after_summary_extra = trim( ob_get_clean() );
                     <div class="d-flex flex-column">
                         <div
                             id="<?php echo esc_attr( $carousel_id ); ?>"
-                            class="carousel slide shadow-sm overflow-hidden"
+                            class="carousel slide shadow-sm overflow-hidden product-gallery-carousel"
                             data-bs-ride="carousel"
                             data-bs-interval="5000"
                         >
@@ -143,21 +153,20 @@ $after_summary_extra = trim( ob_get_clean() );
                                             'large',
                                             false,
                                             array(
-                                                'class' => 'd-block w-100 object-fit-contain bg-white',
-                                                'style' => 'min-height:400px;',
+                                                'class' => 'img-fluid product-gallery-image',
                                             )
                                         );
 
                                         if ( ! $image_html ) {
                                             $image_html = sprintf(
-                                                '<img src="%1$s" alt="%2$s" class="d-block w-100 object-fit-contain bg-white" style="min-height:400px;" />',
+                                                '<img src="%1$s" alt="%2$s" class="img-fluid product-gallery-image" />',
                                                 esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
                                                 esc_attr( get_the_title( $product_id ) )
                                             );
                                         }
                                         ?>
                                         <div class="carousel-item<?php echo 0 === $index ? ' active' : ''; ?>">
-                                            <div class="bg-light d-flex align-items-center justify-content-center border p-5 position-relative" style="min-height: 400px;">
+                                            <div class="product-gallery-frame position-relative">
                                                 <?php if ( $sale_flash_html && 0 === $index ) : ?>
                                                     <div class="position-absolute top-0 start-0 m-3">
                                                         <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -169,7 +178,7 @@ $after_summary_extra = trim( ob_get_clean() );
                                     <?php endforeach; ?>
                                 <?php else : ?>
                                     <div class="carousel-item active">
-                                        <div class="bg-light d-flex align-items-center justify-content-center border p-5 position-relative" style="min-height: 400px;">
+                                        <div class="product-gallery-frame position-relative">
                                             <?php if ( $sale_flash_html ) : ?>
                                                 <div class="position-absolute top-0 start-0 m-3">
                                                     <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -178,8 +187,7 @@ $after_summary_extra = trim( ob_get_clean() );
                                             <img
                                                 src="<?php echo esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ); ?>"
                                                 alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
-                                                class="d-block w-100 object-fit-contain bg-white"
-                                                style="min-height:400px;"
+                                                class="img-fluid product-gallery-image"
                                             >
                                         </div>
                                     </div>
@@ -199,16 +207,15 @@ $after_summary_extra = trim( ob_get_clean() );
                         </div>
 
                         <?php if ( count( $carousel_ids ) > 1 ) : ?>
-                            <div class="d-flex justify-content-center mt-3">
+                            <div class="product-gallery-indicators d-flex justify-content-center mt-3 gap-2">
                                 <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
                                     <button
                                         type="button"
                                         data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>"
                                         data-bs-slide-to="<?php echo esc_attr( $index ); ?>"
-                                        class="image-indicator-btn mx-1 btn btn-outline-dark p-0<?php echo 0 === $index ? ' active' : ''; ?>"
+                                        class="image-indicator-btn<?php echo 0 === $index ? ' active' : ''; ?>"
                                         aria-label="<?php echo esc_attr( sprintf( __( 'View image %d', 'woocommerce' ), $index + 1 ) ); ?>"
                                         <?php if ( 0 === $index ) : ?>aria-current="true"<?php endif; ?>
-                                        style="width: 12px; height: 12px;"
                                     ></button>
                                 <?php endforeach; ?>
                             </div>
@@ -243,6 +250,58 @@ $after_summary_extra = trim( ob_get_clean() );
 
                     <?php woocommerce_template_single_rating(); ?>
 
+                    <?php if ( ! empty( $primary_tabs ) ) : ?>
+                        <?php
+                        $primary_tab_index = 0;
+                        $tab_prefix        = 'primary-product-tabs-' . $product_id;
+                        ?>
+                        <div class="product-summary-tabs mb-4">
+                            <ul class="nav nav-tabs" id="<?php echo esc_attr( $tab_prefix ); ?>" role="tablist">
+                                <?php foreach ( $primary_tabs as $key => $tab ) : ?>
+                                    <li class="nav-item" role="presentation">
+                                        <button
+                                            class="nav-link<?php echo 0 === $primary_tab_index ? ' active' : ''; ?>"
+                                            id="<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>-tab"
+                                            data-bs-toggle="tab"
+                                            data-bs-target="#<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>"
+                                            type="button"
+                                            role="tab"
+                                            aria-controls="<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>"
+                                            aria-selected="<?php echo 0 === $primary_tab_index ? 'true' : 'false'; ?>"
+                                        >
+                                            <?php echo esc_html( $tab['title'] ); ?>
+                                        </button>
+                                    </li>
+                                    <?php $primary_tab_index++; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                            <div class="tab-content border border-top-0 p-3">
+                                <?php
+                                $primary_tab_index = 0;
+                                foreach ( $primary_tabs as $key => $tab ) :
+                                    $tab_panel_id = $tab_prefix . '-' . $key;
+                                    ?>
+                                    <div
+                                        class="tab-pane fade<?php echo 0 === $primary_tab_index ? ' show active' : ''; ?>"
+                                        id="<?php echo esc_attr( $tab_panel_id ); ?>"
+                                        role="tabpanel"
+                                        aria-labelledby="<?php echo esc_attr( $tab_panel_id ); ?>-tab"
+                                        tabindex="0"
+                                    >
+                                        <?php
+                                        if ( isset( $tab['callback'] ) ) {
+                                            call_user_func( $tab['callback'], $tab, $key );
+                                        }
+                                        ?>
+                                    </div>
+                                    <?php
+                                    $primary_tab_index++;
+                                endforeach;
+                                ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ( ! empty( $attributes ) ) : ?>
                         <ul class="list-group list-group-flush mb-4 border">
                             <?php foreach ( $attributes as $attribute ) : ?>
@@ -254,12 +313,31 @@ $after_summary_extra = trim( ob_get_clean() );
                         </ul>
                     <?php endif; ?>
 
-                    <div class="mb-4 p-3 bg-light shadow-sm">
+                    <?php if ( $product instanceof WC_Product ) : ?>
+                        <div class="product-meta-lines mb-4">
+                            <?php if ( wc_product_sku_enabled() ) : ?>
+                                <p class="mb-2"><span class="fw-semibold"><?php esc_html_e( 'SKU:', 'woocommerce' ); ?></span> <?php echo esc_html( $product->get_sku() ? $product->get_sku() : __( 'N/A', 'woocommerce' ) ); ?></p>
+                            <?php endif; ?>
+                            <?php if ( $category_html ) : ?>
+                                <p class="mb-2"><span class="fw-semibold"><?php esc_html_e( 'Category:', 'woocommerce' ); ?></span> <?php echo wp_kses_post( $category_html ); ?></p>
+                            <?php endif; ?>
+                            <?php
+                            $tag_html = function_exists( 'wc_get_product_tag_list' )
+                                ? wc_get_product_tag_list( $product_id, ', ' )
+                                : '';
+
+                            if ( $tag_html ) :
+                                ?>
+                                <p class="mb-0"><span class="fw-semibold"><?php esc_html_e( 'Tag:', 'woocommerce' ); ?></span> <?php echo wp_kses_post( $tag_html ); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="product-purchase-panel card border-0 shadow-sm p-4 mb-4">
                         <?php woocommerce_template_single_add_to_cart(); ?>
                     </div>
 
                     <div class="product-meta small text-muted">
-                        <?php woocommerce_template_single_meta(); ?>
                         <?php woocommerce_template_single_sharing(); ?>
                     </div>
 
@@ -277,13 +355,13 @@ $after_summary_extra = trim( ob_get_clean() );
                 </div>
             </section>
 
-            <?php if ( ! empty( $tabs ) ) : ?>
+            <?php if ( ! empty( $remaining_tabs ) ) : ?>
                 <?php
                 $tab_index = 0;
                 ?>
                 <div class="mt-5">
                     <ul class="nav nav-tabs" id="productTabs" role="tablist">
-                        <?php foreach ( $tabs as $key => $tab ) : ?>
+                        <?php foreach ( $remaining_tabs as $key => $tab ) : ?>
                             <li class="nav-item" role="presentation">
                                 <button
                                     class="nav-link<?php echo 0 === $tab_index ? ' active' : ''; ?>"
@@ -305,7 +383,7 @@ $after_summary_extra = trim( ob_get_clean() );
                     <div class="tab-content border border-top-0 p-3" id="productTabsContent">
                         <?php
                         $tab_index = 0;
-                        foreach ( $tabs as $key => $tab ) :
+                        foreach ( $remaining_tabs as $key => $tab ) :
                             $tab_panel_id = $key . '-tab-pane';
                             ?>
                             <div
@@ -351,8 +429,8 @@ $after_summary_extra = trim( ob_get_clean() );
                             }
                             ?>
                             <div class="col">
-                                <div class="card h-100 shadow-sm">
-                                    <a href="<?php echo esc_url( $related_link ); ?>" class="bg-light d-flex align-items-center justify-content-center p-4 border-bottom" style="height: 200px;">
+                                <div class="card h-100 shadow-sm product-related-card">
+                                    <a href="<?php echo esc_url( $related_link ); ?>" class="product-related-image">
                                         <?php echo $related_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                     </a>
                                     <div class="card-body d-flex flex-column">

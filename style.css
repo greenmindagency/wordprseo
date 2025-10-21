@@ -4,3 +4,82 @@ Theme URI: greenmindagency.com
 Author: greenmindagency.com
 Author URI: https://greenmindagency.com
 */
+
+/* WooCommerce single product adjustments */
+.single-product .product-gallery-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffffff;
+    padding: 2rem;
+    min-height: 0;
+}
+
+.single-product .product-gallery-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.single-product .product-gallery-indicators .image-indicator-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #0d6efd;
+    background-color: transparent;
+    opacity: 0.45;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    padding: 0;
+    appearance: none;
+    cursor: pointer;
+}
+
+.single-product .product-gallery-indicators .image-indicator-btn.active,
+.single-product .product-gallery-indicators .image-indicator-btn:hover {
+    background-color: #0d6efd;
+    opacity: 1;
+}
+
+.single-product .product-gallery-indicators .image-indicator-btn:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+.single-product .product-summary-tabs .nav-tabs .nav-link {
+    font-weight: 600;
+}
+
+.single-product .product-meta-lines {
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.single-product .product-purchase-panel {
+    background-color: #f8f9fa;
+}
+
+.single-product .product-purchase-panel .single_add_to_cart_button {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+
+.single-product .product-related-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.single-product .product-related-image img {
+    max-height: 160px;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+}
+
+.single-product .product-related-card .card-body {
+    display: flex;
+    flex-direction: column;
+}
