@@ -609,28 +609,30 @@ $after_summary_extra = trim( ob_get_clean() );
             </script>
         <?php endif; ?>
 
-        <?php
-        $flexible_source = $product_id;
-
-        if ( function_exists( 'have_rows' ) && have_rows( 'body', $flexible_source ) ) :
-            ?>
-            <section class="product-flexible-content py-5">
-                <div class="container">
-                    <article class="blog-post">
-                        <?php
-                        while ( have_rows( 'body', $flexible_source ) ) :
-                            the_row();
-                            include get_theme_file_path( '/flixable.php' );
-                        endwhile;
-                        ?>
-                    </article>
-                </div>
-            </section>
-        <?php endif; ?>
     </article>
 </main>
 
 <?php
+/**
+ * Output flexible content sections managed via ACF outside the main product container.
+ */
+$flexible_source = $product_id;
+
+if ( function_exists( 'have_rows' ) && have_rows( 'body', $flexible_source ) ) :
+    ?>
+    <section class="product-flexible-content py-5">
+        <article class="blog-post">
+            <?php
+            while ( have_rows( 'body', $flexible_source ) ) :
+                the_row();
+                include get_theme_file_path( '/flixable.php' );
+            endwhile;
+            ?>
+        </article>
+    </section>
+<?php
+endif;
+
 /**
  * Hook: woocommerce_after_single_product.
  */
