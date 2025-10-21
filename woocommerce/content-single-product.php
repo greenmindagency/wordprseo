@@ -194,7 +194,7 @@ $after_summary_extra = trim( ob_get_clean() );
         <div class="container py-spacer-2">
             <section class="row g-5">
                 <div class="col-md-6">
-                    <div class="d-flex flex-column">
+                    <div class="d-flex flex-column product-gallery-wrapper" data-carousel="<?php echo esc_attr( $carousel_id ); ?>">
                         <div
                             id="<?php echo esc_attr( $carousel_id ); ?>"
                             class="carousel slide shadow-sm overflow-hidden product-gallery-carousel"
@@ -205,20 +205,20 @@ $after_summary_extra = trim( ob_get_clean() );
                                 <?php if ( ! empty( $carousel_ids ) ) : ?>
                                     <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
                                         <?php
-                                        $image_html = wp_get_attachment_image(
-                                            $image_id,
-                                            'large',
-                                            false,
-                                            array(
-                                                'class' => 'img-fluid product-gallery-image',
-                                            )
+                                        $image_attributes = array(
+                                            'class'    => 'product-carousel-image img-fluid mx-auto d-block',
+                                            'loading'  => 0 === $index ? 'eager' : 'lazy',
+                                            'decoding' => 'async',
                                         );
+
+                                        $image_html = wp_get_attachment_image( $image_id, 'large', false, $image_attributes );
 
                                         if ( ! $image_html ) {
                                             $image_html = sprintf(
-                                                '<img src="%1$s" alt="%2$s" class="img-fluid product-gallery-image" />',
+                                                '<img src="%1$s" alt="%2$s" class="product-carousel-image img-fluid mx-auto d-block" loading="%3$s" decoding="async" />',
                                                 esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
-                                                esc_attr( get_the_title( $product_id ) )
+                                                esc_attr( get_the_title( $product_id ) ),
+                                                0 === $index ? 'eager' : 'lazy'
                                             );
                                         }
                                         ?>
@@ -229,11 +229,7 @@ $after_summary_extra = trim( ob_get_clean() );
                                                         <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                                     </div>
                                                 <?php endif; ?>
-                                                <img
-                                                    src="<?php echo esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ); ?>"
-                                                    alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
-                                                    class="product-carousel-image img-fluid mx-auto d-block"
-                                                >
+                                                <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -248,40 +244,42 @@ $after_summary_extra = trim( ob_get_clean() );
                                             <img
                                                 src="<?php echo esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ); ?>"
                                                 alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
-                                                class="img-fluid product-gallery-image"
+                                                class="product-carousel-image img-fluid mx-auto d-block"
+                                                loading="eager"
+                                                decoding="async"
                                             >
                                         </div>
                                     </div>
                                 <?php endif; ?>
                             </div>
-
-                            <?php if ( count( $carousel_ids ) > 1 ) : ?>
-                                <div class="product-carousel-indicators d-flex justify-content-center mt-3">
-                                    <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
-                                        <button
-                                            type="button"
-                                            data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>"
-                                            data-bs-slide-to="<?php echo esc_attr( $index ); ?>"
-                                            class="product-carousel-indicator mx-1 btn btn-outline-dark p-0<?php echo 0 === $index ? ' active' : ''; ?>"
-                                            aria-label="<?php echo esc_attr( sprintf( __( 'View image %d', 'woocommerce' ), $index + 1 ) ); ?>"
-                                            <?php if ( 0 === $index ) : ?>aria-current="true"<?php endif; ?>
-                                        ></button>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
                         </div>
 
                         <?php if ( count( $carousel_ids ) > 1 ) : ?>
                             <div class="product-gallery-indicators d-flex justify-content-center mt-3 gap-2">
                                 <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
+                                    <?php
+                                    $thumbnail_attributes = array(
+                                        'class'    => 'img-fluid rounded',
+                                        'loading'  => 0 === $index ? 'eager' : 'lazy',
+                                        'decoding' => 'async',
+                                    );
+
+                                    $thumbnail_html = wp_get_attachment_image( $image_id, 'thumbnail', false, $thumbnail_attributes );
+
+                                    if ( ! $thumbnail_html ) {
+                                        $thumbnail_html = '<span class="placeholder-thumbnail d-inline-block bg-light rounded" aria-hidden="true"></span>';
+                                    }
+                                    ?>
                                     <button
                                         type="button"
                                         data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>"
                                         data-bs-slide-to="<?php echo esc_attr( $index ); ?>"
-                                        class="image-indicator-btn<?php echo 0 === $index ? ' active' : ''; ?>"
+                                        class="image-indicator-btn btn btn-outline-secondary p-1<?php echo 0 === $index ? ' active' : ''; ?>"
                                         aria-label="<?php echo esc_attr( sprintf( __( 'View image %d', 'woocommerce' ), $index + 1 ) ); ?>"
                                         <?php if ( 0 === $index ) : ?>aria-current="true"<?php endif; ?>
-                                    ></button>
+                                    >
+                                        <?php echo $thumbnail_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                    </button>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
@@ -579,54 +577,61 @@ $after_summary_extra = trim( ob_get_clean() );
         <?php if ( count( $carousel_ids ) > 1 ) : ?>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                    var wrapper = document.querySelector('.product-media-carousel[data-carousel="<?php echo esc_js( $carousel_id ); ?>"]');
+                    var wrappers = document.querySelectorAll('.product-gallery-wrapper[data-carousel]');
 
-                    if (!wrapper) {
+                    if (!wrappers.length) {
                         return;
                     }
 
-                    var carouselElement = document.getElementById('<?php echo esc_js( $carousel_id ); ?>');
+                    wrappers.forEach(function (wrapper) {
+                        var carouselId = wrapper.getAttribute('data-carousel');
 
-                    if (!carouselElement) {
-                        return;
-                    }
+                        if (!carouselId) {
+                            return;
+                        }
 
-                    var indicatorButtons = wrapper.querySelectorAll('.product-carousel-indicator');
-                    var slides = carouselElement.querySelectorAll('.carousel-item');
+                        var carouselElement = document.getElementById(carouselId);
 
-                    if (!indicatorButtons.length) {
-                        return;
-                    }
+                        if (!carouselElement) {
+                            return;
+                        }
 
-                    carouselElement.addEventListener('slid.bs.carousel', function (event) {
-                        indicatorButtons.forEach(function (button) {
-                            button.classList.remove('active');
+                        var indicatorButtons = wrapper.querySelectorAll('.product-gallery-indicators [data-bs-slide-to]');
+
+                        if (!indicatorButtons.length) {
+                            return;
+                        }
+
+                        carouselElement.addEventListener('slid.bs.carousel', function (event) {
+                            var targetIndex = typeof event.to === 'number' ? event.to : 0;
+
+                            indicatorButtons.forEach(function (button, index) {
+                                var isActive = index === targetIndex;
+
+                                button.classList.toggle('active', isActive);
+
+                                if (isActive) {
+                                    button.setAttribute('aria-current', 'true');
+                                } else {
+                                    button.removeAttribute('aria-current');
+                                }
+                            });
                         });
 
-                        var toIndex = 0;
+                        indicatorButtons.forEach(function (button, index) {
+                            button.addEventListener('click', function () {
+                                indicatorButtons.forEach(function (btn, innerIndex) {
+                                    var isActive = innerIndex === index;
 
-                        if (typeof event.to === 'number') {
-                            toIndex = event.to;
-                        } else {
-                            var activeSlide = carouselElement.querySelector('.carousel-item.active');
+                                    btn.classList.toggle('active', isActive);
 
-                            if (activeSlide) {
-                                toIndex = Array.prototype.indexOf.call(slides, activeSlide);
-                            }
-                        }
-
-                        if (indicatorButtons[toIndex]) {
-                            indicatorButtons[toIndex].classList.add('active');
-                        }
-                    });
-
-                    indicatorButtons.forEach(function (button) {
-                        button.addEventListener('click', function () {
-                            indicatorButtons.forEach(function (btn) {
-                                btn.classList.remove('active');
+                                    if (isActive) {
+                                        btn.setAttribute('aria-current', 'true');
+                                    } else {
+                                        btn.removeAttribute('aria-current');
+                                    }
+                                });
                             });
-
-                            button.classList.add('active');
                         });
                     });
                 });
