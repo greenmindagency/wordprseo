@@ -1121,8 +1121,8 @@ add_action('admin_head', 'my_custom_style');
 
 function my_custom_style() {
   echo '<style>
-	.term-description-wrap, #wp-content-wrap, #post-status-info, .update-nag {display:none; visibility:hidden}
-	.acf-fc-layout-handle  { background-color:#ccc} 
+        .term-description-wrap, .update-nag {display:none; visibility:hidden}
+        .acf-fc-layout-handle  { background-color:#ccc}
   </style>';
 }
 /*********************************   replace css on the admin panel  *********************************/
@@ -1132,6 +1132,13 @@ function my_custom_style() {
  * Include the comments list walker class
  */
 require get_template_directory() . '/class-msbdtcp-walker-comment.php';
+
+add_filter( 'woocommerce_product_description_heading', '__return_empty_string' );
+add_filter( 'woocommerce_product_description_tab_title', 'wordprseo_description_tab_title' );
+
+function wordprseo_description_tab_title( $title ) {
+  return __( 'Details', 'woocommerce' );
+}
 
 
 
