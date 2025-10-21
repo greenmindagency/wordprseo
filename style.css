@@ -6,80 +6,110 @@ Author URI: https://greenmindagency.com
 */
 
 /* WooCommerce single product adjustments */
-.single-product .product-gallery-frame {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #ffffff;
-    padding: 2rem;
-    min-height: 0;
+.single-product .product-media-carousel .carousel-item {
+    text-align: center;
 }
 
-.single-product .product-gallery-image {
-    width: 100%;
+.single-product .product-carousel-image {
+    max-width: 100%;
     height: auto;
-    object-fit: contain;
+    display: inline-block;
 }
 
-.single-product .product-gallery-indicators .image-indicator-btn {
-    width: 12px;
-    height: 12px;
+.single-product .product-carousel-indicator {
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    border: 1px solid #0d6efd;
-    background-color: transparent;
-    opacity: 0.45;
-    transition: background-color 0.2s ease, opacity 0.2s ease;
     padding: 0;
-    appearance: none;
-    cursor: pointer;
+    line-height: 1;
+    border-width: 2px;
 }
 
-.single-product .product-gallery-indicators .image-indicator-btn.active,
-.single-product .product-gallery-indicators .image-indicator-btn:hover {
+.single-product .product-carousel-indicator.active,
+.single-product .product-carousel-indicator:focus {
     background-color: #0d6efd;
-    opacity: 1;
+    border-color: #0d6efd;
+    color: #fff;
 }
 
-.single-product .product-gallery-indicators .image-indicator-btn:focus-visible {
-    outline: 2px solid #0d6efd;
-    outline-offset: 2px;
+.single-product .product-carousel-indicator:not(.active):hover {
+    background-color: rgba(13, 110, 253, 0.1);
 }
 
-.single-product .product-summary-tabs .nav-tabs .nav-link {
+.single-product .product-info-tabs .nav-link {
     font-weight: 600;
 }
 
 .single-product .product-meta-lines {
     font-size: 0.95rem;
-    color: #495057;
 }
 
-.single-product .product-purchase-panel {
-    background-color: #f8f9fa;
+.single-product .product-meta-lines .fw-medium {
+    margin-right: 0.5rem;
 }
 
-.single-product .product-purchase-panel .single_add_to_cart_button {
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-}
-
-.single-product .product-related-image {
-    display: flex;
+.single-product .single_add_to_cart_button {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #0d6efd;
+    border: 1px solid #0d6efd;
+    border-radius: 0.375rem;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.single-product .product-related-image img {
-    max-height: 160px;
-    max-width: 100%;
+.single-product .single_add_to_cart_button:hover,
+.single-product .single_add_to_cart_button:focus {
+    color: #fff;
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.single-product .single_add_to_cart_button:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.single-product .single_add_to_cart_button:disabled,
+.single-product .single_add_to_cart_button.disabled {
+    opacity: 0.65;
+    box-shadow: none;
+}
+
+.single-product form.cart .quantity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.single-product form.cart .quantity .qty {
+    max-width: 100px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+}
+
+.single-product form.cart .variations select,
+.single-product form.cart .woocommerce-input-wrapper select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 0.75rem;
+}
+
+.single-product .related-product-media {
+    display: block;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.single-product .related-product-media img {
+    max-height: 200px;
     width: auto;
     height: auto;
-}
-
-.single-product .product-related-card .card-body {
-    display: flex;
-    flex-direction: column;
+    margin: 0 auto;
+    display: block;
 }

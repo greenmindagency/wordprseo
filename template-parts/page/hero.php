@@ -62,8 +62,8 @@ $description = function_exists( 'get_field' ) ? get_field( 'description', $post-
         >
     <?php endif; ?>
 
-    <div class="container py-spacer">
-        <div class="col-md-8 py-spacer text-white">
+    <div class="container py-4">
+        <div class="col-md-8 py-4 text-white">
             <h1 class="fw-bold h5"><?php echo esc_html( $yoast_title ); ?></h1>
 
             <h2 class="fw-bold card-title display-4 my-3"><?php the_title(); ?></h2>

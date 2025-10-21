@@ -64,9 +64,9 @@ if ( have_posts() ) :
                         >
                     <?php endif; ?>
 
-                    <div class="container py-spacer">
+                    <div class="container py-4">
                         <div class="row">
-                            <div class="col-lg-8 py-5 text-white">
+                            <div class="col-lg-8 py-4 text-white">
                                 <?php if ( $product_cats ) : ?>
                                     <p class="text-uppercase small fw-semibold mb-3">
                                         <?php echo wp_kses_post( $product_cats ); ?>

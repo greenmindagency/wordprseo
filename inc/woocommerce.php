@@ -176,7 +176,7 @@ if ( ! function_exists( 'wordprseo_woocommerce_before_main_content' ) ) {
             return;
         }
 
-        echo '<div class="container py-spacer"><div class="row"><div class="col-12">';
+        echo '<div class="container py-4"><div class="row"><div class="col-12">';
     }
 }
 
