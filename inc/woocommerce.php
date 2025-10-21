@@ -142,6 +142,10 @@ if ( ! function_exists( 'wordprseo_woocommerce_before_main_content' ) ) {
      * Opens the theme wrapper around WooCommerce content.
      */
     function wordprseo_woocommerce_before_main_content() {
+        if ( function_exists( 'is_product' ) && is_product() ) {
+            return;
+        }
+
         echo '<div class="container py-spacer"><div class="row"><div class="col-12">';
     }
 }
@@ -151,6 +155,10 @@ if ( ! function_exists( 'wordprseo_woocommerce_after_main_content' ) ) {
      * Closes the theme wrapper around WooCommerce content.
      */
     function wordprseo_woocommerce_after_main_content() {
+        if ( function_exists( 'is_product' ) && is_product() ) {
+            return;
+        }
+
         echo '</div></div></div>';
     }
 }
