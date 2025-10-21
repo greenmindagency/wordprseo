@@ -89,35 +89,24 @@ foreach ( $gallery_ids as $image_id ) {
 }
 
 $carousel_ids = array_values( array_unique( array_filter( $carousel_ids ) ) );
-$carousel_id  = 'productCarousel-' . $product_id;
+$carousel_id      = 'productCarousel-' . $product_id;
+$hero_image_data  = $featured_id ? wp_get_attachment_image_src( $featured_id, 'full' ) : false;
+$hero_image_url   = $hero_image_data ? ( isset( $hero_image_data[0] ) ? $hero_image_data[0] : '' ) : '';
+$hero_image_width = $hero_image_data ? ( isset( $hero_image_data[1] ) ? (int) $hero_image_data[1] : 0 ) : 0;
+$hero_image_height = $hero_image_data ? ( isset( $hero_image_data[2] ) ? (int) $hero_image_data[2] : 0 ) : 0;
+$hero_kicker      = $category_html ? wp_strip_all_tags( $category_html ) : __( 'Shop', 'woocommerce' );
+$hero_summary     = $short_excerpt ? wp_strip_all_tags( $short_excerpt ) : '';
 
 $tabs = apply_filters( 'woocommerce_product_tabs', array() );
 
-$description_content     = '';
-$additional_info_content = '';
+$primary_tabs   = array();
+$remaining_tabs = $tabs;
 
-$raw_description = get_post_field( 'post_content', $product_id );
-
-if ( '' !== trim( (string) $raw_description ) ) {
-    $description_content = apply_filters( 'the_content', $raw_description );
-}
-
-if ( $product instanceof WC_Product ) {
-    ob_start();
-    wc_get_template( 'single-product/tabs/additional-information.php' );
-    $additional_info_content = trim( ob_get_clean() );
-
-    if ( '' === $additional_info_content ) {
-        $additional_info_content = '';
+foreach ( array( 'additional_information', 'description' ) as $tab_key ) {
+    if ( isset( $remaining_tabs[ $tab_key ] ) ) {
+        $primary_tabs[ $tab_key ] = $remaining_tabs[ $tab_key ];
+        unset( $remaining_tabs[ $tab_key ] );
     }
-}
-
-if ( isset( $tabs['description'] ) ) {
-    unset( $tabs['description'] );
-}
-
-if ( isset( $tabs['additional_information'] ) ) {
-    unset( $tabs['additional_information'] );
 }
 
 $attributes             = array();
@@ -202,53 +191,67 @@ $after_summary_extra = trim( ob_get_clean() );
 
 <main id="primary" class="site-main">
     <article id="product-<?php the_ID(); ?>" <?php wc_product_class( 'single-product', get_the_ID() ); ?>>
+        <div data-jarallax data-speed="0.2" class="product-hero jarallax bg-secondary text-white">
+            <?php if ( $hero_image_url ) : ?>
+                <img
+                    loading="lazy"
+                    src="<?php echo esc_url( $hero_image_url ); ?>"
+                    class="jarallax-img"
+                    alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
+                    width="<?php echo esc_attr( $hero_image_width ); ?>"
+                    height="<?php echo esc_attr( $hero_image_height ); ?>"
+                >
+            <?php endif; ?>
+
+            <div class="container py-4">
+                <div class="col-md-8 py-4 text-white">
+                    <?php if ( $hero_kicker ) : ?>
+                        <h1 class="fw-bold h5"><?php echo esc_html( $hero_kicker ); ?></h1>
+                    <?php endif; ?>
+
+                    <h2 class="fw-bold card-title display-4 my-3"><?php the_title(); ?></h2>
+
+                    <?php if ( $hero_summary ) : ?>
+                        <p class="lead card-text mb-0"><?php echo esc_html( $hero_summary ); ?></p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
         <div class="container my-5">
             <section class="row g-5">
                 <div class="col-md-6">
                     <div class="d-flex flex-column">
-                        <div class="product-media-carousel" data-carousel="<?php echo esc_attr( $carousel_id ); ?>">
-                            <div
-                                id="<?php echo esc_attr( $carousel_id ); ?>"
-                                class="carousel slide shadow-sm"
-                                data-bs-ride="carousel"
-                                data-bs-interval="5000"
-                            >
-                                <div class="carousel-inner">
-                                    <?php if ( ! empty( $carousel_ids ) ) : ?>
-                                        <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
-                                            <?php
-                                            $image_html = wp_get_attachment_image(
-                                                $image_id,
-                                                'large',
-                                                false,
-                                                array(
-                                                    'class' => 'product-carousel-image img-fluid mx-auto d-block',
-                                                )
-                                            );
+                        <div
+                            id="<?php echo esc_attr( $carousel_id ); ?>"
+                            class="carousel slide shadow-sm overflow-hidden product-gallery-carousel"
+                            data-bs-ride="carousel"
+                            data-bs-interval="5000"
+                        >
+                            <div class="carousel-inner">
+                                <?php if ( ! empty( $carousel_ids ) ) : ?>
+                                    <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
+                                        <?php
+                                        $image_html = wp_get_attachment_image(
+                                            $image_id,
+                                            'large',
+                                            false,
+                                            array(
+                                                'class' => 'img-fluid product-gallery-image',
+                                            )
+                                        );
 
-                                            if ( ! $image_html ) {
-                                                $image_html = sprintf(
-                                                    '<img src="%1$s" alt="%2$s" class="product-carousel-image img-fluid mx-auto d-block" />',
-                                                    esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
-                                                    esc_attr( get_the_title( $product_id ) )
-                                                );
-                                            }
-                                            ?>
-                                            <div class="carousel-item<?php echo 0 === $index ? ' active' : ''; ?>">
-                                                <div class="position-relative text-center">
-                                                    <?php if ( $sale_flash_html && 0 === $index ) : ?>
-                                                        <div class="position-absolute top-0 start-0 m-3">
-                                                            <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else : ?>
-                                        <div class="carousel-item active">
-                                            <div class="position-relative text-center">
-                                                <?php if ( $sale_flash_html ) : ?>
+                                        if ( ! $image_html ) {
+                                            $image_html = sprintf(
+                                                '<img src="%1$s" alt="%2$s" class="img-fluid product-gallery-image" />',
+                                                esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
+                                                esc_attr( get_the_title( $product_id ) )
+                                            );
+                                        }
+                                        ?>
+                                        <div class="carousel-item<?php echo 0 === $index ? ' active' : ''; ?>">
+                                            <div class="product-gallery-frame position-relative">
+                                                <?php if ( $sale_flash_html && 0 === $index ) : ?>
                                                     <div class="position-absolute top-0 start-0 m-3">
                                                         <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                                     </div>
@@ -260,18 +263,22 @@ $after_summary_extra = trim( ob_get_clean() );
                                                 >
                                             </div>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <?php if ( count( $carousel_ids ) > 1 ) : ?>
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden"><?php esc_html_e( 'Previous', 'woocommerce' ); ?></span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden"><?php esc_html_e( 'Next', 'woocommerce' ); ?></span>
-                                    </button>
+                                    <?php endforeach; ?>
+                                <?php else : ?>
+                                    <div class="carousel-item active">
+                                        <div class="product-gallery-frame position-relative">
+                                            <?php if ( $sale_flash_html ) : ?>
+                                                <div class="position-absolute top-0 start-0 m-3">
+                                                    <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <img
+                                                src="<?php echo esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ); ?>"
+                                                alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
+                                                class="img-fluid product-gallery-image"
+                                            >
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
 
@@ -290,6 +297,21 @@ $after_summary_extra = trim( ob_get_clean() );
                                 </div>
                             <?php endif; ?>
                         </div>
+
+                        <?php if ( count( $carousel_ids ) > 1 ) : ?>
+                            <div class="product-gallery-indicators d-flex justify-content-center mt-3 gap-2">
+                                <?php foreach ( $carousel_ids as $index => $image_id ) : ?>
+                                    <button
+                                        type="button"
+                                        data-bs-target="#<?php echo esc_attr( $carousel_id ); ?>"
+                                        data-bs-slide-to="<?php echo esc_attr( $index ); ?>"
+                                        class="image-indicator-btn<?php echo 0 === $index ? ' active' : ''; ?>"
+                                        aria-label="<?php echo esc_attr( sprintf( __( 'View image %d', 'woocommerce' ), $index + 1 ) ); ?>"
+                                        <?php if ( 0 === $index ) : ?>aria-current="true"<?php endif; ?>
+                                    ></button>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
 
                         <?php if ( ! empty( $before_summary_extra ) ) : ?>
                             <div class="mt-4">
@@ -320,6 +342,58 @@ $after_summary_extra = trim( ob_get_clean() );
 
                     <?php woocommerce_template_single_rating(); ?>
 
+                    <?php if ( ! empty( $primary_tabs ) ) : ?>
+                        <?php
+                        $primary_tab_index = 0;
+                        $tab_prefix        = 'primary-product-tabs-' . $product_id;
+                        ?>
+                        <div class="product-summary-tabs mb-4">
+                            <ul class="nav nav-tabs" id="<?php echo esc_attr( $tab_prefix ); ?>" role="tablist">
+                                <?php foreach ( $primary_tabs as $key => $tab ) : ?>
+                                    <li class="nav-item" role="presentation">
+                                        <button
+                                            class="nav-link<?php echo 0 === $primary_tab_index ? ' active' : ''; ?>"
+                                            id="<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>-tab"
+                                            data-bs-toggle="tab"
+                                            data-bs-target="#<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>"
+                                            type="button"
+                                            role="tab"
+                                            aria-controls="<?php echo esc_attr( $tab_prefix . '-' . $key ); ?>"
+                                            aria-selected="<?php echo 0 === $primary_tab_index ? 'true' : 'false'; ?>"
+                                        >
+                                            <?php echo esc_html( $tab['title'] ); ?>
+                                        </button>
+                                    </li>
+                                    <?php $primary_tab_index++; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                            <div class="tab-content border border-top-0 p-3">
+                                <?php
+                                $primary_tab_index = 0;
+                                foreach ( $primary_tabs as $key => $tab ) :
+                                    $tab_panel_id = $tab_prefix . '-' . $key;
+                                    ?>
+                                    <div
+                                        class="tab-pane fade<?php echo 0 === $primary_tab_index ? ' show active' : ''; ?>"
+                                        id="<?php echo esc_attr( $tab_panel_id ); ?>"
+                                        role="tabpanel"
+                                        aria-labelledby="<?php echo esc_attr( $tab_panel_id ); ?>-tab"
+                                        tabindex="0"
+                                    >
+                                        <?php
+                                        if ( isset( $tab['callback'] ) ) {
+                                            call_user_func( $tab['callback'], $tab, $key );
+                                        }
+                                        ?>
+                                    </div>
+                                    <?php
+                                    $primary_tab_index++;
+                                endforeach;
+                                ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ( ! empty( $attributes ) ) : ?>
                         <ul class="list-group list-group-flush mb-4 border">
                             <?php foreach ( $attributes as $attribute ) : ?>
@@ -331,106 +405,33 @@ $after_summary_extra = trim( ob_get_clean() );
                         </ul>
                     <?php endif; ?>
 
-                    <?php if ( $description_content || $additional_info_content ) : ?>
-                        <?php
-                        $info_tab_prefix = 'product-info-' . $product_id;
-                        $info_tab_index  = 0;
-                        ?>
-                        <div class="product-info-tabs mt-4">
-                            <ul class="nav nav-tabs" id="<?php echo esc_attr( $info_tab_prefix ); ?>-tabs" role="tablist">
-                                <?php if ( $description_content ) : ?>
-                                    <li class="nav-item" role="presentation">
-                                        <button
-                                            class="nav-link<?php echo 0 === $info_tab_index ? ' active' : ''; ?>"
-                                            id="<?php echo esc_attr( $info_tab_prefix ); ?>-description-tab"
-                                            data-bs-toggle="tab"
-                                            data-bs-target="#<?php echo esc_attr( $info_tab_prefix ); ?>-description"
-                                            type="button"
-                                            role="tab"
-                                            aria-controls="<?php echo esc_attr( $info_tab_prefix ); ?>-description"
-                                            aria-selected="<?php echo 0 === $info_tab_index ? 'true' : 'false'; ?>"
-                                        >
-                                            <?php esc_html_e( 'Description', 'woocommerce' ); ?>
-                                        </button>
-                                    </li>
-                                    <?php $info_tab_index++; ?>
-                                <?php endif; ?>
+                    <?php if ( $product instanceof WC_Product ) : ?>
+                        <div class="product-meta-lines mb-4">
+                            <?php if ( wc_product_sku_enabled() ) : ?>
+                                <p class="mb-2"><span class="fw-semibold"><?php esc_html_e( 'SKU:', 'woocommerce' ); ?></span> <?php echo esc_html( $product->get_sku() ? $product->get_sku() : __( 'N/A', 'woocommerce' ) ); ?></p>
+                            <?php endif; ?>
+                            <?php if ( $category_html ) : ?>
+                                <p class="mb-2"><span class="fw-semibold"><?php esc_html_e( 'Category:', 'woocommerce' ); ?></span> <?php echo wp_kses_post( $category_html ); ?></p>
+                            <?php endif; ?>
+                            <?php
+                            $tag_html = function_exists( 'wc_get_product_tag_list' )
+                                ? wc_get_product_tag_list( $product_id, ', ' )
+                                : '';
 
-                                <?php if ( $additional_info_content ) : ?>
-                                    <li class="nav-item" role="presentation">
-                                        <button
-                                            class="nav-link<?php echo 0 === $info_tab_index ? ' active' : ''; ?>"
-                                            id="<?php echo esc_attr( $info_tab_prefix ); ?>-additional-information-tab"
-                                            data-bs-toggle="tab"
-                                            data-bs-target="#<?php echo esc_attr( $info_tab_prefix ); ?>-additional-information"
-                                            type="button"
-                                            role="tab"
-                                            aria-controls="<?php echo esc_attr( $info_tab_prefix ); ?>-additional-information"
-                                            aria-selected="<?php echo 0 === $info_tab_index ? 'true' : 'false'; ?>"
-                                        >
-                                            <?php esc_html_e( 'Additional information', 'woocommerce' ); ?>
-                                        </button>
-                                    </li>
-                                    <?php $info_tab_index++; ?>
-                                <?php endif; ?>
-                            </ul>
-
-                            <div class="tab-content border border-top-0 p-3" id="<?php echo esc_attr( $info_tab_prefix ); ?>-content">
-                                <?php $info_tab_index = 0; ?>
-
-                                <?php if ( $description_content ) : ?>
-                                    <div
-                                        class="tab-pane fade<?php echo 0 === $info_tab_index ? ' show active' : ''; ?>"
-                                        id="<?php echo esc_attr( $info_tab_prefix ); ?>-description"
-                                        role="tabpanel"
-                                        aria-labelledby="<?php echo esc_attr( $info_tab_prefix ); ?>-description-tab"
-                                        tabindex="0"
-                                    >
-                                        <?php echo $description_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                                    </div>
-                                    <?php $info_tab_index++; ?>
-                                <?php endif; ?>
-
-                                <?php if ( $additional_info_content ) : ?>
-                                    <div
-                                        class="tab-pane fade<?php echo 0 === $info_tab_index ? ' show active' : ''; ?>"
-                                        id="<?php echo esc_attr( $info_tab_prefix ); ?>-additional-information"
-                                        role="tabpanel"
-                                        aria-labelledby="<?php echo esc_attr( $info_tab_prefix ); ?>-additional-information-tab"
-                                        tabindex="0"
-                                    >
-                                        <?php echo $additional_info_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                                    </div>
-                                    <?php $info_tab_index++; ?>
-                                <?php endif; ?>
-                            </div>
+                            if ( $tag_html ) :
+                                ?>
+                                <p class="mb-0"><span class="fw-semibold"><?php esc_html_e( 'Tag:', 'woocommerce' ); ?></span> <?php echo wp_kses_post( $tag_html ); ?></p>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
 
-                    <?php if ( ! empty( $meta_lines ) ) : ?>
-                        <ul class="product-meta-lines list-unstyled mt-4 mb-4">
-                            <?php foreach ( $meta_lines as $meta_line ) : ?>
-                                <li class="mb-2">
-                                    <span class="fw-medium text-muted"><?php echo esc_html( $meta_line['label'] ); ?>:</span>
-                                    <?php if ( ! empty( $meta_line['is_html'] ) ) : ?>
-                                        <span><?php echo wp_kses_post( $meta_line['value'] ); ?></span>
-                                    <?php else : ?>
-                                        <span><?php echo esc_html( $meta_line['value'] ); ?></span>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-
-                    <div class="mb-4 p-3 bg-light shadow-sm">
+                    <div class="product-purchase-panel card border-0 shadow-sm p-4 mb-4">
                         <?php woocommerce_template_single_add_to_cart(); ?>
                     </div>
 
-                    <?php if ( function_exists( 'woocommerce_template_single_sharing' ) ) : ?>
-                        <div class="product-share small text-muted">
-                            <?php woocommerce_template_single_sharing(); ?>
-                        </div>
-                    <?php endif; ?>
+                    <div class="product-meta small text-muted">
+                        <?php woocommerce_template_single_sharing(); ?>
+                    </div>
 
                     <?php
                     ob_start();
@@ -446,13 +447,13 @@ $after_summary_extra = trim( ob_get_clean() );
                 </div>
             </section>
 
-            <?php if ( ! empty( $tabs ) ) : ?>
+            <?php if ( ! empty( $remaining_tabs ) ) : ?>
                 <?php
                 $tab_index = 0;
                 ?>
                 <div class="mt-5">
                     <ul class="nav nav-tabs" id="productTabs" role="tablist">
-                        <?php foreach ( $tabs as $key => $tab ) : ?>
+                        <?php foreach ( $remaining_tabs as $key => $tab ) : ?>
                             <li class="nav-item" role="presentation">
                                 <button
                                     class="nav-link<?php echo 0 === $tab_index ? ' active' : ''; ?>"
@@ -474,7 +475,7 @@ $after_summary_extra = trim( ob_get_clean() );
                     <div class="tab-content border border-top-0 p-3" id="productTabsContent">
                         <?php
                         $tab_index = 0;
-                        foreach ( $tabs as $key => $tab ) :
+                        foreach ( $remaining_tabs as $key => $tab ) :
                             $tab_panel_id = $key . '-tab-pane';
                             ?>
                             <div
@@ -505,39 +506,88 @@ $after_summary_extra = trim( ob_get_clean() );
                     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
                         <?php foreach ( $related_products as $related_product ) : ?>
                             <?php
-                            $related_id    = $related_product->get_id();
-                            $related_title = $related_product->get_name();
-                            $related_link  = get_permalink( $related_id );
-                            $related_price = $related_product->get_price_html();
-                            $related_image = $related_product->get_image( 'woocommerce_thumbnail', array( 'class' => 'img-fluid' ) );
+                            $related_id        = $related_product->get_id();
+                            $related_title     = $related_product->get_name();
+                            $related_link      = get_permalink( $related_id );
+                            $related_price     = $related_product->get_price_html();
+                            $related_categories = function_exists( 'wc_get_product_category_list' ) ? wc_get_product_category_list( $related_id, ', ' ) : '';
+                            $related_image     = $related_product->get_image(
+                                'woocommerce_single',
+                                array(
+                                    'class' => 'card-img-top img-fluid',
+                                )
+                            );
 
                             if ( ! $related_image ) {
                                 $related_image = sprintf(
-                                    '<img src="%1$s" alt="%2$s" class="img-fluid" />',
-                                    esc_url( wc_placeholder_img_src( 'woocommerce_thumbnail' ) ),
+                                    '<img src="%1$s" alt="%2$s" class="card-img-top img-fluid" />',
+                                    esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
                                     esc_attr( $related_title )
                                 );
                             }
+
+                            $related_excerpt = $related_product->get_short_description();
+
+                            if ( empty( $related_excerpt ) ) {
+                                $related_excerpt = get_post_field( 'post_excerpt', $related_id );
+                            }
+
+                            if ( empty( $related_excerpt ) ) {
+                                $related_excerpt = get_post_field( 'post_content', $related_id );
+                            }
+
+                            $related_excerpt = $related_excerpt ? wp_trim_words( wp_strip_all_tags( $related_excerpt ), 24, '&hellip;' ) : '';
+
+                            global $product;
+                            $previous_product   = $product;
+                            $product            = $related_product;
+                            $add_to_cart_markup = '';
+
+                            if ( function_exists( 'woocommerce_template_loop_add_to_cart' ) ) {
+                                ob_start();
+                                woocommerce_template_loop_add_to_cart();
+                                $add_to_cart_markup = trim( ob_get_clean() );
+                            }
+
+                            $product = $previous_product;
                             ?>
                             <div class="col">
-                                <div class="card h-100 shadow-sm">
-                                    <a href="<?php echo esc_url( $related_link ); ?>" class="related-product-media bg-light border-bottom">
+                                <div class="card shadow product-related-card h-100 d-flex flex-column">
+                                    <a href="<?php echo esc_url( $related_link ); ?>" class="d-block position-relative">
                                         <?php echo $related_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                     </a>
-                                    <div class="card-body d-flex flex-column">
-                                        <h5 class="card-title fw-bold">
-                                            <a href="<?php echo esc_url( $related_link ); ?>" class="text-decoration-none text-dark">
-                                                <?php echo esc_html( $related_title ); ?>
-                                            </a>
-                                        </h5>
-                                        <?php if ( ! empty( $related_price ) ) : ?>
-                                            <p class="card-text text-success fw-bold flex-grow-1"><?php echo wp_kses_post( $related_price ); ?></p>
-                                        <?php else : ?>
-                                            <div class="flex-grow-1"></div>
+                                    <div class="card-body d-flex flex-column pb-4">
+                                        <?php if ( $related_categories ) : ?>
+                                            <small class="lh-lg text-muted"><?php echo wp_kses_post( $related_categories ); ?></small>
                                         <?php endif; ?>
-                                        <a href="<?php echo esc_url( $related_link ); ?>" class="btn btn-sm btn-outline-primary mt-auto">
-                                            <?php esc_html_e( 'View Details', 'woocommerce' ); ?>
+
+                                        <a href="<?php echo esc_url( $related_link ); ?>" class="text-decoration-none text-dark">
+                                            <p class="h3 fw-bold mt-2 card-title"><?php echo esc_html( $related_title ); ?></p>
                                         </a>
+
+                                        <?php
+                                        if ( wc_review_ratings_enabled() ) {
+                                            $rating_html = wc_get_rating_html( $related_product->get_average_rating(), $related_product->get_rating_count() );
+
+                                            if ( $rating_html ) {
+                                                echo '<div class="mb-2">' . $rating_html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                            }
+                                        }
+                                        ?>
+
+                                        <?php if ( ! empty( $related_price ) ) : ?>
+                                            <p class="h5 fw-bold text-primary mb-3"><?php echo wp_kses_post( $related_price ); ?></p>
+                                        <?php endif; ?>
+
+                                        <?php if ( $related_excerpt ) : ?>
+                                            <p class="card-text"><?php echo esc_html( $related_excerpt ); ?></p>
+                                        <?php endif; ?>
+
+                                        <?php if ( $add_to_cart_markup ) : ?>
+                                            <div class="mt-auto pt-3">
+                                                <?php echo $add_to_cart_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

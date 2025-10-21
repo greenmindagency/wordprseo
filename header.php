@@ -104,6 +104,10 @@ $bodycode = get_sub_field('body_code');
 <?php 
 $menu_color = get_field('menu_color', 2); // Get from current page/post
 
+if ( function_exists( 'is_product' ) && is_product() ) {
+    $menu_color = 'white';
+}
+
 if ($menu_color == 'black') { 
     echo 'menu-dynamic bg-dark text-white';
 } elseif ($menu_color == 'transparent') { 
@@ -159,6 +163,10 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 <?php 
 
     $menu_color = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
+
+    if ( function_exists( 'is_product' ) && is_product() ) {
+        $menu_color = 'white';
+    }
 
     if ($menu_color == 'black') {  ?>
           

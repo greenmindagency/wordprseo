@@ -1540,7 +1540,7 @@ jQuery(document).ready(function($) {
 <?php 
     $menu_color = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
 
-    if ($menu_color == 'transparent') { 
+    if ($menu_color == 'transparent' && ! ( function_exists('is_product') && is_product() ) ) {
 ?>
 
 
