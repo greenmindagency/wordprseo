@@ -209,7 +209,7 @@ $after_summary_extra = trim( ob_get_clean() );
                         <div class="product-media-carousel" data-carousel="<?php echo esc_attr( $carousel_id ); ?>">
                             <div
                                 id="<?php echo esc_attr( $carousel_id ); ?>"
-                                class="carousel slide shadow-sm overflow-hidden"
+                                class="carousel slide shadow-sm"
                                 data-bs-ride="carousel"
                                 data-bs-interval="5000"
                             >
@@ -222,20 +222,20 @@ $after_summary_extra = trim( ob_get_clean() );
                                                 'large',
                                                 false,
                                                 array(
-                                                    'class' => 'd-block w-100 product-carousel-image bg-white',
+                                                    'class' => 'product-carousel-image img-fluid mx-auto d-block',
                                                 )
                                             );
 
                                             if ( ! $image_html ) {
                                                 $image_html = sprintf(
-                                                    '<img src="%1$s" alt="%2$s" class="d-block w-100 product-carousel-image bg-white" />',
+                                                    '<img src="%1$s" alt="%2$s" class="product-carousel-image img-fluid mx-auto d-block" />',
                                                     esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ),
                                                     esc_attr( get_the_title( $product_id ) )
                                                 );
                                             }
                                             ?>
                                             <div class="carousel-item<?php echo 0 === $index ? ' active' : ''; ?>">
-                                                <div class="product-carousel-frame bg-light d-flex align-items-center justify-content-center border p-5 position-relative">
+                                                <div class="position-relative text-center">
                                                     <?php if ( $sale_flash_html && 0 === $index ) : ?>
                                                         <div class="position-absolute top-0 start-0 m-3">
                                                             <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -247,7 +247,7 @@ $after_summary_extra = trim( ob_get_clean() );
                                         <?php endforeach; ?>
                                     <?php else : ?>
                                         <div class="carousel-item active">
-                                            <div class="product-carousel-frame bg-light d-flex align-items-center justify-content-center border p-5 position-relative">
+                                            <div class="position-relative text-center">
                                                 <?php if ( $sale_flash_html ) : ?>
                                                     <div class="position-absolute top-0 start-0 m-3">
                                                         <?php echo $sale_flash_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -256,7 +256,7 @@ $after_summary_extra = trim( ob_get_clean() );
                                                 <img
                                                     src="<?php echo esc_url( wc_placeholder_img_src( 'woocommerce_single' ) ); ?>"
                                                     alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
-                                                    class="d-block w-100 product-carousel-image bg-white"
+                                                    class="product-carousel-image img-fluid mx-auto d-block"
                                                 >
                                             </div>
                                         </div>
@@ -521,7 +521,7 @@ $after_summary_extra = trim( ob_get_clean() );
                             ?>
                             <div class="col">
                                 <div class="card h-100 shadow-sm">
-                                    <a href="<?php echo esc_url( $related_link ); ?>" class="related-product-media bg-light d-flex align-items-center justify-content-center p-4 border-bottom">
+                                    <a href="<?php echo esc_url( $related_link ); ?>" class="related-product-media bg-light border-bottom">
                                         <?php echo $related_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                                     </a>
                                     <div class="card-body d-flex flex-column">
@@ -569,6 +569,7 @@ $after_summary_extra = trim( ob_get_clean() );
                     }
 
                     var indicatorButtons = wrapper.querySelectorAll('.product-carousel-indicator');
+                    var slides = carouselElement.querySelectorAll('.carousel-item');
 
                     if (!indicatorButtons.length) {
                         return;
@@ -579,7 +580,17 @@ $after_summary_extra = trim( ob_get_clean() );
                             button.classList.remove('active');
                         });
 
-                        var toIndex = typeof event.to === 'number' ? event.to : 0;
+                        var toIndex = 0;
+
+                        if (typeof event.to === 'number') {
+                            toIndex = event.to;
+                        } else {
+                            var activeSlide = carouselElement.querySelector('.carousel-item.active');
+
+                            if (activeSlide) {
+                                toIndex = Array.prototype.indexOf.call(slides, activeSlide);
+                            }
+                        }
 
                         if (indicatorButtons[toIndex]) {
                             indicatorButtons[toIndex].classList.add('active');

@@ -189,31 +189,30 @@ if (!empty($image) && isset($image['sizes'][$size])) {
    
       
     </a>
-    <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <div class="flex-grow-1 d-flex align-items-center" id="navbarSupportedContent">
 
 
-        <?php wp_nav_menu( array(
-    'theme_location'  => 'my-custom-menu',
-    'depth'           => 2, // 1 = no dropdowns, 2 = with dropdowns.
-    'container'       => 'ul',
-    'container_class' => 'collapse navbar-collapse',
-    'container_id'    => 'bs-example-navbar-collapse-1',
-    'menu_class'      => 'navbar-nav me-auto mb-2 mb-lg-0',
-    'fallback_cb'     => 'WP_Bootstrap_Navwalker::fallback',
-    'walker'          => new WP_Bootstrap_Navwalker(),
-) ); ?>
-	
-	
-      
+        <?php
+        wp_nav_menu(
+            array(
+                'theme_location' => 'my-custom-menu',
+                'depth'          => 2, // 1 = no dropdowns, 2 = with dropdowns.
+                'container'      => false,
+                'menu_class'     => 'navbar-nav flex-wrap align-items-center mb-0 gap-3 ms-4',
+                'fallback_cb'    => 'WP_Bootstrap_Navwalker::fallback',
+                'walker'         => new WP_Bootstrap_Navwalker(),
+            )
+        );
+        ?>
+
+
+
       <?php
       $display_alt_language_link = get_field('language', 2);
       $display_alt_language_link = $display_alt_language_link === null ? true : (bool) $display_alt_language_link;
       ?>
 
-      <div class="d-flex">
+      <div class="ms-auto d-flex align-items-center">
         
       
 <form class="is-search-form is-ajax-search me-3" action="<?php echo esc_url(home_url('/')); ?>" method="get" role="search">
