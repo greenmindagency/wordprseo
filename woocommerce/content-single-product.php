@@ -620,7 +620,7 @@ $flexible_source = $product_id;
 
 if ( function_exists( 'have_rows' ) && have_rows( 'body', $flexible_source ) ) :
     ?>
-    <section class="product-flexible-content py-5">
+    <section class="product-flexible-content pt-5">
         <article class="blog-post">
             <?php
             while ( have_rows( 'body', $flexible_source ) ) :
