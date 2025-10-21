@@ -30,7 +30,7 @@ if ( have_posts() ) :
         $product_id   = get_the_ID();
         ?>
 
-        <main id="primary" class="site-main">
+        <main id="primary" class="site-main py-spacer-2">
             <article id="product-<?php the_ID(); ?>" <?php wc_product_class( 'single-product', get_the_ID() ); ?>>
                 <section class="product-overview py-5 bg-light">
                     <div class="container">

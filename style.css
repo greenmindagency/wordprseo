@@ -70,11 +70,6 @@ Author URI: https://greenmindagency.com
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-body.single-product .site-main,
-body.woocommerce-shop .site-main {
-    padding-top: 6rem;
-}
-
 .single-product .product-related-card .card-body {
     display: flex;
     flex-direction: column;
@@ -84,4 +79,9 @@ body.woocommerce-shop .site-main {
 .single-product .product-related-card .added_to_cart {
     width: 100%;
     text-align: center;
+}
+
+.py-spacer-2 {
+    padding-top: 7rem !important;
+    padding-bottom: 7rem !important;
 }
