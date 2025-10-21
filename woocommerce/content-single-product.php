@@ -191,34 +191,7 @@ $after_summary_extra = trim( ob_get_clean() );
 
 <main id="primary" class="site-main">
     <article id="product-<?php the_ID(); ?>" <?php wc_product_class( 'single-product', get_the_ID() ); ?>>
-        <div data-jarallax data-speed="0.2" class="product-hero jarallax bg-secondary text-white">
-            <?php if ( $hero_image_url ) : ?>
-                <img
-                    loading="lazy"
-                    src="<?php echo esc_url( $hero_image_url ); ?>"
-                    class="jarallax-img"
-                    alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>"
-                    width="<?php echo esc_attr( $hero_image_width ); ?>"
-                    height="<?php echo esc_attr( $hero_image_height ); ?>"
-                >
-            <?php endif; ?>
-
-            <div class="container py-4">
-                <div class="col-md-8 py-4 text-white">
-                    <?php if ( $hero_kicker ) : ?>
-                        <h1 class="fw-bold h5"><?php echo esc_html( $hero_kicker ); ?></h1>
-                    <?php endif; ?>
-
-                    <h2 class="fw-bold card-title display-4 my-3"><?php the_title(); ?></h2>
-
-                    <?php if ( $hero_summary ) : ?>
-                        <p class="lead card-text mb-0"><?php echo esc_html( $hero_summary ); ?></p>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <div class="container my-5">
+        <div class="container py-5">
             <section class="row g-5">
                 <div class="col-md-6">
                     <div class="d-flex flex-column">

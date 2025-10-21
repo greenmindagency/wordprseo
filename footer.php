@@ -1537,10 +1537,13 @@ jQuery(document).ready(function($) {
 # Transparent Navbar Highlight
 --------------------------------------------------------------*/
 
-<?php 
-    $menu_color = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
+<?php
+    $menu_color        = get_field('menu_color', 2); // Retrieve the value of the 'menu_color' field
+    $is_product_page   = function_exists('is_product') && is_product();
+    $is_shop_page      = function_exists('is_shop') && is_shop();
+    $is_product_tax    = function_exists('is_product_taxonomy') && is_product_taxonomy();
 
-    if ($menu_color == 'transparent' && ! ( function_exists('is_product') && is_product() ) ) {
+    if ( $menu_color == 'transparent' && ! ( $is_product_page || $is_shop_page || $is_product_tax ) ) {
 ?>
 
 
@@ -1652,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-<?php 
+<?php
     } // End of 'transparent' condition
 
 ?>

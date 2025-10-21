@@ -36,8 +36,6 @@ if ( ! wordprseo_is_woocommerce_active() ) {
 
         $post = $shop_post;
         setup_postdata( $post );
-
-        get_template_part( 'template-parts/page/hero' );
     }
 
     if ( $is_shop_view && $shop_id && $shop_id > 0 && function_exists( 'have_rows' ) && have_rows( 'body', $shop_id ) ) {
