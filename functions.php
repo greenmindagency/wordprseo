@@ -324,9 +324,10 @@ add_shortcode('custom_breadcrumbs','custom_breadcrumbs');
 
 // Add theme support for Featured Images
 add_theme_support('post-thumbnails', array(
-'post',
-'page',
-'custom-post-type-name',
+    'post',
+    'page',
+    'product',
+    'custom-post-type-name',
 ));
 // Add theme support for Featured Images
 
