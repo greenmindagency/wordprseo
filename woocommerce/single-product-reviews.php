@@ -303,6 +303,7 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
             }
         }
 
+        // Use placeholder image if no image source was found.
         if ( ! $image_src ) {
             $image_src = wc_placeholder_img_src();
         }
