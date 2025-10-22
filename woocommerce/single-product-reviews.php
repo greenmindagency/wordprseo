@@ -22,7 +22,7 @@ $average      = $product ? $product->get_average_rating() : 0;
 
 <div id="reviews" class="woocommerce-Reviews container my-5">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
+        <div class="col-lg-12 px-0">
             <div class="mb-5">
                 <h2 class="fs-1 fw-bold mb-3"><?php esc_html_e( 'Reviews', 'woocommerce' ); ?></h2>
                 <?php if ( $rating_count > 0 ) : ?>
@@ -92,7 +92,8 @@ $average      = $product ? $product->get_average_rating() : 0;
                 <div id="review_form" class="product-review-form card border-0 shadow-sm bg-white rounded-4">
                     <div class="card-body p-4 p-lg-5 bg-light">
                         <?php
-                        $commenter    = wp_get_current_commenter();
+                        $commenter       = wp_get_current_commenter();
+                        $current_rating  = isset( $_POST['rating'] ) ? absint( wp_unslash( $_POST['rating'] ) ) : 0;
                         $comment_form = array(
                             'title_reply'          => have_comments() ? esc_html__( 'Share your experience', 'msbdtcp' ) : sprintf( esc_html__( 'Be the first to review “%s”', 'woocommerce' ), get_the_title() ),
                             'title_reply_to'       => esc_html__( 'Leave a Reply to %s', 'woocommerce' ),
@@ -119,15 +120,20 @@ $average      = $product ? $product->get_average_rating() : 0;
 
                         if ( wc_review_ratings_enabled() ) {
                             $comment_form['comment_field'] .= '<div class="mb-3">'
-                                . '<label for="rating" class="form-label fw-semibold">' . esc_html__( 'Your rating', 'woocommerce' ) . '</label>'
-                                . '<select name="rating" id="rating" class="form-select w-auto">'
-                                . '<option value="">' . esc_html__( 'Rate…', 'woocommerce' ) . '</option>'
-                                . '<option value="5">' . esc_html__( 'Perfect', 'woocommerce' ) . '</option>'
-                                . '<option value="4">' . esc_html__( 'Good', 'woocommerce' ) . '</option>'
-                                . '<option value="3">' . esc_html__( 'Average', 'woocommerce' ) . '</option>'
-                                . '<option value="2">' . esc_html__( 'Not that bad', 'woocommerce' ) . '</option>'
-                                . '<option value="1">' . esc_html__( 'Very poor', 'woocommerce' ) . '</option>'
-                                . '</select>'
+                                . '<span id="rating-label" class="form-label d-block fw-semibold mb-2">' . esc_html__( 'Your rating', 'woocommerce' ) . '</span>'
+                                . '<div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label">'
+                                . '<input type="radio" id="rating-5" name="rating" value="5" ' . checked( $current_rating, 5, false ) . ' required />'
+                                . '<label for="rating-5" class="star"><span class="visually-hidden">' . esc_html__( '5 stars', 'woocommerce' ) . '</span></label>'
+                                . '<input type="radio" id="rating-4" name="rating" value="4" ' . checked( $current_rating, 4, false ) . ' />'
+                                . '<label for="rating-4" class="star"><span class="visually-hidden">' . esc_html__( '4 stars', 'woocommerce' ) . '</span></label>'
+                                . '<input type="radio" id="rating-3" name="rating" value="3" ' . checked( $current_rating, 3, false ) . ' />'
+                                . '<label for="rating-3" class="star"><span class="visually-hidden">' . esc_html__( '3 stars', 'woocommerce' ) . '</span></label>'
+                                . '<input type="radio" id="rating-2" name="rating" value="2" ' . checked( $current_rating, 2, false ) . ' />'
+                                . '<label for="rating-2" class="star"><span class="visually-hidden">' . esc_html__( '2 stars', 'woocommerce' ) . '</span></label>'
+                                . '<input type="radio" id="rating-1" name="rating" value="1" ' . checked( $current_rating, 1, false ) . ' />'
+                                . '<label for="rating-1" class="star"><span class="visually-hidden">' . esc_html__( '1 star', 'woocommerce' ) . '</span></label>'
+                                . '</div>'
+                                . '<p class="small text-muted mt-2 mb-0">' . esc_html__( 'Select a star to rate.', 'msbdtcp' ) . '</p>'
                                 . '</div>';
                         }
 
