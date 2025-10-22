@@ -202,7 +202,7 @@ $review_count = $product ? $product->get_review_count() : 0;
         var ratingGroups = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
 
         ratingGroups.forEach(function (group) {
-            var inputs = group.querySelectorAll('input[name="rating"]');
+            var inputs = Array.prototype.slice.call(group.querySelectorAll('input[name="rating"]'));
             var display = group.parentElement.querySelector('.selected-rating-display');
             var defaultMessage = display ? display.getAttribute('data-default-message') : '';
             var selectedPrefix = display ? display.getAttribute('data-selected-prefix') : '';
@@ -237,6 +237,39 @@ $review_count = $product ? $product->get_review_count() : 0;
             });
 
             updateDisplay();
+
+            var form = group.closest('form');
+
+            if (form) {
+                form.addEventListener('submit', function (event) {
+                    var checkedInput = group.querySelector('input[name="rating"]:checked');
+
+                    if (checkedInput) {
+                        if (display) {
+                            display.classList.remove('text-danger');
+                        }
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    if (display) {
+                        display.textContent = defaultMessage;
+                        display.classList.remove('text-warning', 'text-muted');
+                        display.classList.add('text-danger');
+                    }
+
+                    if (inputs.length) {
+                        inputs[0].focus();
+                    }
+                });
+
+                form.addEventListener('reset', function () {
+                    window.setTimeout(function () {
+                        updateDisplay();
+                    }, 0);
+                });
+            }
         });
     });
     </script>
