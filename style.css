@@ -248,45 +248,52 @@ Author URI: https://greenmindagency.com
 
 .woocommerce-Reviews .star-rating-input {
     display: inline-flex;
-    flex-direction: row-reverse;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.woocommerce-Reviews .star-rating-input__stars {
+    display: inline-flex;
     gap: 0.35rem;
     font-size: 2.25rem;
 }
 
-.woocommerce-Reviews .star-rating-input input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.woocommerce-Reviews .star-rating-input label {
-    cursor: pointer;
+.woocommerce-Reviews .star-rating-input__star {
+    background-color: transparent;
+    border: 0;
     color: #ced4da;
-    transition: color 0.2s ease;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s ease, transform 0.2s ease;
 }
 
-.woocommerce-Reviews .star-rating-input label i {
-    pointer-events: none;
-}
-
-.woocommerce-Reviews .star-rating-input label:hover,
-.woocommerce-Reviews .star-rating-input label:hover ~ label {
+.woocommerce-Reviews .star-rating-input__star:hover,
+.woocommerce-Reviews .star-rating-input__star.is-hover,
+.woocommerce-Reviews .star-rating-input__star.is-selected {
     color: #ffc107;
 }
 
-.woocommerce-Reviews .star-rating-input input:checked ~ label {
-    color: #ffc107;
+.woocommerce-Reviews .star-rating-input__star.is-selected {
+    transform: scale(1.05);
 }
 
-.woocommerce-Reviews .star-rating-input input:checked ~ label:hover,
-.woocommerce-Reviews .star-rating-input input:checked ~ label:hover ~ label {
-    color: #ffc107;
-}
-
-.woocommerce-Reviews .star-rating-input label:focus-visible {
+.woocommerce-Reviews .star-rating-input__star:focus-visible {
     outline: 2px solid #0d6efd;
     outline-offset: 4px;
     border-radius: 0.5rem;
+}
+
+.woocommerce-Reviews .star-rating-input__value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .woocommerce-Reviews .selected-rating-display {
