@@ -122,7 +122,7 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  <?php endif; ?>
  <?php endif; ?>
 
- <div id="review_form_wrapper" class="mt-5">
+ <div id="review_form_wrapper" class="mt-5 p-0">
  <div id="review_form" class="product-review-form card border-0 shadow-sm bg-white rounded-4">
  <div class="card-body p-4 p-lg-5 bg-light">
  <?php
