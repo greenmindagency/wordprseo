@@ -193,3 +193,63 @@ Author URI: https://greenmindagency.com
 .single-product .woocommerce-product-attributes.shop_attributes p {
     margin-bottom: 0;
 }
+/* Product review redesign */
+.woocommerce .product-review-card {
+    border: 0;
+    box-shadow: 0 1rem 2.5rem rgba(18, 38, 63, 0.08);
+}
+
+.woocommerce .product-review-card .review-card-media {
+    min-height: 220px;
+}
+
+.woocommerce .product-review-card .review-card-media img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+}
+
+.woocommerce .product-review-card__quote {
+    color: #6c757d;
+    line-height: 1.7;
+}
+
+.woocommerce .product-review-card__quote i {
+    font-size: 1.25rem;
+    vertical-align: middle;
+}
+
+.woocommerce .product-review-card__quote-text p:last-child {
+    margin-bottom: 0;
+}
+
+.woocommerce .product-review-card__quote-text p {
+    color: inherit;
+    font-size: inherit;
+}
+
+.woocommerce .product-review-card__badge {
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+}
+
+.woocommerce-Reviews .product-review-form {
+    border-radius: 1.5rem;
+}
+
+.woocommerce-Reviews .product-review-form label {
+    color: #212529;
+}
+
+.woocommerce-Reviews .product-review-form .form-control,
+.woocommerce-Reviews .product-review-form .form-select {
+    border-radius: 0.75rem;
+}
+
+.tracking-wide {
+    letter-spacing: 0.18em;
+}
+
+.object-fit-cover {
+    object-fit: cover;
+}
