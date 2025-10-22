@@ -293,6 +293,36 @@ Author URI: https://greenmindagency.com
     font-size: 1.125rem;
 }
 
+.single-product .woocommerce-product-rating.product-rating {
+    align-items: flex-start;
+}
+
+@media (min-width: 576px) {
+    .single-product .woocommerce-product-rating.product-rating {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+.single-product .product-rating__average {
+    line-height: 1;
+}
+
+.single-product .product-rating__stars i {
+    color: inherit;
+}
+
+.single-product .product-rating__reviews {
+    color: #6c757d;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+}
+
+.single-product .product-rating__reviews:hover,
+.single-product .product-rating__reviews:focus {
+    color: #0d6efd;
+}
+
 .visually-hidden {
     position: absolute !important;
     width: 1px;
