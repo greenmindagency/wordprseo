@@ -70,9 +70,7 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
 
  <div class="p-3 mt-3 bg-light rounded-0">
  <p class="mb-0 review-comment fst-italic text-dark">
- <i class="fas fa-quote-left quote-icon me-1"></i>
  <?php comment_text(); ?>
- <i class="fas fa-quote-right quote-icon ms-1"></i>
  </p>
  </div>
  </div>
@@ -109,6 +107,8 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  array(
  'per_page' => get_option( 'comments_per_page',10 ),
  'style' => 'div',
+ // prevent WP from outputting a separate default avatar; our callback handles the avatar inside the card
+ 'avatar_size' =>0,
  'callback' => 'wordprseo_product_review',
  )
  );
