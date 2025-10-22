@@ -237,6 +237,11 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
 </div>
 <?php if ( wc_review_ratings_enabled() ) : ?>
  <style>
+ /* Hide any avatar output that appears before/around the review list (prevents duplicate avatar) */
+ .product-review-list img.avatar { display: none !important; }
+ /* Explicitly allow avatar inside our card to be visible */
+ .product-review-card .reviewer-avatar img { display: inline-block !important; }
+
  .woocommerce-Reviews .star-rating-input {
  display: inline-flex;
  flex-direction: row-reverse;
