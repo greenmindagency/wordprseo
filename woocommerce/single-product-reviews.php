@@ -96,6 +96,18 @@ $review_count = $product ? $product->get_review_count() : 0;
                             ?>
                             <div class="mb-3">
                                 <span id="rating-label" class="form-label d-block fw-semibold mb-2"><?php esc_html_e( 'Your rating', 'woocommerce' ); ?></span>
+                                <input
+                                    type="number"
+                                    id="<?php echo esc_attr( $rating_input_id ); ?>"
+                                    class="star-rating-input__value"
+                                    name="rating"
+                                    min="1"
+                                    max="5"
+                                    step="1"
+                                    aria-hidden="true"
+                                    value="<?php echo $current_rating ? esc_attr( $current_rating ) : ''; ?>"
+                                    <?php echo $current_rating ? '' : ' required'; ?>
+                                />
                                 <div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label">
                                     <?php for ( $rating_value = 5; $rating_value >= 1; $rating_value-- ) :
                                         $rating_text = sprintf( _n( '%s star', '%s stars', $rating_value, 'woocommerce' ), number_format_i18n( $rating_value ) );
@@ -103,11 +115,10 @@ $review_count = $product ? $product->get_review_count() : 0;
                                         <input
                                             type="radio"
                                             id="<?php echo esc_attr( $rating_input_id . '-' . $rating_value ); ?>"
-                                            name="rating"
+                                            name="rating-choice"
                                             value="<?php echo esc_attr( $rating_value ); ?>"
                                             data-selected-text="<?php echo esc_attr( $rating_text ); ?>"
                                             <?php checked( $current_rating, $rating_value ); ?>
-                                            <?php echo $current_rating ? '' : ( 1 === $rating_value ? ' required' : '' ); ?>
                                         />
                                         <label for="<?php echo esc_attr( $rating_input_id . '-' . $rating_value ); ?>" title="<?php echo esc_attr( $rating_text ); ?>">
                                             <i class="fas fa-star" aria-hidden="true"></i>
@@ -170,6 +181,17 @@ $review_count = $product ? $product->get_review_count() : 0;
             margin-bottom: 1rem;
         }
 
+        .woocommerce-Reviews .star-rating-input__value {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
         .woocommerce-Reviews .star-rating-input input {
             position: absolute;
             opacity: 0;
@@ -202,7 +224,8 @@ $review_count = $product ? $product->get_review_count() : 0;
         var ratingGroups = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
 
         ratingGroups.forEach(function (group) {
-            var inputs = Array.prototype.slice.call(group.querySelectorAll('input[name="rating"]'));
+            var inputs = Array.prototype.slice.call(group.querySelectorAll('input[name="rating-choice"]'));
+            var hiddenInput = group.parentElement.querySelector('.star-rating-input__value');
             var display = group.parentElement.querySelector('.selected-rating-display');
             var defaultMessage = display ? display.getAttribute('data-default-message') : '';
             var selectedPrefix = display ? display.getAttribute('data-selected-prefix') : '';
@@ -212,7 +235,14 @@ $review_count = $product ? $product->get_review_count() : 0;
                     return;
                 }
 
-                var checkedInput = group.querySelector('input[name="rating"]:checked');
+                var checkedInput = group.querySelector('input[name="rating-choice"]:checked');
+
+                if (!checkedInput && hiddenInput && hiddenInput.value) {
+                    checkedInput = group.querySelector('input[name="rating-choice"][value="' + hiddenInput.value + '"]');
+                    if (checkedInput) {
+                        checkedInput.checked = true;
+                    }
+                }
 
                 if (checkedInput) {
                     var selectedText = checkedInput.getAttribute('data-selected-text') || '';
@@ -225,10 +255,20 @@ $review_count = $product ? $product->get_review_count() : 0;
                     display.textContent = message;
                     display.classList.remove('text-muted', 'text-danger');
                     display.classList.add('text-warning');
+                    if (hiddenInput) {
+                        hiddenInput.value = value;
+                        hiddenInput.required = false;
+                        hiddenInput.setCustomValidity('');
+                    }
                 } else {
                     display.textContent = defaultMessage;
                     display.classList.remove('text-warning', 'text-danger');
                     display.classList.add('text-muted');
+                    if (hiddenInput) {
+                        hiddenInput.value = '';
+                        hiddenInput.required = true;
+                        hiddenInput.setCustomValidity('');
+                    }
                 }
             };
 
@@ -242,9 +282,9 @@ $review_count = $product ? $product->get_review_count() : 0;
 
             if (form) {
                 form.addEventListener('submit', function (event) {
-                    var checkedInput = group.querySelector('input[name="rating"]:checked');
+                    var checkedInput = group.querySelector('input[name="rating-choice"]:checked');
 
-                    if (checkedInput) {
+                    if (checkedInput && (!hiddenInput || hiddenInput.value)) {
                         if (display) {
                             display.classList.remove('text-danger');
                         }
