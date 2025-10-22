@@ -44,7 +44,8 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  $image_src = wc_placeholder_img_src();
  }
 
- do_action( 'woocommerce_review_before', $comment );
+ // Removed default WooCommerce review-before action to avoid duplicate avatar output.
+ // do_action( 'woocommerce_review_before', $comment );
  ?>
  <div <?php comment_class( 'p-4 shadow-sm bg-white border border-light border-opacity-50 product-review-card mb-4' ); ?> id="comment-<?php comment_ID(); ?>">
  <div class="d-flex align-items-center mb-2">
@@ -103,15 +104,27 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  <?php if ( have_comments() ) : ?>
  <div class="product-review-list">
  <?php
- wp_list_comments(
- array(
- 'per_page' => get_option( 'comments_per_page',10 ),
- 'style' => 'div',
- // prevent WP from outputting a separate default avatar; our callback handles the avatar inside the card
+ // Render comments manually to avoid WP/WooCommerce injecting an extra avatar before the list.
+ $product_comments = get_comments( array(
+ 'post_id' => get_the_ID(),
+ 'status' => 'approve',
+ 'type' => 'comment',
+ ) );
+
+ if ( ! empty( $product_comments ) ) {
+ foreach ( $product_comments as $c ) {
+ // Ensure globals used by comment functions are set properly
+ $GLOBALS['comment'] = $c;
+ // Provide a minimal args array expected by the callback
+ $callback_args = array(
  'avatar_size' =>0,
- 'callback' => 'wordprseo_product_review',
- )
+ 'max_depth' =>3,
+ 'format' => 'html5',
  );
+ // Call the custom callback directly. Depth is1 for top-level comments.
+ wordprseo_product_review( $c, $callback_args,1 );
+ }
+ }
  ?>
  </div>
 
@@ -122,7 +135,7 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  <?php endif; ?>
  <?php endif; ?>
 
- <div id="review_form_wrapper" class="mt-5 p-0">
+ <div id="review_form_wrapper" class="mt-5">
  <div id="review_form" class="product-review-form card border-0 shadow-sm bg-white rounded-4">
  <div class="card-body p-4 p-lg-5 bg-light">
  <?php
@@ -237,11 +250,7 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
 </div>
 <?php if ( wc_review_ratings_enabled() ) : ?>
  <style>
- /* Hide any avatar output that appears before/around the review list (prevents duplicate avatar) */
- .product-review-list img.avatar { display: none !important; }
- /* Explicitly allow avatar inside our card to be visible */
- .product-review-card .reviewer-avatar img { display: inline-block !important; }
-
+ /* Styles for star rating input */
  .woocommerce-Reviews .star-rating-input {
  display: inline-flex;
  flex-direction: row-reverse;
