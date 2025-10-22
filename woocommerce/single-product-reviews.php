@@ -16,6 +16,98 @@ if ( ! comments_open() ) {
 }
 
 $review_count = $product ? $product->get_review_count() : 0;
+
+// Ensure the custom callback for product reviews is defined before it's used.
+if ( ! function_exists( 'wordprseo_product_review' ) ) {
+    /**
+     * Custom callback for rendering product reviews in a testimonial inspired layout.
+     *
+     * @param WP_Comment $comment Comment object.
+     * @param array      $args    Arguments passed to wp_list_comments().
+     * @param int        $depth   Comment depth.
+     */
+    function wordprseo_product_review( $comment, $args, $depth ) {
+        $rating_enabled = wc_review_ratings_enabled();
+        $rating         = intval( get_comment_meta( $comment->comment_ID, 'rating', true ) );
+        $verified       = wc_review_is_from_verified_owner( $comment->comment_ID );
+        $product_id     = $comment->comment_post_ID;
+        $image_id       = get_post_thumbnail_id( $product_id );
+
+        $image_src = '';
+        $image_w   = '';
+        $image_h   = '';
+
+        if ( $image_id ) {
+            $image_data = wp_get_attachment_image_src( $image_id, 'large' );
+            if ( $image_data ) {
+                $image_src = $image_data[0];
+                $image_w   = $image_data[1];
+                $image_h   = $image_data[2];
+            }
+        }
+
+        // Use placeholder image if no image source was found.
+        if ( ! $image_src ) {
+            $image_src = wc_placeholder_img_src();
+        }
+
+        do_action( 'woocommerce_review_before', $comment );
+        ?>
+        <div <?php comment_class( 'product-review-card shadow-sm bg-white rounded-4 overflow-hidden mb-4' ); ?> id="comment-<?php comment_ID(); ?>">
+            <div class="row g-0 align-items-stretch">
+                <div class="col-lg-5 col-md-4 review-card-media bg-light">
+                    <img class="img-fluid w-100 h-100 object-fit-cover" src="<?php echo esc_url( $image_src ); ?>" alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>" <?php if ( $image_w ) : ?>width="<?php echo esc_attr( $image_w ); ?>"<?php endif; ?> <?php if ( $image_h ) : ?>height="<?php echo esc_attr( $image_h ); ?>"<?php endif; ?> loading="lazy" />
+                </div>
+                <div class="col-lg-7 col-md-8">
+                    <div class="p-4 p-lg-5 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <?php if ( '0' === $comment->comment_approved ) : ?>
+                                <p class="text-info small mb-3"><?php esc_html_e( 'Your review is awaiting approval', 'woocommerce' ); ?></p>
+                            <?php endif; ?>
+
+                            <?php do_action( 'woocommerce_review_before_comment_meta', $comment ); ?>
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                <div>
+                                    <p class="fs-3 fw-bold mb-1"><?php comment_author(); ?></p>
+                                    <p class="text-muted small mb-0"><?php echo esc_html( sprintf( __( 'Reviewed on %s', 'msbdtcp' ), get_comment_date( wc_date_format(), $comment ) ) ); ?></p>
+                                </div>
+                                <?php if ( $rating_enabled && $rating ) : ?>
+                                    <ul class="list-unstyled d-flex gap-1 text-warning fs-5 mb-0">
+                                        <?php for ( $i = 1; $i <= 5; $i++ ) : ?>
+                                            <li><i class="<?php echo $i <= $rating ? 'fas' : 'far'; ?> fa-star"></i></li>
+                                        <?php endfor; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ( $verified ) : ?>
+                                <span class="badge bg-primary-subtle text-primary text-uppercase fw-semibold mb-3 product-review-card__badge"><?php esc_html_e( 'Verified owner', 'woocommerce' ); ?></span>
+                            <?php endif; ?>
+
+                            <?php do_action( 'woocommerce_review_after_comment_meta', $comment ); ?>
+
+                            <?php do_action( 'woocommerce_review_before_comment_text', $comment ); ?>
+
+                            <div class="product-review-card__quote position-relative text-muted fs-5">
+                                <i class="fas fa-quote-left text-primary me-2"></i>
+                                <div class="product-review-card__quote-text">
+                                    <?php comment_text(); ?>
+                                </div>
+                                <i class="fas fa-quote-right text-primary ms-2"></i>
+                            </div>
+
+                            <?php do_action( 'woocommerce_review_after_comment_text', $comment ); ?>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php do_action( 'woocommerce_review_after', $comment ); ?>
+        <?php
+    }
+}
 ?>
 
 <div id="reviews" class="woocommerce-Reviews container my-5">
@@ -314,95 +406,3 @@ $review_count = $product ? $product->get_review_count() : 0;
     });
     </script>
 <?php endif; ?>
-<?php
-if ( ! function_exists( 'wordprseo_product_review' ) ) {
-    /**
-     * Custom callback for rendering product reviews in a testimonial inspired layout.
-     *
-     * @param WP_Comment $comment Comment object.
-     * @param array      $args    Arguments passed to wp_list_comments().
-     * @param int        $depth   Comment depth.
-     */
-    function wordprseo_product_review( $comment, $args, $depth ) {
-        $rating_enabled = wc_review_ratings_enabled();
-        $rating         = intval( get_comment_meta( $comment->comment_ID, 'rating', true ) );
-        $verified       = wc_review_is_from_verified_owner( $comment->comment_ID );
-        $product_id     = $comment->comment_post_ID;
-        $image_id       = get_post_thumbnail_id( $product_id );
-
-        $image_src = '';
-        $image_w   = '';
-        $image_h   = '';
-
-        if ( $image_id ) {
-            $image_data = wp_get_attachment_image_src( $image_id, 'large' );
-            if ( $image_data ) {
-                $image_src = $image_data[0];
-                $image_w   = $image_data[1];
-                $image_h   = $image_data[2];
-            }
-        }
-
-        // Use placeholder image if no image source was found.
-        if ( ! $image_src ) {
-            $image_src = wc_placeholder_img_src();
-        }
-
-        do_action( 'woocommerce_review_before', $comment );
-        ?>
-        <div <?php comment_class( 'product-review-card shadow-sm bg-white rounded-4 overflow-hidden mb-4' ); ?> id="comment-<?php comment_ID(); ?>">
-            <div class="row g-0 align-items-stretch">
-                <div class="col-lg-5 col-md-4 review-card-media bg-light">
-                    <img class="img-fluid w-100 h-100 object-fit-cover" src="<?php echo esc_url( $image_src ); ?>" alt="<?php echo esc_attr( get_the_title( $product_id ) ); ?>" <?php if ( $image_w ) : ?>width="<?php echo esc_attr( $image_w ); ?>"<?php endif; ?> <?php if ( $image_h ) : ?>height="<?php echo esc_attr( $image_h ); ?>"<?php endif; ?> loading="lazy" />
-                </div>
-                <div class="col-lg-7 col-md-8">
-                    <div class="p-4 p-lg-5 h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <?php if ( '0' === $comment->comment_approved ) : ?>
-                                <p class="text-info small mb-3"><?php esc_html_e( 'Your review is awaiting approval', 'woocommerce' ); ?></p>
-                            <?php endif; ?>
-
-                            <?php do_action( 'woocommerce_review_before_comment_meta', $comment ); ?>
-
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                                <div>
-                                    <p class="fs-3 fw-bold mb-1"><?php comment_author(); ?></p>
-                                    <p class="text-muted small mb-0"><?php echo esc_html( sprintf( __( 'Reviewed on %s', 'msbdtcp' ), get_comment_date( wc_date_format(), $comment ) ) ); ?></p>
-                                </div>
-                                <?php if ( $rating_enabled && $rating ) : ?>
-                                    <ul class="list-unstyled d-flex gap-1 text-warning fs-5 mb-0">
-                                        <?php for ( $i = 1; $i <= 5; $i++ ) : ?>
-                                            <li><i class="<?php echo $i <= $rating ? 'fas' : 'far'; ?> fa-star"></i></li>
-                                        <?php endfor; ?>
-                                    </ul>
-                                <?php endif; ?>
-                            </div>
-
-                            <?php if ( $verified ) : ?>
-                                <span class="badge bg-primary-subtle text-primary text-uppercase fw-semibold mb-3 product-review-card__badge"><?php esc_html_e( 'Verified owner', 'woocommerce' ); ?></span>
-                            <?php endif; ?>
-
-                            <?php do_action( 'woocommerce_review_after_comment_meta', $comment ); ?>
-
-                            <?php do_action( 'woocommerce_review_before_comment_text', $comment ); ?>
-
-                            <div class="product-review-card__quote position-relative text-muted fs-5">
-                                <i class="fas fa-quote-left text-primary me-2"></i>
-                                <div class="product-review-card__quote-text">
-                                    <?php comment_text(); ?>
-                                </div>
-                                <i class="fas fa-quote-right text-primary ms-2"></i>
-                            </div>
-
-                            <?php do_action( 'woocommerce_review_after_comment_text', $comment ); ?>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php do_action( 'woocommerce_review_after', $comment ); ?>
-        <?php
-    }
-}
-?>
