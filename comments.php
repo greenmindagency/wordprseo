@@ -25,14 +25,12 @@ if ( post_password_required() ) {
         </div>
 		<ul class="list-unstyled comment-list">
 			<?php
-			// Safely instantiate custom comment walker if available to avoid fatal errors.
-			$msbdtcp_comment_walker = class_exists( 'MSBDTCP_Walker_Comment' ) ? new MSBDTCP_Walker_Comment() : null;
 			wp_list_comments( array(
 				'style'      => 'ul',
                 'short_ping' => true,
                 'avatar_size' => 50,
                 'max_depth' => 3,
-                'walker'    => $msbdtcp_comment_walker,
+                'walker'    => new MSBDTCP_Walker_Comment
 			) );
 			?>
 		</ul>
