@@ -106,40 +106,46 @@ $average      = $product ? $product->get_average_rating() : 0;
                             'submit_button'        => '<button name="%1$s" type="submit" id="%2$s" class="%3$s">%4$s</button>',
                             'logged_in_as'         => '',
                             'fields'               => array(
-                                'author' => '<div class="mb-3">'
-                                    . '<label for="author" class="form-label fw-semibold">' . esc_html__( 'Name', 'woocommerce' ) . '</label>'
-                                    . '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" class="form-control" required />'
-                                    . '</div>',
-                                'email'  => '<div class="mb-3">'
-                                    . '<label for="email" class="form-label fw-semibold">' . esc_html__( 'Email', 'woocommerce' ) . '</label>'
-                                    . '<input id="email" name="email" type="email" value="' . esc_attr( $commenter['comment_author_email'] ) . '" class="form-control" required />'
-                                    . '</div>',
+                                'author' => sprintf(
+                                    '<div class="mb-3"><label for="author" class="form-label fw-semibold">%1$s</label><input id="author" name="author" type="text" value="%2$s" class="form-control" required /></div>',
+                                    esc_html__( 'Name', 'woocommerce' ),
+                                    esc_attr( $commenter['comment_author'] )
+                                ),
+                                'email'  => sprintf(
+                                    '<div class="mb-3"><label for="email" class="form-label fw-semibold">%1$s</label><input id="email" name="email" type="email" value="%2$s" class="form-control" required /></div>',
+                                    esc_html__( 'Email', 'woocommerce' ),
+                                    esc_attr( $commenter['comment_author_email'] )
+                                ),
                             ),
                             'comment_field'        => '',
                         );
 
                         if ( wc_review_ratings_enabled() ) {
-                            $comment_form['comment_field'] .= '<div class="mb-3">'
-                                . '<span id="rating-label" class="form-label d-block fw-semibold mb-2">' . esc_html__( 'Your rating', 'woocommerce' ) . '</span>'
-                                . '<div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label">'
-                                . '<input type="radio" id="rating-5" name="rating" value="5" ' . checked( $current_rating, 5, false ) . ' required />'
-                                . '<label for="rating-5" class="star" aria-label="' . esc_attr__( '5 stars', 'woocommerce' ) . '" title="' . esc_attr__( '5 stars', 'woocommerce' ) . '"><i class="fas fa-star" aria-hidden="true"></i></label>'
-                                . '<input type="radio" id="rating-4" name="rating" value="4" ' . checked( $current_rating, 4, false ) . ' />'
-                                . '<label for="rating-4" class="star" aria-label="' . esc_attr__( '4 stars', 'woocommerce' ) . '" title="' . esc_attr__( '4 stars', 'woocommerce' ) . '"><i class="fas fa-star" aria-hidden="true"></i></label>'
-                                . '<input type="radio" id="rating-3" name="rating" value="3" ' . checked( $current_rating, 3, false ) . ' />'
-                                . '<label for="rating-3" class="star" aria-label="' . esc_attr__( '3 stars', 'woocommerce' ) . '" title="' . esc_attr__( '3 stars', 'woocommerce' ) . '"><i class="fas fa-star" aria-hidden="true"></i></label>'
-                                . '<input type="radio" id="rating-2" name="rating" value="2" ' . checked( $current_rating, 2, false ) . ' />'
-                                . '<label for="rating-2" class="star" aria-label="' . esc_attr__( '2 stars', 'woocommerce' ) . '" title="' . esc_attr__( '2 stars', 'woocommerce' ) . '"><i class="fas fa-star" aria-hidden="true"></i></label>'
-                                . '<input type="radio" id="rating-1" name="rating" value="1" ' . checked( $current_rating, 1, false ) . ' />'
-                                . '<label for="rating-1" class="star" aria-label="' . esc_attr__( '1 star', 'woocommerce' ) . '" title="' . esc_attr__( '1 star', 'woocommerce' ) . '"><i class="fas fa-star" aria-hidden="true"></i></label>'
-                                . '</div>'
-                                . '<p class="small text-muted mt-2 mb-0">' . esc_html__( 'Select a star to rate.', 'msbdtcp' ) . '</p>'
-                                . '</div>';
+                            ob_start();
+                            ?>
+                            <div class="mb-3">
+                                <span id="rating-label" class="form-label d-block fw-semibold mb-2"><?php esc_html_e( 'Your rating', 'woocommerce' ); ?></span>
+                                <div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label" data-initial-rating="<?php echo esc_attr( $current_rating ); ?>">
+                                    <?php for ( $rating_value = 1; $rating_value <= 5; $rating_value++ ) :
+                                        $input_id    = 'rating-' . $rating_value;
+                                        $rating_text = sprintf( _n( '%s star', '%s stars', $rating_value, 'woocommerce' ), number_format_i18n( $rating_value ) );
+                                        ?>
+                                        <input type="radio" id="<?php echo esc_attr( $input_id ); ?>" name="rating" value="<?php echo esc_attr( $rating_value ); ?>" <?php echo checked( $current_rating, $rating_value, false ); ?><?php echo 1 === $rating_value ? ' required' : ''; ?> />
+                                        <label for="<?php echo esc_attr( $input_id ); ?>" class="star" data-star-value="<?php echo esc_attr( $rating_value ); ?>" aria-label="<?php echo esc_attr( $rating_text ); ?>" title="<?php echo esc_attr( $rating_text ); ?>">
+                                            <i class="fas fa-star" aria-hidden="true"></i>
+                                        </label>
+                                    <?php endfor; ?>
+                                </div>
+                                <p class="small text-muted mt-2 mb-0"><?php esc_html_e( 'Select a star to rate.', 'msbdtcp' ); ?></p>
+                            </div>
+                            <?php
+                            $comment_form['comment_field'] .= ob_get_clean();
                         }
 
+                        $comment_value = isset( $_POST['comment'] ) ? wp_unslash( $_POST['comment'] ) : '';
                         $comment_form['comment_field'] .= '<div class="mb-4">'
                             . '<label for="comment" class="form-label fw-semibold">' . esc_html__( 'Your review', 'woocommerce' ) . '</label>'
-                            . '<textarea id="comment" name="comment" cols="45" rows="6" class="form-control" required></textarea>'
+                            . '<textarea id="comment" name="comment" cols="45" rows="6" class="form-control" required>' . esc_textarea( $comment_value ) . '</textarea>'
                             . '</div>';
 
                         if ( get_option( 'comment_registration' ) && ! is_user_logged_in() ) {
@@ -163,6 +169,76 @@ $average      = $product ? $product->get_average_rating() : 0;
         </div>
     </div>
 </div>
+<?php if ( wc_review_ratings_enabled() ) : ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var ratingGroups = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
+
+        Array.prototype.forEach.call(ratingGroups, function (group) {
+            var labels = Array.prototype.slice.call(group.querySelectorAll('label.star'));
+            var inputs = Array.prototype.slice.call(group.querySelectorAll('input[type="radio"]'));
+
+            var getValue = function () {
+                var checked = group.querySelector('input[type="radio"]:checked');
+                return checked ? parseInt(checked.value, 10) : 0;
+            };
+
+            var toggleState = function (className, value) {
+                Array.prototype.forEach.call(labels, function (label) {
+                    var starValue = parseInt(label.getAttribute('data-star-value'), 10);
+                    label.classList.toggle(className, value > 0 && starValue <= value);
+                });
+            };
+
+            var syncActive = function () {
+                toggleState('is-active', getValue());
+            };
+
+            var initialAttr = parseInt(group.getAttribute('data-initial-rating'), 10);
+            if ( isNaN(initialAttr) ) {
+                initialAttr = getValue();
+            }
+            toggleState('is-active', initialAttr);
+
+            Array.prototype.forEach.call(labels, function (label) {
+                label.addEventListener('mouseenter', function () {
+                    var value = parseInt(label.getAttribute('data-star-value'), 10);
+                    toggleState('is-highlighted', value);
+                });
+
+                label.addEventListener('mouseleave', function () {
+                    toggleState('is-highlighted', 0);
+                });
+            });
+
+            Array.prototype.forEach.call(inputs, function (input) {
+                input.addEventListener('change', function () {
+                    toggleState('is-active', parseInt(input.value, 10));
+                });
+
+                input.addEventListener('focus', function () {
+                    toggleState('is-highlighted', parseInt(input.value, 10));
+                });
+
+                input.addEventListener('blur', function () {
+                    toggleState('is-highlighted', 0);
+                });
+            });
+
+            group.addEventListener('mouseleave', function () {
+                toggleState('is-highlighted', 0);
+                syncActive();
+            });
+
+            group.addEventListener('keydown', function () {
+                setTimeout(syncActive, 0);
+            });
+
+            syncActive();
+        });
+    });
+    </script>
+<?php endif; ?>
 <?php
 if ( ! function_exists( 'wordprseo_product_review' ) ) {
     /**
