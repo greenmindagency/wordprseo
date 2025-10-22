@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * The template for displaying comments
  *
@@ -30,8 +30,7 @@ if ( post_password_required() ) {
                 'short_ping' => true,
                 'avatar_size' => 50,
                 'max_depth' => 3,
-                // Use custom walker if available, otherwise fall back to core Walker_Comment
- 'walker' => ( class_exists( 'MSBDTCP_Walker_Comment' ) ? new MSBDTCP_Walker_Comment() : new Walker_Comment() )
+                'walker'    => new MSBDTCP_Walker_Comment
 			) );
 			?>
 		</ul>
