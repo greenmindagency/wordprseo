@@ -15,9 +15,7 @@ if ( ! comments_open() ) {
     return;
 }
 
-$rating_count = $product ? $product->get_rating_count() : 0;
 $review_count = $product ? $product->get_review_count() : 0;
-$average      = $product ? $product->get_average_rating() : 0;
 ?>
 
 <div id="reviews" class="woocommerce-Reviews container my-5">
@@ -25,44 +23,16 @@ $average      = $product ? $product->get_average_rating() : 0;
         <div class="col-lg-12 px-0">
             <div class="mb-5">
                 <h2 class="fs-1 fw-bold mb-3"><?php esc_html_e( 'Reviews', 'woocommerce' ); ?></h2>
-                <?php if ( $rating_count > 0 ) : ?>
-                    <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3 text-muted">
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="fw-semibold fs-5 text-dark"><?php echo esc_html( number_format_i18n( $average, 1 ) ); ?></span>
-                            <ul class="list-unstyled d-flex gap-1 text-warning fs-5 mb-0">
-                                <?php
-                                printf(
-                                    '<li class="visually-hidden">%s</li>',
-                                    esc_html( sprintf( __( 'Rated %s out of 5', 'woocommerce' ), number_format_i18n( $average, 1 ) ) )
-                                );
-
-                                $full_stars  = floor( $average );
-                                $fraction    = $average - $full_stars;
-                                $has_half    = $fraction >= 0.25 && $fraction < 0.75;
-                                $full_stars += $fraction >= 0.75 ? 1 : 0;
-
-                                for ( $i = 1; $i <= 5; $i++ ) {
-                                    if ( $i <= $full_stars ) {
-                                        echo '<li><i class="fas fa-star"></i></li>';
-                                    } elseif ( $has_half && $i === $full_stars + 1 ) {
-                                        echo '<li><i class="fas fa-star-half-alt"></i></li>';
-                                    } else {
-                                        echo '<li><i class="far fa-star"></i></li>';
-                                    }
-                                }
-                                ?>
-                            </ul>
-                        </div>
-                        <span class="small text-uppercase tracking-wide">
-                            <?php
-                            printf(
-                                /* translators: 1: number of reviews */
-                                esc_html( _n( '%s review', '%s reviews', $review_count, 'woocommerce' ) ),
-                                esc_html( number_format_i18n( $review_count ) )
-                            );
-                            ?>
-                        </span>
-                    </div>
+                <?php if ( $review_count > 0 ) : ?>
+                    <p class="text-muted mb-0">
+                        <?php
+                        printf(
+                            /* translators: 1: number of reviews */
+                            esc_html( _n( '%s review', '%s reviews', $review_count, 'woocommerce' ) ),
+                            esc_html( number_format_i18n( $review_count ) )
+                        );
+                        ?>
+                    </p>
                 <?php else : ?>
                     <p class="text-muted mb-0"><?php esc_html_e( 'There are no reviews yet.', 'woocommerce' ); ?></p>
                 <?php endif; ?>
@@ -126,30 +96,24 @@ $average      = $product ? $product->get_average_rating() : 0;
                             ?>
                             <div class="mb-3">
                                 <span id="rating-label" class="form-label d-block fw-semibold mb-2"><?php esc_html_e( 'Your rating', 'woocommerce' ); ?></span>
-                                <div class="star-rating-input" data-max-rating="5">
-                                    <input type="number" id="<?php echo esc_attr( $rating_input_id ); ?>" class="star-rating-input__value" name="rating" min="1" max="5" value="<?php echo $current_rating ? esc_attr( $current_rating ) : ''; ?>"<?php echo $current_rating ? '' : ' required'; ?> />
-                                    <div class="star-rating-input__stars" role="radiogroup" aria-labelledby="rating-label">
-                                        <?php
-                                        for ( $rating_value = 1; $rating_value <= 5; $rating_value++ ) :
-                                            $rating_text = sprintf( _n( '%s star', '%s stars', $rating_value, 'woocommerce' ), number_format_i18n( $rating_value ) );
-                                            $is_selected = $current_rating >= $rating_value;
-                                            $is_checked  = $current_rating === $rating_value;
-                                            ?>
-                                            <button
-                                                type="button"
-                                                class="star-rating-input__star<?php echo $is_selected ? ' is-selected' : ''; ?>"
-                                                data-value="<?php echo esc_attr( $rating_value ); ?>"
-                                                data-selected-text="<?php echo esc_attr( $rating_text ); ?>"
-                                                role="radio"
-                                                aria-checked="<?php echo $is_checked ? 'true' : 'false'; ?>"
-                                                aria-label="<?php echo esc_attr( $rating_text ); ?>"
-                                                tabindex="0"
-                                            >
-                                                <i class="fas fa-star" aria-hidden="true"></i>
-                                                <span class="visually-hidden"><?php echo esc_html( $rating_text ); ?></span>
-                                            </button>
-                                        <?php endfor; ?>
-                                    </div>
+                                <div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label">
+                                    <?php for ( $rating_value = 5; $rating_value >= 1; $rating_value-- ) :
+                                        $rating_text = sprintf( _n( '%s star', '%s stars', $rating_value, 'woocommerce' ), number_format_i18n( $rating_value ) );
+                                        ?>
+                                        <input
+                                            type="radio"
+                                            id="<?php echo esc_attr( $rating_input_id . '-' . $rating_value ); ?>"
+                                            name="rating"
+                                            value="<?php echo esc_attr( $rating_value ); ?>"
+                                            data-selected-text="<?php echo esc_attr( $rating_text ); ?>"
+                                            <?php checked( $current_rating, $rating_value ); ?>
+                                            <?php echo $current_rating ? '' : ( 1 === $rating_value ? ' required' : '' ); ?>
+                                        />
+                                        <label for="<?php echo esc_attr( $rating_input_id . '-' . $rating_value ); ?>" title="<?php echo esc_attr( $rating_text ); ?>">
+                                            <i class="fas fa-star" aria-hidden="true"></i>
+                                            <span class="visually-hidden"><?php echo esc_html( $rating_text ); ?></span>
+                                        </label>
+                                    <?php endfor; ?>
                                 </div>
                                 <?php
                                 $default_rating_message  = esc_html__( 'No rating selected.', 'msbdtcp' );
@@ -197,37 +161,66 @@ $average      = $product ? $product->get_average_rating() : 0;
     </div>
 </div>
 <?php if ( wc_review_ratings_enabled() ) : ?>
+    <style>
+        .woocommerce-Reviews .star-rating-input {
+            display: inline-flex;
+            flex-direction: row-reverse;
+            gap: 0.35rem;
+            font-size: 2.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .woocommerce-Reviews .star-rating-input input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .woocommerce-Reviews .star-rating-input label {
+            cursor: pointer;
+            display: inline-flex;
+            color: #ced4da;
+            transition: color 0.2s ease;
+        }
+
+        .woocommerce-Reviews .star-rating-input label:hover,
+        .woocommerce-Reviews .star-rating-input label:hover ~ label {
+            color: #ffc107;
+        }
+
+        .woocommerce-Reviews .star-rating-input input:checked ~ label {
+            color: #ffc107;
+        }
+
+        .woocommerce-Reviews .star-rating-input input:checked ~ label:hover,
+        .woocommerce-Reviews .star-rating-input input:checked ~ label:hover ~ label {
+            color: #ffc107;
+        }
+    </style>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var ratingComponents = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
+        var ratingGroups = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
 
-        ratingComponents.forEach(function (component) {
-            var hiddenInput = component.querySelector('.star-rating-input__value');
-            var stars = Array.from(component.querySelectorAll('.star-rating-input__star'));
-            var display = component.parentElement.querySelector('.selected-rating-display');
+        ratingGroups.forEach(function (group) {
+            var inputs = group.querySelectorAll('input[name="rating"]');
+            var display = group.parentElement.querySelector('.selected-rating-display');
             var defaultMessage = display ? display.getAttribute('data-default-message') : '';
             var selectedPrefix = display ? display.getAttribute('data-selected-prefix') : '';
-            var currentRating = parseInt(hiddenInput && hiddenInput.value ? hiddenInput.value : 0, 10) || 0;
 
-            var clearHoverState = function () {
-                stars.forEach(function (star) {
-                    star.classList.remove('is-hover');
-                });
-            };
-
-            var applyHoverState = function (rating) {
-                stars.forEach(function (star) {
-                    var starValue = parseInt(star.getAttribute('data-value'), 10);
-                    star.classList.toggle('is-hover', rating >= starValue);
-                });
-            };
-
-            var updateDisplay = function (rating, selectedText) {
+            var updateDisplay = function () {
                 if (!display) {
                     return;
                 }
 
-                if (rating > 0) {
+                var checkedInput = group.querySelector('input[name="rating"]:checked');
+
+                if (checkedInput) {
+                    var selectedText = checkedInput.getAttribute('data-selected-text') || '';
+                    var value = checkedInput.value;
+                    if (!selectedText) {
+                        var textTemplate = parseInt(value, 10) === 1 ? '%s star' : '%s stars';
+                        selectedText = textTemplate.replace('%s', value);
+                    }
                     var message = selectedPrefix ? selectedPrefix + selectedText : selectedText;
                     display.textContent = message;
                     display.classList.remove('text-muted', 'text-danger');
@@ -239,109 +232,11 @@ $average      = $product ? $product->get_average_rating() : 0;
                 }
             };
 
-            var applySelectionState = function (rating) {
-                var activeIndex = rating > 0 ? rating - 1 : 0;
-
-                stars.forEach(function (star, index) {
-                    var starValue = parseInt(star.getAttribute('data-value'), 10);
-                    var isSelected = rating > 0 && rating >= starValue;
-                    star.classList.toggle('is-selected', isSelected);
-                    star.setAttribute('aria-checked', rating === starValue ? 'true' : 'false');
-                    star.setAttribute('tabindex', index === activeIndex ? '0' : '-1');
-                });
-            };
-
-            var setRating = function (rating, selectedText) {
-                currentRating = rating;
-
-                if (hiddenInput) {
-                    if (rating > 0) {
-                        hiddenInput.value = rating;
-                        hiddenInput.required = false;
-                        hiddenInput.setCustomValidity('');
-                    } else {
-                        hiddenInput.value = '';
-                        hiddenInput.required = true;
-                    }
-                }
-
-                applySelectionState(currentRating);
-                updateDisplay(currentRating, selectedText || '');
-                clearHoverState();
-            };
-
-            stars.forEach(function (star, index) {
-                var value = parseInt(star.getAttribute('data-value'), 10);
-                var selectedText = star.getAttribute('data-selected-text') || '';
-
-                star.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    setRating(value, selectedText);
-                });
-
-                star.addEventListener('mouseenter', function () {
-                    applyHoverState(value);
-                });
-
-                star.addEventListener('mouseleave', function () {
-                    clearHoverState();
-                });
-
-                star.addEventListener('focus', function () {
-                    clearHoverState();
-                });
-
-                star.addEventListener('keydown', function (event) {
-                    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
-                        event.preventDefault();
-                        var nextIndex = Math.min(stars.length - 1, index + 1);
-                        stars[nextIndex].focus();
-                    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
-                        event.preventDefault();
-                        var prevIndex = Math.max(0, index - 1);
-                        stars[prevIndex].focus();
-                    } else if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setRating(value, selectedText);
-                    }
-                });
+            inputs.forEach(function (input) {
+                input.addEventListener('change', updateDisplay);
             });
 
-            component.addEventListener('mouseleave', function () {
-                clearHoverState();
-            });
-
-            var initialText = currentRating > 0 && stars[currentRating - 1]
-                ? stars[currentRating - 1].getAttribute('data-selected-text')
-                : '';
-            setRating(currentRating, initialText);
-
-            var form = component.closest('form');
-            if (form) {
-                form.addEventListener('submit', function (event) {
-                    if (!hiddenInput || hiddenInput.value) {
-                        if (display) {
-                            display.classList.remove('text-danger');
-                        }
-                        return;
-                    }
-
-                    event.preventDefault();
-                    if (display) {
-                        display.textContent = defaultMessage;
-                        display.classList.remove('text-warning');
-                        display.classList.add('text-danger');
-                    }
-
-                    if (stars.length) {
-                        stars[0].focus();
-                    }
-                });
-
-                form.addEventListener('reset', function () {
-                    setRating(0, '');
-                });
-            }
+            updateDisplay();
         });
     });
     </script>
