@@ -23,15 +23,35 @@ $average      = $product ? $product->get_average_rating() : 0;
 <div id="reviews" class="woocommerce-Reviews container my-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <div class="text-center mb-5">
+            <div class="mb-5">
                 <h2 class="fs-1 fw-bold mb-3"><?php esc_html_e( 'Reviews', 'woocommerce' ); ?></h2>
                 <?php if ( $rating_count > 0 ) : ?>
-                    <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-2 text-muted">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-semibold fs-5 text-dark"><?php echo esc_html( number_format( $average, 1 ) ); ?></span>
-                            <span class="product-review-card__stars text-warning d-inline-flex">
-                                <?php echo wc_get_rating_html( $average ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                            </span>
+                    <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3 text-muted">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fw-semibold fs-5 text-dark"><?php echo esc_html( number_format_i18n( $average, 1 ) ); ?></span>
+                            <ul class="list-unstyled d-flex gap-1 text-warning fs-5 mb-0">
+                                <?php
+                                printf(
+                                    '<li class="visually-hidden">%s</li>',
+                                    esc_html( sprintf( __( 'Rated %s out of 5', 'woocommerce' ), number_format_i18n( $average, 1 ) ) )
+                                );
+
+                                $full_stars  = floor( $average );
+                                $fraction    = $average - $full_stars;
+                                $has_half    = $fraction >= 0.25 && $fraction < 0.75;
+                                $full_stars += $fraction >= 0.75 ? 1 : 0;
+
+                                for ( $i = 1; $i <= 5; $i++ ) {
+                                    if ( $i <= $full_stars ) {
+                                        echo '<li><i class="fas fa-star"></i></li>';
+                                    } elseif ( $has_half && $i === $full_stars + 1 ) {
+                                        echo '<li><i class="fas fa-star-half-alt"></i></li>';
+                                    } else {
+                                        echo '<li><i class="far fa-star"></i></li>';
+                                    }
+                                }
+                                ?>
+                            </ul>
                         </div>
                         <span class="small text-uppercase tracking-wide">
                             <?php
@@ -70,7 +90,7 @@ $average      = $product ? $product->get_average_rating() : 0;
 
             <div id="review_form_wrapper" class="mt-5">
                 <div id="review_form" class="product-review-form card border-0 shadow-sm bg-white rounded-4">
-                    <div class="card-body p-4 p-lg-5">
+                    <div class="card-body p-4 p-lg-5 bg-light">
                         <?php
                         $commenter    = wp_get_current_commenter();
                         $comment_form = array(

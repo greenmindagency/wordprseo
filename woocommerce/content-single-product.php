@@ -101,12 +101,22 @@ $tabs = apply_filters( 'woocommerce_product_tabs', array() );
 
 $primary_tabs   = array();
 $remaining_tabs = $tabs;
+$reviews_tab    = null;
 
 foreach ( array( 'additional_information', 'description' ) as $tab_key ) {
     if ( isset( $remaining_tabs[ $tab_key ] ) ) {
         $primary_tabs[ $tab_key ] = $remaining_tabs[ $tab_key ];
         unset( $remaining_tabs[ $tab_key ] );
     }
+}
+
+if ( isset( $remaining_tabs['reviews'] ) ) {
+    $reviews_tab = array(
+        'key' => 'reviews',
+        'tab' => $remaining_tabs['reviews'],
+    );
+
+    unset( $remaining_tabs['reviews'] );
 }
 
 $sale_flash_html        = '';
@@ -427,6 +437,12 @@ $after_summary_extra = trim( ob_get_clean() );
                         endforeach;
                         ?>
                     </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ( ! empty( $reviews_tab ) && isset( $reviews_tab['tab']['callback'] ) ) : ?>
+                <div class="mt-5">
+                    <?php call_user_func( $reviews_tab['tab']['callback'], $reviews_tab['tab'], $reviews_tab['key'] ); ?>
                 </div>
             <?php endif; ?>
 
