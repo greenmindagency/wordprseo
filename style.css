@@ -248,8 +248,9 @@ Author URI: https://greenmindagency.com
 
 .woocommerce-Reviews .star-rating-input {
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: row-reverse;
+    gap: 0.35rem;
+    font-size: 2.25rem;
 }
 
 .woocommerce-Reviews .star-rating-input input {
@@ -260,34 +261,36 @@ Author URI: https://greenmindagency.com
 
 .woocommerce-Reviews .star-rating-input label {
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    font-size: 1.75rem;
-    color: #dee2e6;
-    transition: color 0.2s ease, transform 0.2s ease;
+    color: #ced4da;
+    transition: color 0.2s ease;
 }
 
 .woocommerce-Reviews .star-rating-input label i {
     pointer-events: none;
-    transition: color 0.2s ease, transform 0.2s ease;
 }
 
-.woocommerce-Reviews .star-rating-input label.is-highlighted i {
-    color: #ffcd39;
-}
-
-.woocommerce-Reviews .star-rating-input label.is-active i {
+.woocommerce-Reviews .star-rating-input label:hover,
+.woocommerce-Reviews .star-rating-input label:hover ~ label {
     color: #ffc107;
 }
 
-.woocommerce-Reviews .star-rating-input label.is-highlighted.is-active i {
-    color: #ffcd39;
+.woocommerce-Reviews .star-rating-input input:checked ~ label {
+    color: #ffc107;
+}
+
+.woocommerce-Reviews .star-rating-input input:checked ~ label:hover,
+.woocommerce-Reviews .star-rating-input input:checked ~ label:hover ~ label {
+    color: #ffc107;
 }
 
 .woocommerce-Reviews .star-rating-input label:focus-visible {
     outline: 2px solid #0d6efd;
     outline-offset: 4px;
     border-radius: 0.5rem;
+}
+
+.woocommerce-Reviews .selected-rating-display {
+    font-size: 1.125rem;
 }
 
 .visually-hidden {

@@ -125,18 +125,31 @@ $average      = $product ? $product->get_average_rating() : 0;
                             ?>
                             <div class="mb-3">
                                 <span id="rating-label" class="form-label d-block fw-semibold mb-2"><?php esc_html_e( 'Your rating', 'woocommerce' ); ?></span>
-                                <div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label" data-initial-rating="<?php echo esc_attr( $current_rating ); ?>">
-                                    <?php for ( $rating_value = 1; $rating_value <= 5; $rating_value++ ) :
+                                <div class="star-rating-input" role="radiogroup" aria-labelledby="rating-label">
+                                    <?php for ( $rating_value = 5; $rating_value >= 1; $rating_value-- ) :
                                         $input_id    = 'rating-' . $rating_value;
                                         $rating_text = sprintf( _n( '%s star', '%s stars', $rating_value, 'woocommerce' ), number_format_i18n( $rating_value ) );
                                         ?>
-                                        <input type="radio" id="<?php echo esc_attr( $input_id ); ?>" name="rating" value="<?php echo esc_attr( $rating_value ); ?>" <?php echo checked( $current_rating, $rating_value, false ); ?><?php echo 1 === $rating_value ? ' required' : ''; ?> />
-                                        <label for="<?php echo esc_attr( $input_id ); ?>" class="star" data-star-value="<?php echo esc_attr( $rating_value ); ?>" aria-label="<?php echo esc_attr( $rating_text ); ?>" title="<?php echo esc_attr( $rating_text ); ?>">
+                                        <input type="radio" id="<?php echo esc_attr( $input_id ); ?>" name="rating" value="<?php echo esc_attr( $rating_value ); ?>" aria-label="<?php echo esc_attr( $rating_text ); ?>" <?php echo checked( $current_rating, $rating_value, false ); ?><?php echo 1 === $rating_value ? ' required' : ''; ?> />
+                                        <label for="<?php echo esc_attr( $input_id ); ?>" title="<?php echo esc_attr( $rating_text ); ?>">
                                             <i class="fas fa-star" aria-hidden="true"></i>
+                                            <span class="visually-hidden"><?php echo esc_html( $rating_text ); ?></span>
                                         </label>
                                     <?php endfor; ?>
                                 </div>
-                                <p class="small text-muted mt-2 mb-0"><?php esc_html_e( 'Select a star to rate.', 'msbdtcp' ); ?></p>
+                                <?php
+                                $default_rating_message  = esc_html__( 'No rating selected.', 'msbdtcp' );
+                                $selected_rating_message = $current_rating
+                                    ? sprintf(
+                                        /* translators: %s: rating description (e.g. "3 stars"). */
+                                        esc_html__( 'Selected rating: %s', 'msbdtcp' ),
+                                        sprintf( _n( '%s star', '%s stars', $current_rating, 'woocommerce' ), number_format_i18n( $current_rating ) )
+                                    )
+                                    : '';
+                                ?>
+                                <div class="selected-rating-display fw-semibold <?php echo $current_rating ? 'text-warning' : 'text-muted'; ?>" data-default-message="<?php echo esc_attr( $default_rating_message ); ?>" data-selected-prefix="<?php echo esc_attr( esc_html__( 'Selected rating: ', 'msbdtcp' ) ); ?>">
+                                    <?php echo $current_rating ? esc_html( $selected_rating_message ) : esc_html( $default_rating_message ); ?>
+                                </div>
                             </div>
                             <?php
                             $comment_form['comment_field'] .= ob_get_clean();
@@ -174,67 +187,38 @@ $average      = $product ? $product->get_average_rating() : 0;
     document.addEventListener('DOMContentLoaded', function () {
         var ratingGroups = document.querySelectorAll('.woocommerce-Reviews .star-rating-input');
 
-        Array.prototype.forEach.call(ratingGroups, function (group) {
-            var labels = Array.prototype.slice.call(group.querySelectorAll('label.star'));
-            var inputs = Array.prototype.slice.call(group.querySelectorAll('input[type="radio"]'));
+        ratingGroups.forEach(function (group) {
+            var inputs = group.querySelectorAll('input[type="radio"][name="rating"]');
+            var display = group.parentElement.querySelector('.selected-rating-display');
+            var defaultMessage = display ? display.getAttribute('data-default-message') : '';
+            var selectedPrefix = display ? display.getAttribute('data-selected-prefix') : '';
 
-            var getValue = function () {
-                var checked = group.querySelector('input[type="radio"]:checked');
-                return checked ? parseInt(checked.value, 10) : 0;
+            var updateDisplay = function (input) {
+                if (!display) {
+                    return;
+                }
+
+                if (input && input.checked) {
+                    var label = group.querySelector('label[for="' + input.id + '"]');
+                    var labelText = label ? label.getAttribute('title') : input.value;
+                    display.textContent = selectedPrefix + labelText;
+                    display.classList.remove('text-muted');
+                    display.classList.add('text-warning');
+                } else {
+                    display.textContent = defaultMessage;
+                    display.classList.add('text-muted');
+                    display.classList.remove('text-warning');
+                }
             };
 
-            var toggleState = function (className, value) {
-                Array.prototype.forEach.call(labels, function (label) {
-                    var starValue = parseInt(label.getAttribute('data-star-value'), 10);
-                    label.classList.toggle(className, value > 0 && starValue <= value);
-                });
-            };
-
-            var syncActive = function () {
-                toggleState('is-active', getValue());
-            };
-
-            var initialAttr = parseInt(group.getAttribute('data-initial-rating'), 10);
-            if ( isNaN(initialAttr) ) {
-                initialAttr = getValue();
-            }
-            toggleState('is-active', initialAttr);
-
-            Array.prototype.forEach.call(labels, function (label) {
-                label.addEventListener('mouseenter', function () {
-                    var value = parseInt(label.getAttribute('data-star-value'), 10);
-                    toggleState('is-highlighted', value);
-                });
-
-                label.addEventListener('mouseleave', function () {
-                    toggleState('is-highlighted', 0);
-                });
-            });
-
-            Array.prototype.forEach.call(inputs, function (input) {
+            inputs.forEach(function (input) {
                 input.addEventListener('change', function () {
-                    toggleState('is-active', parseInt(input.value, 10));
-                });
-
-                input.addEventListener('focus', function () {
-                    toggleState('is-highlighted', parseInt(input.value, 10));
-                });
-
-                input.addEventListener('blur', function () {
-                    toggleState('is-highlighted', 0);
+                    updateDisplay(input);
                 });
             });
 
-            group.addEventListener('mouseleave', function () {
-                toggleState('is-highlighted', 0);
-                syncActive();
-            });
-
-            group.addEventListener('keydown', function () {
-                setTimeout(syncActive, 0);
-            });
-
-            syncActive();
+            var checkedInput = group.querySelector('input[type="radio"][name="rating"]:checked');
+            updateDisplay(checkedInput);
         });
     });
     </script>
