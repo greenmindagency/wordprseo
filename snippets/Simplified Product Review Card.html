@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplified Product Review</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* Custom styles retained for fine-tuning typography and icons */
+        body {
+            background-color: white; /* Set background to white as requested */
+            font-family: 'Inter', sans-serif;
+        }
+
+        .reviewer-avatar {
+            width: 40px; /* Slightly larger avatar */
+            height: 40px;
+            font-size: 18px;
+            background-color: #e9ecef;
+        }
+
+        .review-meta {
+            font-size: 0.9rem; /* Slightly adjusted font size */
+        }
+
+        .review-comment {
+            font-size: 1rem; /* Clearer font size for the comment */
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .star-rating {
+            font-size: 0.9rem;
+        }
+
+        .quote-icon {
+            font-size: 0.7em;
+            color: #0d6efd; /* Use Bootstrap primary color */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Container-fluid ensures the content spans the viewport width, col-12 ensures the review block takes the full space -->
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <!-- Full width column (col-12) with vertical margin for spacing -->
+            <div class="col-12 my-4">
+
+                <!-- Main Review Card Content: Using border-light and border-opacity-50 for a very subtle border -->
+                <div class="p-4 shadow-sm bg-white border border-light border-opacity-50">
+                    <div class="d-flex align-items-center mb-2">
+                        <!-- 1. Small Avatar Icon -->
+                        <div class="reviewer-avatar rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0">
+                            <i class="fa fa-user text-secondary"></i>
+                        </div>
+
+                        <!-- 2. Reviewer Name and Rating -->
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2 text-dark" style="font-size: 1rem;">greenmind</span>
+                                <span class="text-warning star-rating" title="Rated 4 out of 5">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="far fa-star"></i>
+                                </span>
+                            </div>
+                            <!-- Date Meta -->
+                            <span class="text-muted review-meta">Reviewed on October 22, 2025</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Tightly Integrated Comment/Quote with requested bg-light and padding -->
+                    <div class="p-3 mt-3 bg-light rounded-0">
+                        <p class="mb-0 review-comment fst-italic text-dark">
+                            <i class="fas fa-quote-left quote-icon me-1"></i>
+                            I love it thank you
+                            <i class="fas fa-quote-right quote-icon ms-1"></i>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (Optional for this component, but good practice) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
