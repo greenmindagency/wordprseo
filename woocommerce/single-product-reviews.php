@@ -104,27 +104,20 @@ if ( ! function_exists( 'wordprseo_product_review' ) ) {
  <?php if ( have_comments() ) : ?>
  <div class="product-review-list">
  <?php
- // Render comments manually to avoid WP/WooCommerce injecting an extra avatar before the list.
- $product_comments = get_comments( array(
- 'post_id' => get_the_ID(),
- 'status' => 'approve',
- 'type' => 'comment',
- ) );
+ // Remove WooCommerce default gravatar output so it doesn't render a duplicate avatar.
+ if ( has_action( 'woocommerce_review_before', 'woocommerce_review_display_gravatar' ) ) {
+ remove_action( 'woocommerce_review_before', 'woocommerce_review_display_gravatar',10 );
+ }
 
- if ( ! empty( $product_comments ) ) {
- foreach ( $product_comments as $c ) {
- // Ensure globals used by comment functions are set properly
- $GLOBALS['comment'] = $c;
- // Provide a minimal args array expected by the callback
- $callback_args = array(
+ wp_list_comments(
+ array(
+ 'per_page' => get_option( 'comments_per_page',10 ),
+ 'style' => 'div',
+ // Let our callback render the avatar inside the card
  'avatar_size' =>0,
- 'max_depth' =>3,
- 'format' => 'html5',
+ 'callback' => 'wordprseo_product_review',
+ )
  );
- // Call the custom callback directly. Depth is1 for top-level comments.
- wordprseo_product_review( $c, $callback_args,1 );
- }
- }
  ?>
  </div>
 
