@@ -356,6 +356,107 @@ Author URI: https://greenmindagency.com
     background-color: #f7f7f7;
 }
 
+.woocommerce-archive-grid .container-fluid,
+.woocommerce-product-grid .container-fluid {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.woocommerce-archive-grid .container,
+.woocommerce-product-grid .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 100%;
+}
+
+@media (min-width: 576px) {
+    .woocommerce-archive-grid .container,
+    .woocommerce-product-grid .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .woocommerce-archive-grid .container,
+    .woocommerce-product-grid .container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .woocommerce-archive-grid .container,
+    .woocommerce-product-grid .container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .woocommerce-archive-grid .container,
+    .woocommerce-product-grid .container {
+        max-width: 1140px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .woocommerce-archive-grid .container,
+    .woocommerce-product-grid .container {
+        max-width: 1320px;
+    }
+}
+
+.woocommerce-archive-grid .row,
+.woocommerce-product-grid .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    margin-top: -1.5rem;
+}
+
+.woocommerce-archive-grid .row > [class*="col-"],
+.woocommerce-product-grid .row > [class*="col-"] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-top: 1.5rem;
+    width: 100%;
+}
+
+.woocommerce-archive-grid .col-12,
+.woocommerce-product-grid .col-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
+
+@media (min-width: 576px) {
+    .woocommerce-archive-grid .col-sm-6,
+    .woocommerce-product-grid .col-sm-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .woocommerce-archive-grid .col-lg-4,
+    .woocommerce-product-grid .col-lg-4 {
+        flex: 0 0 33.3333%;
+        max-width: 33.3333%;
+    }
+}
+
+@media (min-width: 1200px) {
+    .woocommerce-archive-grid .col-xl-3,
+    .woocommerce-product-grid .col-xl-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+}
+
 .woocommerce-archive-grid .custom-shadow,
 .woocommerce-product-grid .custom-shadow {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06) !important;
