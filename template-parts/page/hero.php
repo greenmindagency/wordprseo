@@ -79,8 +79,13 @@ $small_title = function_exists( 'get_field' ) ? get_field( 'title', $post->ID ) 
 
  <div class="container py-spacer">
  <div class="col-md-8 py-spacer text-white">
- <?php if ( $small_title ) : ?>
- <h1 class="fw-bold h5"><?php echo esc_html( $small_title ); ?></h1>
+ <?php
+ $header_small = $small_title;
+ if ( empty( $header_small ) ) {
+ $header_small = isset( $yoast_title ) ? $yoast_title : '';
+ }
+ if ( $header_small ) : ?>
+ <h1 class="fw-bold h5"><?php echo esc_html( $header_small ); ?></h1>
  <?php endif; ?>
 
  <h2 class="fw-bold card-title display-4 my-3"><?php the_title(); ?></h2>
