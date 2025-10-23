@@ -80,12 +80,24 @@ $small_title = function_exists( 'get_field' ) ? get_field( 'title', $post->ID ) 
  <div class="container py-spacer">
  <div class="col-md-8 py-spacer text-white">
  <?php
- $header_small = $small_title;
- if ( empty( $header_small ) ) {
- $header_small = isset( $yoast_title ) ? $yoast_title : '';
+ global $post;
+
+ // Control this flag to clean or not
+ $clean = true; // Change to false if you want the full Yoast title
+
+ if ( function_exists( 'YoastSEO' ) ) {
+ $yoast_small_title = YoastSEO()->meta->for_current_page()->title;
+ } else {
+ $yoast_small_title = is_singular() ? get_the_title( $post ) : wp_title('', false);
  }
- if ( $header_small ) : ?>
- <h1 class="fw-bold h5"><?php echo esc_html( $header_small ); ?></h1>
+
+ if ( $clean ) {
+ $site_name = get_bloginfo('name');
+ $yoast_small_title = preg_replace('/(\s*[\|\-\·]\s*' . preg_quote($site_name, '/') . ')$/', '', $yoast_small_title);
+ }
+
+ if ( $yoast_small_title ) : ?>
+ <h1 class="fw-bold h5"><?php echo esc_html( $yoast_small_title ); ?></h1>
  <?php endif; ?>
 
  <h2 class="fw-bold card-title display-4 my-3"><?php the_title(); ?></h2>
