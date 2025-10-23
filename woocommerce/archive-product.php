@@ -30,11 +30,11 @@ $row_attrs   = '';
 ?>
 <div class="postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
     <div class="container-fluid py-4 py-md-5">
-        <div class="container">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="container py-spacer2 py-spacer-2">
+            <div class="page-title-bar d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div class="flex-grow-1">
                     <?php if ( $archive_title ) : ?>
-                        <h1 class="fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
+                        <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
                     <?php endif; ?>
 
                     <?php if ( $archive_description ) : ?>

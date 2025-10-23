@@ -24,7 +24,7 @@ if ( function_exists( 'wc_set_loop_prop' ) ) {
 
 <section class="related-products py-5 bg-light woocommerce-product-grid">
     <div class="container-fluid">
-        <div class="container">
+        <div class="container py-spacer-2">
             <header class="mb-5 text-center text-md-start">
                 <span class="text-muted text-uppercase small d-block fw-semibold"><?php esc_html_e( 'Related products', 'woocommerce' ); ?></span>
                 <h2 class="display-6 fw-bold mt-2"><?php echo esc_html( $heading ); ?></h2>
