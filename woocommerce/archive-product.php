@@ -28,7 +28,7 @@ $row_classes = 'row g-4';
 $row_attrs   = '';
 
 ?>
-<div class="postsrelatedcat woocommerce-archive-grid">
+<div class="postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
     <div class="container-fluid py-4 py-md-5">
         <div class="container">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">

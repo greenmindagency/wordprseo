@@ -350,20 +350,25 @@ Author URI: https://greenmindagency.com
     object-fit: cover;
 }
 
-.woocommerce-archive-grid {
+.woocommerce-archive-grid,
+.woocommerce-product-grid {
     background-color: #f7f7f7;
 }
 
-.woocommerce-archive-grid .custom-shadow {
+.woocommerce-archive-grid .custom-shadow,
+.woocommerce-product-grid .custom-shadow {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06) !important;
 }
 
-.woocommerce-archive-grid .transition {
+.woocommerce-archive-grid .transition,
+.woocommerce-product-grid .transition {
     transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .woocommerce-archive-grid .hover-shadow:hover,
-.woocommerce-archive-grid .hover-shadow:focus-within {
+.woocommerce-archive-grid .hover-shadow:focus-within,
+.woocommerce-product-grid .hover-shadow:hover,
+.woocommerce-product-grid .hover-shadow:focus-within {
     transform: translateY(-2px);
     box-shadow: 0 12px 25px -12px rgba(15, 23, 42, 0.4) !important;
 }
@@ -372,53 +377,69 @@ Author URI: https://greenmindagency.com
 .woocommerce-archive-grid .card-img-top,
 .woocommerce-archive-grid .badge,
 .woocommerce-archive-grid .button,
-.woocommerce-archive-grid .added_to_cart {
+.woocommerce-archive-grid .added_to_cart,
+.woocommerce-product-grid .card,
+.woocommerce-product-grid .card-img-top,
+.woocommerce-product-grid .badge,
+.woocommerce-product-grid .button,
+.woocommerce-product-grid .added_to_cart {
     border-radius: 0 !important;
 }
 
-.woocommerce-archive-grid .product-img-container {
+.woocommerce-archive-grid .product-img-container,
+.woocommerce-product-grid .product-img-container {
     height: 16rem;
     overflow: hidden;
     position: relative;
 }
 
 .woocommerce-archive-grid .product-img-container img,
-.woocommerce-archive-grid .product-img-container .card-img-top {
+.woocommerce-archive-grid .product-img-container .card-img-top,
+.woocommerce-product-grid .product-img-container img,
+.woocommerce-product-grid .product-img-container .card-img-top {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.woocommerce-archive-grid .woocommerce-star-rating .star-rating {
+.woocommerce-archive-grid .woocommerce-star-rating .star-rating,
+.woocommerce-product-grid .woocommerce-star-rating .star-rating {
     margin: 0;
 }
 
-.woocommerce-archive-grid .woocommerce-star-rating .star-rating span::before {
+.woocommerce-archive-grid .woocommerce-star-rating .star-rating span::before,
+.woocommerce-product-grid .woocommerce-star-rating .star-rating span::before {
     color: #f59e0b;
 }
 
-.woocommerce-archive-grid .woocommerce-star-rating .star-rating::before {
+.woocommerce-archive-grid .woocommerce-star-rating .star-rating::before,
+.woocommerce-product-grid .woocommerce-star-rating .star-rating::before {
     color: #d1d5db;
 }
 
-.woocommerce-archive-grid .product-price {
+.woocommerce-archive-grid .product-price,
+.woocommerce-product-grid .product-price {
     color: #212529;
 }
 
-.woocommerce-archive-grid .product-price del {
+.woocommerce-archive-grid .product-price del,
+.woocommerce-product-grid .product-price del {
     color: #6c757d;
     margin-right: 0.5rem;
     font-size: 0.9em;
     font-weight: 500;
 }
 
-.woocommerce-archive-grid .product-price ins {
+.woocommerce-archive-grid .product-price ins,
+.woocommerce-product-grid .product-price ins {
     color: #dc3545;
     text-decoration: none;
 }
 
 .woocommerce-archive-grid .button,
-.woocommerce-archive-grid .added_to_cart {
+.woocommerce-archive-grid .added_to_cart,
+.woocommerce-product-grid .button,
+.woocommerce-product-grid .added_to_cart {
     box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -428,6 +449,10 @@ Author URI: https://greenmindagency.com
 .woocommerce-archive-grid .button:hover,
 .woocommerce-archive-grid .button:focus,
 .woocommerce-archive-grid .added_to_cart:hover,
-.woocommerce-archive-grid .added_to_cart:focus {
+.woocommerce-archive-grid .added_to_cart:focus,
+.woocommerce-product-grid .button:hover,
+.woocommerce-product-grid .button:focus,
+.woocommerce-product-grid .added_to_cart:hover,
+.woocommerce-product-grid .added_to_cart:focus {
     box-shadow: 0 10px 20px -12px rgba(15, 23, 42, 0.45);
 }
