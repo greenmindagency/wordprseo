@@ -29,7 +29,7 @@ $row_attrs = '';
 
 ?>
 <div class="postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
- <div class="container py-4 py-md-5">
+ <div class="container py-spacer-2">
  <div class="page-title-bar d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
  <div class="flex-grow-1">
  <?php if ( $archive_title ) : ?>
