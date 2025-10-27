@@ -77,30 +77,26 @@ if ( ! function_exists( 'wordprseo_render_header_customer_tools' ) ) {
 
         ob_start();
         ?>
-        <div class="woocommerce-header-tools d-flex align-items-center p-2 bg-white border shadow-sm">
-            <div class="p-2 me-4 text-dark">
-                <i class="fa-regular fa-user fa-xl" aria-hidden="true"></i>
-                <?php if ( ! empty( $account_label ) ) : ?>
-                    <?php if ( $is_logged_in ) : ?>
-                        <span class="d-block small fw-semibold mt-1 text-dark"><?php echo esc_html( $account_label ); ?></span>
-                    <?php elseif ( $account_url ) : ?>
-                        <a class="d-block small text-decoration-none text-dark mt-1" href="<?php echo esc_url( $account_url ); ?>">
-                            <?php echo esc_html( $account_label ); ?>
-                        </a>
+        <div class="woocommerce-header-tools d-flex align-items-center ms-3">
+            <span class="woocommerce-header-account d-flex align-items-center text-dark small me-3">
+                <i class="fa-regular fa-user me-2" aria-hidden="true"></i>
+                <?php if ( $is_logged_in && ! empty( $account_label ) ) : ?>
+                    <?php if ( $account_url ) : ?>
+                        <a class="text-decoration-none text-dark fw-semibold" href="<?php echo esc_url( $account_url ); ?>"><?php echo esc_html( $account_label ); ?></a>
+                    <?php else : ?>
+                        <span class="fw-semibold"><?php echo esc_html( $account_label ); ?></span>
                     <?php endif; ?>
+                <?php elseif ( $account_url && ! empty( $account_label ) ) : ?>
+                    <a class="text-decoration-none text-dark" href="<?php echo esc_url( $account_url ); ?>"><?php echo esc_html( $account_label ); ?></a>
                 <?php endif; ?>
-            </div>
-            <div class="p-2">
-                <a class="btn btn-warning text-dark fw-bold fs-5 p-2 rounded-0 d-flex align-items-center shadow-none" href="<?php echo esc_url( wc_get_cart_url() ); ?>">
-                    <div class="me-3">
-                        <i class="fa-solid fa-bag-shopping fa-xl text-dark" aria-hidden="true"></i>
-                    </div>
-                    <span class="text-dark"><?php echo esc_html( $cart_total ); ?></span>
-                    <span class="badge rounded-pill bg-light text-dark ms-2 border border-dark">
-                        <?php echo esc_html( (string) $cart_count ); ?>
-                    </span>
-                </a>
-            </div>
+            </span>
+            <a class="woocommerce-header-cart btn btn-warning text-dark fw-semibold py-1 px-3 d-flex align-items-center shadow-none" href="<?php echo esc_url( wc_get_cart_url() ); ?>">
+                <i class="fa-solid fa-bag-shopping me-2" aria-hidden="true"></i>
+                <span class="small"><?php echo esc_html( $cart_total ); ?></span>
+                <span class="badge rounded-pill bg-light text-dark ms-2 border border-dark px-2 py-0 small">
+                    <?php echo esc_html( (string) $cart_count ); ?>
+                </span>
+            </a>
         </div>
         <?php
 
