@@ -15,8 +15,8 @@ if ( function_exists( 'woocommerce_output_all_notices' ) ) {
 }
 
 $imagesize = apply_filters( 'wordprseo_shop_card_image_size', 'medium_large' );
-$column_classes = apply_filters( 'wordprseo_shop_card_column_classes', 'col-12 col-sm-6 col-lg-4 col-xl-3' );
-$card_body_class = apply_filters( 'wordprseo_shop_card_body_class', 'p-4 d-flex flex-column flex-grow-1' );
+$column_classes = apply_filters( 'wordprseo_shop_card_column_classes', 'col-12 col-sm-6 col-md-3' );
+$card_body_class = apply_filters( 'wordprseo_shop_card_body_class', 'p-4' );
 
 $archive_title = function_exists( 'woocommerce_page_title' ) ? woocommerce_page_title( false ) : post_type_archive_title( '', false );
 
@@ -28,9 +28,9 @@ $row_classes = 'row g-4';
 $row_attrs = '';
 
 ?>
-<div class="postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
-    <div class="page-title-bar d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div class="flex-grow-1">
+<div class="container-fluid postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-column flex-md-row gap-3">
+        <div class="flex-grow-1 w-100">
             <?php if ( $archive_title ) : ?>
                 <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
             <?php endif; ?>
@@ -43,7 +43,7 @@ $row_attrs = '';
         </div>
 
         <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-            <div class="ms-md-auto w-100 w-md-auto d-flex justify-content-end">
+            <div class="w-100 w-md-auto d-flex justify-content-md-end">
                 <?php
                 ob_start();
                 woocommerce_catalog_ordering();
@@ -52,13 +52,13 @@ $row_attrs = '';
                 if ( $ordering_markup ) {
                     $ordering_markup = str_replace(
                         'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering d-flex align-items-center gap-2 flex-wrap justify-content-end"',
+                        'class="woocommerce-ordering d-flex justify-content-md-end"',
                         $ordering_markup
                     );
 
                     $ordering_markup = str_replace(
                         'class="orderby"',
-                        'class="orderby form-select form-select-sm w-100 w-md-auto shadow-sm rounded-0"',
+                        'class="orderby form-select w-auto shadow-sm rounded-0"',
                         $ordering_markup
                     );
                     echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -99,21 +99,21 @@ $row_attrs = '';
                         $imagesize,
                         false,
                         array(
-                            'class'   => 'card-img-top w-100 h-100',
+                            'class'   => 'card-img-top img-fluid rounded-0',
                             'alt'     => get_the_title(),
                             'loading' => 'lazy',
                         )
                     );
                 } elseif ( function_exists( 'wc_placeholder_img_src' ) ) {
                     $image_html = sprintf(
-                        '<img src="%1$s" alt="%2$s" class="card-img-top w-100 h-100" loading="lazy" />',
+                        '<img src="%1$s" alt="%2$s" class="card-img-top img-fluid rounded-0" loading="lazy" />',
                         esc_url( wc_placeholder_img_src( $imagesize ) ),
                         esc_attr( get_the_title() )
                     );
                 }
 
                 if ( ! $image_html ) {
-                    $image_html = '<div class="card-img-top w-100 h-100 bg-light"></div>';
+                    $image_html = '<div class="card-img-top img-fluid rounded-0 bg-light"></div>';
                 }
 
                 $category_list  = wc_get_product_category_list( get_the_ID(), ', ' );
@@ -121,15 +121,15 @@ $row_attrs = '';
                 $rating_count   = $product->get_rating_count();
                 $average_rating = $product->get_average_rating();
 ?>
-            <div class="<?php echo esc_attr( trim( $column_classes . ' d-flex' ) ); ?>">
-                <div class="card h-100 border-0 custom-shadow transition hover-shadow w-100 d-flex flex-column">
-                    <div class="product-img-container position-relative">
-                        <a href="<?php the_permalink(); ?>">
+            <div class="<?php echo esc_attr( $column_classes ); ?>">
+                <div class="card h-100 border-0 shadow-sm bg-light rounded-0">
+                    <div class="position-relative">
+                        <a href="<?php the_permalink(); ?>" class="d-block">
                             <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         </a>
 
                         <?php if ( $product->is_on_sale() ) : ?>
-                            <span class="position-absolute top-0 start-0 m-3 badge text-bg-danger fw-semibold text-uppercase"><?php esc_html_e( 'Sale!', 'woocommerce' ); ?></span>
+                            <span class="position-absolute top-0 start-0 m-3 badge text-bg-danger fw-semibold rounded-0"><?php esc_html_e( 'Sale!', 'woocommerce' ); ?></span>
                         <?php endif; ?>
                     </div>
 
@@ -142,41 +142,44 @@ $row_attrs = '';
                             <h2 class="fs-5 fw-semibold text-dark mb-2"><?php the_title(); ?></h2>
                         </a>
 
-                        <?php if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) : ?>
-                            <div class="d-flex align-items-center small mb-2 gap-2">
-                                <?php
+                        <div class="d-flex align-items-center small mb-2">
+                            <?php
+                            if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) {
                                 echo wordprseo_get_star_rating_html(
                                     $average_rating,
                                     $rating_count,
                                     array(
-                                        'class' => 'wordprseo-star-rating text-warning d-inline-flex align-items-center gap-1 small'
+                                        'class' => 'text-warning me-1 fa-lg'
                                     )
                                 );
-                                ?>
-                                <span class="text-muted">(<?php echo esc_html( $rating_count ); ?>)</span>
-                            </div>
-                        <?php endif; ?>
+                                printf( '<span class="text-muted">(%s)</span>', esc_html( $rating_count ) );
+                            } else {
+                                $empty_star_markup = '<span class="text-warning me-1 fa-lg"><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i></span>';
+                                echo wp_kses_post( $empty_star_markup );
+                                printf( '<span class="text-muted">(%s)</span>', esc_html( '0' ) );
+                            }
+                            ?>
+                        </div>
 
-                        <div class="fs-5 fw-bold text-dark mt-2 product-price">
- <?php echo wp_kses_post( $product->get_price_html() ); ?>
- </div>
+                        <div class="fs-5 fw-bold text-dark mt-2">
+                            <?php echo wp_kses_post( $product->get_price_html() ); ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+            endwhile;
+            ?>
+        </div>
 
- <div class="mt-3">
- <?php woocommerce_template_loop_add_to_cart(); ?>
+        <div class="mt-5 d-flex justify-content-center">
+            <?php woocommerce_pagination(); ?>
+        </div>
+        <?php wc_reset_loop(); ?>
+    <?php else : ?>
+        <?php do_action( 'woocommerce_no_products_found' ); ?>
+    <?php endif; ?>
 </div>
- </div>
- </div>
- <?php endwhile; ?>
- </div>
-
- <div class="mt-5 d-flex justify-content-center">
- <?php woocommerce_pagination(); ?>
- </div>
- <?php wc_reset_loop(); ?>
- <?php else : ?>
- <?php do_action( 'woocommerce_no_products_found' ); ?>
- <?php endif; ?>
- </div>
 </div>
 <?php
 $flexible_source = null;
