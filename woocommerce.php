@@ -24,7 +24,7 @@ if ( ! wordprseo_is_woocommerce_active() ) {
     get_template_part( 'template-parts/woocommerce/notice', 'setup-incomplete' );
 } else {
     if ( $should_wrap_outer ) {
-        echo '<div class="container py-4 py-md-5">';
+        echo '<div class="container py-spacer-2">';
     }
 
     woocommerce_content();
