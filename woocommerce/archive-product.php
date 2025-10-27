@@ -92,21 +92,27 @@ $row_attrs = '';
                 $orderby = current( array_keys( $catalog_orderby_options ) );
             }
 
-            $ordering_field_id = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'woocommerce-ordering-' ) : uniqid( 'woocommerce-ordering-' );
             ?>
             <div class="ms-auto">
                 <form class="woocommerce-ordering mb-0" method="get">
-                    <label class="visually-hidden" for="<?php echo esc_attr( $ordering_field_id ); ?>"><?php esc_html_e( 'Sort products', 'woocommerce' ); ?></label>
-                    <select
-                        name="orderby"
-                        id="<?php echo esc_attr( $ordering_field_id ); ?>"
-                        class="orderby form-select w-auto shadow-sm rounded-0"
-                        aria-label="<?php esc_attr_e( 'Shop order', 'woocommerce' ); ?>"
-                    >
-                        <?php foreach ( $catalog_orderby_options as $id => $name ) : ?>
-                            <option value="<?php echo esc_attr( $id ); ?>" <?php selected( $orderby, $id ); ?>><?php echo esc_html( $name ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <fieldset class="m-0 p-0 border-0">
+                        <legend class="visually-hidden"><?php esc_html_e( 'Sort products', 'woocommerce' ); ?></legend>
+                        <div class="btn-group btn-group-sm flex-wrap shadow-sm" role="group" aria-label="<?php esc_attr_e( 'Shop order', 'woocommerce' ); ?>">
+                            <?php foreach ( $catalog_orderby_options as $id => $name ) :
+                                $is_active = ( $orderby === $id );
+                                ?>
+                                <button
+                                    type="submit"
+                                    name="orderby"
+                                    value="<?php echo esc_attr( $id ); ?>"
+                                    class="btn btn-outline-secondary<?php echo $is_active ? ' active' : ''; ?>"
+                                    aria-pressed="<?php echo $is_active ? 'true' : 'false'; ?>"
+                                >
+                                    <?php echo esc_html( $name ); ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
                     <input type="hidden" name="paged" value="1" />
                     <?php wc_query_string_form_fields( null, array( 'orderby', 'submit', 'paged', 'product-page' ) ); ?>
                 </form>
