@@ -29,21 +29,13 @@ $row_attrs = '';
 
 ?>
 <div class="container-fluid postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-column flex-md-row gap-3">
-        <div class="flex-grow-1 w-100">
-            <?php if ( $archive_title ) : ?>
-                <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
-            <?php endif; ?>
-
-            <?php if ( $archive_description ) : ?>
-                <div class="text-muted mt-2 lead">
-                    <?php echo wp_kses_post( $archive_description ); ?>
-                </div>
-            <?php endif; ?>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <?php if ( $archive_title ) : ?>
+            <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
+        <?php endif; ?>
 
         <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-            <div class="w-100 w-md-auto d-flex justify-content-md-end">
+            <div>
                 <?php
                 ob_start();
                 woocommerce_catalog_ordering();
@@ -52,7 +44,7 @@ $row_attrs = '';
                 if ( $ordering_markup ) {
                     $ordering_markup = str_replace(
                         'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering d-flex justify-content-md-end"',
+                        'class="woocommerce-ordering mb-0"',
                         $ordering_markup
                     );
 
@@ -61,12 +53,17 @@ $row_attrs = '';
                         'class="orderby form-select w-auto shadow-sm rounded-0"',
                         $ordering_markup
                     );
+
                     echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 }
                 ?>
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if ( $archive_description ) : ?>
+        <div class="text-muted mb-4 lead"><?php echo wp_kses_post( $archive_description ); ?></div>
+    <?php endif; ?>
 
     <?php if ( woocommerce_product_loop() ) : ?>
         <div class="<?php echo esc_attr( $row_classes ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
@@ -120,6 +117,48 @@ $row_attrs = '';
                 $category_text  = $category_list ? wp_strip_all_tags( $category_list ) : '';
                 $rating_count   = $product->get_rating_count();
                 $average_rating = $product->get_average_rating();
+
+                $star_icons = '<span class="text-warning me-1 fa-lg">';
+                $rating     = floatval( $average_rating );
+
+                for ( $i = 1; $i <= 5; $i++ ) {
+                    if ( $rating >= $i ) {
+                        $star_icons .= '<i class="fas fa-star" aria-hidden="true"></i>';
+                    } elseif ( $rating >= ( $i - 0.5 ) ) {
+                        $star_icons .= '<i class="fas fa-star-half-alt" aria-hidden="true"></i>';
+                    } else {
+                        $star_icons .= '<i class="far fa-star" aria-hidden="true"></i>';
+                    }
+                }
+
+                $star_icons .= '</span>';
+
+                if ( $rating <= 0 ) {
+                    $rating_count = 0;
+                }
+
+                $price_markup = '';
+
+                if ( $product->is_type( array( 'simple', 'variation' ) ) ) {
+                    $regular_price = $product->get_regular_price();
+                    $sale_price    = $product->get_sale_price();
+                    $display_price = $product->get_price();
+
+                    if ( $product->is_on_sale() && '' !== $sale_price && '' !== $regular_price ) {
+                        $regular_display = wc_price( wc_get_price_to_display( $product, array( 'price' => (float) $regular_price ) ) );
+                        $sale_display    = wc_price( wc_get_price_to_display( $product, array( 'price' => (float) $sale_price ) ) );
+
+                        $price_markup  = '<span class="text-muted text-decoration-line-through me-2 fw-normal fs-6">' . wp_kses_post( $regular_display ) . '</span>';
+                        $price_markup .= '<span class="text-danger">' . wp_kses_post( $sale_display ) . '</span>';
+                    } elseif ( '' !== $display_price ) {
+                        $display_value = wc_price( wc_get_price_to_display( $product ) );
+                        $price_markup  = '<span>' . wp_kses_post( $display_value ) . '</span>';
+                    }
+                }
+
+                if ( ! $price_markup ) {
+                    $price_markup = wp_kses_post( $product->get_price_html() );
+                }
 ?>
             <div class="<?php echo esc_attr( $column_classes ); ?>">
                 <div class="card h-100 border-0 shadow-sm bg-light rounded-0">
@@ -143,26 +182,12 @@ $row_attrs = '';
                         </a>
 
                         <div class="d-flex align-items-center small mb-2">
-                            <?php
-                            if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) {
-                                echo wordprseo_get_star_rating_html(
-                                    $average_rating,
-                                    $rating_count,
-                                    array(
-                                        'class' => 'text-warning me-1 fa-lg'
-                                    )
-                                );
-                                printf( '<span class="text-muted">(%s)</span>', esc_html( $rating_count ) );
-                            } else {
-                                $empty_star_markup = '<span class="text-warning me-1 fa-lg"><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i></span>';
-                                echo wp_kses_post( $empty_star_markup );
-                                printf( '<span class="text-muted">(%s)</span>', esc_html( '0' ) );
-                            }
-                            ?>
+                            <?php echo wp_kses_post( $star_icons ); ?>
+                            <span class="text-muted">(<?php echo esc_html( number_format_i18n( max( $rating_count, 0 ) ) ); ?>)</span>
                         </div>
 
                         <div class="fs-5 fw-bold text-dark mt-2">
-                            <?php echo wp_kses_post( $product->get_price_html() ); ?>
+                            <?php echo wp_kses_post( $price_markup ); ?>
                         </div>
                     </div>
                 </div>
