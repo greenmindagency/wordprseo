@@ -243,18 +243,22 @@ if (!empty($image) && isset($image['sizes'][$size])) {
        
        
  
-       	<!-- shorten url -->
+        <!-- shorten url -->
 <a class="btn copy-to-clipboard btn-outline-primary  bg-light" data-clipboard-text='<?php
 function tiny_url($url){
     return file_get_contents("https://tinyurl.com/api-create.php?url=" . $url);
 }
 $url = "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 echo tiny_url($url);
-?>'><i class=" text-dark  fa fa-link"></i></a> 
+?>'><i class=" text-dark  fa fa-link"></i></a>
 <!-- shorten url -->
-   
-        
-		
+
+
+
+                <?php if (function_exists('wordprseo_render_header_customer_tools')) : ?>
+                    <?php echo wordprseo_render_header_customer_tools(); ?>
+                <?php endif; ?>
+
                 <?php if ($display_alt_language_link) : ?>
                     <a href="<?php bloginfo( 'url' ); ?>/ar/" class="ms-3 btn btn-primary">ع</a>
                 <?php endif; ?>

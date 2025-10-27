@@ -20,6 +20,121 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) ) {
     }
 }
 
+if ( ! function_exists( 'wordprseo_render_header_customer_tools' ) ) {
+    /**
+     * Renders the account/cart tools that live in the site header.
+     *
+     * @return string
+     */
+    function wordprseo_render_header_customer_tools() {
+        if ( ! wordprseo_is_woocommerce_active() ) {
+            return '';
+        }
+
+        if ( ! function_exists( 'wc_get_cart_url' ) ) {
+            return '';
+        }
+
+        $cart = WC()->cart;
+
+        if ( null === $cart && function_exists( 'wc_load_cart' ) ) {
+            wc_load_cart();
+            $cart = WC()->cart;
+        }
+
+        if ( ! $cart ) {
+            return '';
+        }
+
+        $cart_count = max( 0, intval( $cart->get_cart_contents_count() ) );
+        $cart_total = $cart->get_cart_subtotal();
+
+        if ( empty( $cart_total ) ) {
+            $cart_total = wc_price( 0 );
+        }
+
+        $cart_total = html_entity_decode( wp_strip_all_tags( $cart_total, true ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+
+        $account_page_id = get_option( 'woocommerce_myaccount_page_id' );
+        $account_url     = $account_page_id ? get_permalink( $account_page_id ) : '';
+        $account_label   = '';
+
+        if ( is_user_logged_in() ) {
+            $current_user = wp_get_current_user();
+            $display_name = $current_user instanceof WP_User ? $current_user->display_name : '';
+
+            if ( empty( $display_name ) && $current_user instanceof WP_User ) {
+                $display_name = $current_user->user_login;
+            }
+
+            if ( ! empty( $display_name ) ) {
+                $account_label = sprintf(
+                    '<span class="small fw-semibold mt-1">%s</span>',
+                    esc_html( $display_name )
+                );
+            }
+        } elseif ( $account_url ) {
+            $account_label = sprintf(
+                '<a class="small text-decoration-none text-dark mt-1" href="%s">%s</a>',
+                esc_url( $account_url ),
+                esc_html__( 'Sign in', 'woocommerce' )
+            );
+        }
+
+        ob_start();
+        ?>
+        <div class="woocommerce-header-tools d-flex align-items-center ms-3 p-2 bg-white border shadow-sm">
+            <div class="p-2 me-4 text-dark d-flex flex-column align-items-start">
+                <i class="fa-regular fa-user fa-xl" aria-hidden="true"></i>
+                <?php if ( ! empty( $account_label ) ) : ?>
+                    <?php echo $account_label; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                <?php endif; ?>
+            </div>
+            <div class="p-2">
+                <a class="btn btn-warning text-dark fw-bold fs-5 p-2 rounded-0 d-flex align-items-center shadow-none" href="<?php echo esc_url( wc_get_cart_url() ); ?>">
+                    <span class="me-3">
+                        <i class="fa-solid fa-bag-shopping fa-xl text-dark" aria-hidden="true"></i>
+                    </span>
+                    <span class="text-dark"><?php echo esc_html( $cart_total ); ?></span>
+                    <span class="badge rounded-pill bg-light text-dark ms-2 border border-dark">
+                        <?php echo esc_html( (string) $cart_count ); ?>
+                    </span>
+                </a>
+            </div>
+        </div>
+        <?php
+
+        return trim( ob_get_clean() );
+    }
+}
+
+if ( ! function_exists( 'wordprseo_header_customer_tools_fragment' ) ) {
+    /**
+     * Ensures the header customer tools stay in sync via WooCommerce fragments.
+     *
+     * @param array $fragments Existing AJAX fragments.
+     *
+     * @return array
+     */
+    function wordprseo_header_customer_tools_fragment( $fragments ) {
+        if ( ! wordprseo_is_woocommerce_active() ) {
+            return $fragments;
+        }
+
+        $markup = wordprseo_render_header_customer_tools();
+
+        if ( ! empty( $markup ) ) {
+            $fragments['.woocommerce-header-tools'] = $markup;
+        }
+
+        return $fragments;
+    }
+}
+
+if ( wordprseo_is_woocommerce_active() ) {
+    add_filter( 'woocommerce_add_to_cart_fragments', 'wordprseo_header_customer_tools_fragment' );
+}
+
 if ( ! function_exists( 'wordprseo_flush_woocommerce_setup_cache' ) ) {
     /**
      * Clears the cached WooCommerce setup status.
