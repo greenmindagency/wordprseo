@@ -299,7 +299,7 @@ $after_summary_extra = trim( ob_get_clean() );
                         $primary_tab_index = 0;
                         $tab_prefix        = 'primary-product-tabs-' . $product_id;
                         ?>
-                        <div class="product-summary-tabs mb-4">
+                        <div class="product-summary-tabs my-4">
                             <ul class="nav nav-tabs" id="<?php echo esc_attr( $tab_prefix ); ?>" role="tablist">
                                 <?php foreach ( $primary_tabs as $key => $tab ) : ?>
                                     <li class="nav-item" role="presentation">
