@@ -118,10 +118,6 @@ $row_attrs = '';
         <div class="text-muted mb-4 lead"><?php echo wp_kses_post( $archive_description ); ?></div>
     <?php endif; ?>
 
-    <?php if ( $archive_description ) : ?>
-        <div class="text-muted mb-4 lead"><?php echo wp_kses_post( $archive_description ); ?></div>
-    <?php endif; ?>
-
     <?php if ( woocommerce_product_loop() ) : ?>
         <div class="<?php echo esc_attr( $row_classes ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
             <?php
