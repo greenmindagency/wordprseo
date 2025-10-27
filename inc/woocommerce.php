@@ -214,6 +214,15 @@ if ( wordprseo_is_woocommerce_active() ) {
     add_filter( 'woocommerce_product_single_add_to_cart_html', 'wordprseo_bootstrap_single_add_to_cart_html', 10, 2 );
     add_action( 'pre_get_posts', 'wordprseo_show_all_products_on_archives', 20 );
 
+    // Remove the default WooCommerce catalog ordering dropdown from all archive/shop pages.
+    // WooCommerce registers the catalog ordering markup via the 'woocommerce_catalog_ordering' function
+    // on the 'woocommerce_before_shop_loop' hook (priority 30). Remove it after WooCommerce has initialized.
+    add_action( 'init', function() {
+        if ( function_exists( 'remove_action' ) ) {
+            remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+        }
+    }, 20 );
+
     // Flush cached setup data when products or categories change.
     add_action( 'save_post_product', 'wordprseo_flush_woocommerce_setup_cache' );
     add_action( 'untrashed_post_product', 'wordprseo_flush_woocommerce_setup_cache' );
