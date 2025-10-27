@@ -43,7 +43,7 @@ $row_attrs = '';
         </div>
 
         <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-            <div class="ms-md-4 w-100 w-md-auto d-flex justify-content-md-end">
+            <div class="ms-md-4">
                 <?php
                 ob_start();
                 woocommerce_catalog_ordering();
@@ -52,13 +52,13 @@ $row_attrs = '';
                 if ( $ordering_markup ) {
                     $ordering_markup = str_replace(
                         'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering d-flex align-items-center gap-2 justify-content-md-end ms-md-auto mb-0"',
+                        'class="woocommerce-ordering d-flex align-items-center gap-2"',
                         $ordering_markup
                     );
 
                     $ordering_markup = str_replace(
                         'class="orderby"',
-                        'class="orderby form-select form-select-sm w-auto shadow-sm rounded-0"',
+                        'class="orderby form-select w-auto shadow-sm rounded-0"',
                         $ordering_markup
                     );
                     echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -116,10 +116,10 @@ $row_attrs = '';
                     $image_html = '<div class="card-img-top w-100 h-100 bg-light"></div>';
                 }
 
-                $category_list  = wc_get_product_category_list( get_the_ID(), ', ' );
-                $category_text  = $category_list ? wp_strip_all_tags( $category_list ) : '';
-                $rating_count   = $product->get_rating_count();
-                $average_rating = (float) $product->get_average_rating();
+                $category_list = wc_get_product_category_list( get_the_ID(), ', ' );
+                $category_text = $category_list ? wp_strip_all_tags( $category_list ) : '';
+ $rating_count = $product->get_rating_count();
+ $average_rating = $product->get_average_rating();
  ?>
  <div class="<?php echo esc_attr( trim( $column_classes . ' d-flex' ) ); ?>">
  <div class="card h-100 border-0 custom-shadow transition hover-shadow w-100 d-flex flex-column">
