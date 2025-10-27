@@ -172,7 +172,11 @@ if ( ! function_exists( 'wordprseo_woocommerce_before_main_content' ) ) {
      * Opens the theme wrapper around WooCommerce content.
      */
     function wordprseo_woocommerce_before_main_content() {
-        if ( function_exists( 'is_product' ) && is_product() ) {
+        if (
+            ( function_exists( 'is_product' ) && is_product() )
+            || ( function_exists( 'is_shop' ) && is_shop() )
+            || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
+        ) {
             return;
         }
 
@@ -185,7 +189,11 @@ if ( ! function_exists( 'wordprseo_woocommerce_after_main_content' ) ) {
      * Closes the theme wrapper around WooCommerce content.
      */
     function wordprseo_woocommerce_after_main_content() {
-        if ( function_exists( 'is_product' ) && is_product() ) {
+        if (
+            ( function_exists( 'is_product' ) && is_product() )
+            || ( function_exists( 'is_shop' ) && is_shop() )
+            || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() )
+        ) {
             return;
         }
 

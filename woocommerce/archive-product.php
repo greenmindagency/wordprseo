@@ -29,96 +29,95 @@ $row_attrs = '';
 
 ?>
 <div class="postsrelatedcat woocommerce-archive-grid woocommerce-product-grid">
- <div class="container py-4 py-md-5">
- <div class="page-title-bar d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
- <div class="flex-grow-1">
- <?php if ( $archive_title ) : ?>
- <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
- <?php endif; ?>
+    <div class="page-title-bar d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="flex-grow-1">
+            <?php if ( $archive_title ) : ?>
+                <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
+            <?php endif; ?>
 
- <?php if ( $archive_description ) : ?>
- <div class="text-muted mt-2 lead">
- <?php echo wp_kses_post( $archive_description ); ?>
- </div>
- <?php endif; ?>
- </div>
+            <?php if ( $archive_description ) : ?>
+                <div class="text-muted mt-2 lead">
+                    <?php echo wp_kses_post( $archive_description ); ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
- <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
- <div class="ms-md-4">
- <?php
- ob_start();
- woocommerce_catalog_ordering();
- $ordering_markup = ob_get_clean();
+        <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
+            <div class="ms-md-4">
+                <?php
+                ob_start();
+                woocommerce_catalog_ordering();
+                $ordering_markup = ob_get_clean();
 
- if ( $ordering_markup ) {
- $ordering_markup = str_replace(
- 'class="woocommerce-ordering"',
- 'class="woocommerce-ordering d-flex align-items-center gap-2"',
- $ordering_markup
- );
+                if ( $ordering_markup ) {
+                    $ordering_markup = str_replace(
+                        'class="woocommerce-ordering"',
+                        'class="woocommerce-ordering d-flex align-items-center gap-2"',
+                        $ordering_markup
+                    );
 
- $ordering_markup = str_replace(
- 'class="orderby"',
- 'class="orderby form-select w-auto shadow-sm rounded-0"',
- $ordering_markup
- );
- echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
- }
- ?>
- </div>
- <?php endif; ?>
- </div>
+                    $ordering_markup = str_replace(
+                        'class="orderby"',
+                        'class="orderby form-select w-auto shadow-sm rounded-0"',
+                        $ordering_markup
+                    );
+                    echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                }
+                ?>
+            </div>
+        <?php endif; ?>
+    </div>
 
- <?php if ( woocommerce_product_loop() ) : ?>
- <div class="<?php echo esc_attr( $row_classes ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
- <?php
- while ( have_posts() ) :
- the_post();
+    <?php if ( woocommerce_product_loop() ) : ?>
+        <div class="<?php echo esc_attr( $row_classes ); ?>"<?php echo $row_attrs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+            <?php
+            while ( have_posts() ) :
+                the_post();
 
- global $product;
- $product = wc_get_product( get_the_ID() );
+                global $product;
+                $product = wc_get_product( get_the_ID() );
 
- if ( ! $product ) {
- continue;
- }
+                if ( ! $product ) {
+                    continue;
+                }
 
- $image_id = $product->get_image_id();
+                $image_id = $product->get_image_id();
 
- if ( ! $image_id ) {
- $gallery_image_ids = $product->get_gallery_image_ids();
+                if ( ! $image_id ) {
+                    $gallery_image_ids = $product->get_gallery_image_ids();
 
- if ( ! empty( $gallery_image_ids ) ) {
- $image_id = (int) reset( $gallery_image_ids );
- }
- }
+                    if ( ! empty( $gallery_image_ids ) ) {
+                        $image_id = (int) reset( $gallery_image_ids );
+                    }
+                }
 
- $image_html = '';
+                $image_html = '';
 
- if ( $image_id ) {
- $image_html = wp_get_attachment_image(
- $image_id,
- $imagesize,
- false,
- array(
- 'class' => 'card-img-top w-100 h-100',
- 'alt' => get_the_title(),
- 'loading' => 'lazy',
- )
- );
- } elseif ( function_exists( 'wc_placeholder_img_src' ) ) {
- $image_html = sprintf(
- '<img src="%1$s" alt="%2$s" class="card-img-top w-100 h-100" loading="lazy" />',
- esc_url( wc_placeholder_img_src( $imagesize ) ),
- esc_attr( get_the_title() )
- );
- }
+                if ( $image_id ) {
+                    $image_html = wp_get_attachment_image(
+                        $image_id,
+                        $imagesize,
+                        false,
+                        array(
+                            'class'   => 'card-img-top w-100 h-100',
+                            'alt'     => get_the_title(),
+                            'loading' => 'lazy',
+                        )
+                    );
+                } elseif ( function_exists( 'wc_placeholder_img_src' ) ) {
+                    $image_html = sprintf(
+                        '<img src="%1$s" alt="%2$s" class="card-img-top w-100 h-100" loading="lazy" />',
+                        esc_url( wc_placeholder_img_src( $imagesize ) ),
+                        esc_attr( get_the_title() )
+                    );
+                }
 
- if ( ! $image_html ) {
- $image_html = '<div class="card-img-top w-100 h-100 bg-light"></div>';
- }
+                if ( ! $image_html ) {
+                    $image_html = '<div class="card-img-top w-100 h-100 bg-light"></div>';
+                }
 
- $category_list = wc_get_product_category_list( get_the_ID(), ', ' );
- $category_text = $category_list ? wp_strip_all_tags( $category_list ) : '';
+                $category_list = wc_get_product_category_list( get_the_ID(), ', ' );
+                $category_text = $category_list ? wp_strip_all_tags( $category_list ) : '';
  $rating_count = $product->get_rating_count();
  $average_rating = $product->get_average_rating();
  ?>
@@ -162,8 +161,7 @@ $row_attrs = '';
 
  <div class="mt-3">
  <?php woocommerce_template_loop_add_to_cart(); ?>
- </div>
- </div>
+</div>
  </div>
  </div>
  <?php endwhile; ?>
