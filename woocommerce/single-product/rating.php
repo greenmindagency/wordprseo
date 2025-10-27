@@ -26,7 +26,15 @@ if ( $rating_count <= 0 ) {
 $reviews_link = get_permalink( $product->get_id() ) . '#reviews';
 ?>
 <div class="woocommerce-product-rating">
-    <?php echo wc_get_rating_html( $average, $rating_count ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    <?php
+    echo wordprseo_get_star_rating_html(
+        $average,
+        $rating_count,
+        array(
+            'class' => 'wordprseo-star-rating text-warning d-inline-flex align-items-center gap-1 me-2'
+        )
+    );
+    ?>
     <?php if ( comments_open() ) : ?>
         <a class="woocommerce-review-link" href="<?php echo esc_url( $reviews_link ); ?>" rel="nofollow">
             <?php

@@ -81,15 +81,17 @@ $average_rating = $product->get_average_rating();
                 <h2 class="fs-5 fw-semibold text-dark mb-2"><?php the_title(); ?></h2>
             </a>
 
-            <?php if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() ) : ?>
+            <?php if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) : ?>
                 <div class="d-flex align-items-center small mb-2 gap-2">
-                    <?php if ( $rating_count > 0 ) : ?>
-                        <div class="woocommerce-star-rating">
-                            <?php echo wc_get_rating_html( $average_rating, $rating_count ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </div>
-                    <?php else : ?>
-                        <span class="text-warning">☆☆☆☆☆</span>
-                    <?php endif; ?>
+                    <?php
+                    echo wordprseo_get_star_rating_html(
+                        $average_rating,
+                        $rating_count,
+                        array(
+                            'class' => 'wordprseo-star-rating text-warning d-inline-flex align-items-center gap-1 small'
+                        )
+                    );
+                    ?>
                     <span class="text-muted">(<?php echo esc_html( $rating_count ); ?>)</span>
                 </div>
             <?php endif; ?>

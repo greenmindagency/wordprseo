@@ -43,7 +43,7 @@ $row_attrs = '';
         </div>
 
         <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-            <div class="ms-md-4">
+            <div class="ms-md-auto w-100 w-md-auto d-flex justify-content-end">
                 <?php
                 ob_start();
                 woocommerce_catalog_ordering();
@@ -52,13 +52,13 @@ $row_attrs = '';
                 if ( $ordering_markup ) {
                     $ordering_markup = str_replace(
                         'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering d-flex align-items-center gap-2"',
+                        'class="woocommerce-ordering d-flex align-items-center gap-2 flex-wrap justify-content-end"',
                         $ordering_markup
                     );
 
                     $ordering_markup = str_replace(
                         'class="orderby"',
-                        'class="orderby form-select w-auto shadow-sm rounded-0"',
+                        'class="orderby form-select form-select-sm w-100 w-md-auto shadow-sm rounded-0"',
                         $ordering_markup
                     );
                     echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -116,66 +116,48 @@ $row_attrs = '';
                     $image_html = '<div class="card-img-top w-100 h-100 bg-light"></div>';
                 }
 
-                $category_list = wc_get_product_category_list( get_the_ID(), ', ' );
-                $category_text = $category_list ? wp_strip_all_tags( $category_list ) : '';
- $rating_count = $product->get_rating_count();
- $average_rating = $product->get_average_rating();
- ?>
- <div class="<?php echo esc_attr( trim( $column_classes . ' d-flex' ) ); ?>">
- <div class="card h-100 border-0 custom-shadow transition hover-shadow w-100 d-flex flex-column">
- <div class="product-img-container position-relative">
- <a href="<?php the_permalink(); ?>">
- <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
- </a>
+                $category_list  = wc_get_product_category_list( get_the_ID(), ', ' );
+                $category_text  = $category_list ? wp_strip_all_tags( $category_list ) : '';
+                $rating_count   = $product->get_rating_count();
+                $average_rating = $product->get_average_rating();
+?>
+            <div class="<?php echo esc_attr( trim( $column_classes . ' d-flex' ) ); ?>">
+                <div class="card h-100 border-0 custom-shadow transition hover-shadow w-100 d-flex flex-column">
+                    <div class="product-img-container position-relative">
+                        <a href="<?php the_permalink(); ?>">
+                            <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        </a>
 
- <?php if ( $product->is_on_sale() ) : ?>
- <span class="position-absolute top-0 start-0 m-3 badge text-bg-danger fw-semibold text-uppercase"><?php esc_html_e( 'Sale!', 'woocommerce' ); ?></span>
- <?php endif; ?>
- </div>
-
- <div class="card-body <?php echo esc_attr( $card_body_class ); ?>">
- <?php if ( $category_text ) : ?>
- <p class="text-uppercase text-muted fw-semibold mb-1 small"><?php echo esc_html( $category_text ); ?></p>
- <?php endif; ?>
-
- <a href="<?php the_permalink(); ?>" class="text-decoration-none text-dark">
- <h2 class="fs-5 fw-semibold text-dark mb-2"><?php the_title(); ?></h2>
- </a>
-
-                <?php
-                if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) :
-                    $rounded_rating = max( 0, min( 5, round( $average_rating * 2 ) / 2 ) );
-                    $full_stars     = (int) floor( $rounded_rating );
-                    $has_half_star  = ( $rounded_rating - $full_stars ) >= 0.5;
-                    $empty_stars    = 5 - $full_stars - ( $has_half_star ? 1 : 0 );
-                    ?>
-                    <div class="d-flex align-items-center small mb-2 gap-2 product-rating">
-                        <div class="d-flex align-items-center text-warning gap-1" aria-hidden="true">
-                            <?php for ( $i = 0; $i < $full_stars; $i++ ) : ?>
-                                <i class="fa-solid fa-star"></i>
-                            <?php endfor; ?>
-
-                            <?php if ( $has_half_star ) : ?>
-                                <i class="fa-solid fa-star-half-stroke"></i>
-                            <?php endif; ?>
-
-                            <?php for ( $i = 0; $i < $empty_stars; $i++ ) : ?>
-                                <i class="fa-regular fa-star"></i>
-                            <?php endfor; ?>
-                        </div>
-                        <span class="visually-hidden">
-                            <?php
-                            printf(
-                                esc_html__( 'Rated %1$s out of 5', 'woocommerce' ),
-                                esc_html( number_format_i18n( $rounded_rating, 1 ) )
-                            );
-                            ?>
-                        </span>
-                        <span class="text-muted">(<?php echo esc_html( $rating_count ); ?>)</span>
+                        <?php if ( $product->is_on_sale() ) : ?>
+                            <span class="position-absolute top-0 start-0 m-3 badge text-bg-danger fw-semibold text-uppercase"><?php esc_html_e( 'Sale!', 'woocommerce' ); ?></span>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
 
-                <div class="fs-5 fw-bold text-dark mt-2 product-price">
+                    <div class="card-body <?php echo esc_attr( $card_body_class ); ?>">
+                        <?php if ( $category_text ) : ?>
+                            <p class="text-uppercase text-muted fw-semibold mb-1 small"><?php echo esc_html( $category_text ); ?></p>
+                        <?php endif; ?>
+
+                        <a href="<?php the_permalink(); ?>" class="text-decoration-none text-dark">
+                            <h2 class="fs-5 fw-semibold text-dark mb-2"><?php the_title(); ?></h2>
+                        </a>
+
+                        <?php if ( function_exists( 'wc_review_ratings_enabled' ) && wc_review_ratings_enabled() && $rating_count > 0 ) : ?>
+                            <div class="d-flex align-items-center small mb-2 gap-2">
+                                <?php
+                                echo wordprseo_get_star_rating_html(
+                                    $average_rating,
+                                    $rating_count,
+                                    array(
+                                        'class' => 'wordprseo-star-rating text-warning d-inline-flex align-items-center gap-1 small'
+                                    )
+                                );
+                                ?>
+                                <span class="text-muted">(<?php echo esc_html( $rating_count ); ?>)</span>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="fs-5 fw-bold text-dark mt-2 product-price">
  <?php echo wp_kses_post( $product->get_price_html() ); ?>
  </div>
 
