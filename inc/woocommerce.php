@@ -179,12 +179,40 @@ if ( ! function_exists( 'wordprseo_get_star_rating_html' ) ) {
     }
 }
 
+if ( ! function_exists( 'wordprseo_show_all_products_on_archives' ) ) {
+    /**
+     * Shows all products on shop and product taxonomy archives.
+     *
+     * @param \WP_Query $query Query instance.
+     */
+    function wordprseo_show_all_products_on_archives( $query ) {
+        if ( ! $query instanceof \WP_Query ) {
+            return;
+        }
+
+        if ( is_admin() || ! $query->is_main_query() ) {
+            return;
+        }
+
+        if ( ! function_exists( 'is_shop' ) || ! function_exists( 'is_product_taxonomy' ) ) {
+            return;
+        }
+
+        if ( ! is_shop() && ! is_product_taxonomy() ) {
+            return;
+        }
+
+        $query->set( 'posts_per_page', -1 );
+    }
+}
+
 if ( wordprseo_is_woocommerce_active() ) {
     add_action( 'after_setup_theme', 'wordprseo_register_woocommerce_support', 20 );
     add_action( 'woocommerce_before_main_content', 'wordprseo_woocommerce_before_main_content', 5 );
     add_action( 'woocommerce_after_main_content', 'wordprseo_woocommerce_after_main_content', 50 );
     add_action( 'admin_notices', 'wordprseo_maybe_display_woocommerce_notice' );
     add_filter( 'woocommerce_product_single_add_to_cart_html', 'wordprseo_bootstrap_single_add_to_cart_html', 10, 2 );
+    add_action( 'pre_get_posts', 'wordprseo_show_all_products_on_archives', 20 );
 
     // Flush cached setup data when products or categories change.
     add_action( 'save_post_product', 'wordprseo_flush_woocommerce_setup_cache' );
