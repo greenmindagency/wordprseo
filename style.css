@@ -575,3 +575,44 @@ Author URI: https://greenmindagency.com
 .wordprseo-star-rating i:last-child {
     margin-right: 0;
 }
+
+.woocommerce-ordering {
+    width: 100%;
+}
+
+.woocommerce-ordering .orderby {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #ffffff;
+    background-image: url('data:image/svg+xml,%3csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="%236c757d" stroke-width="1.5"%3e%3cpolyline points="3.5 6 8 10.5 12.5 6"/%3e%3c/svg%3e');
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    appearance: none;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.woocommerce-ordering .orderby:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+@media (min-width: 768px) {
+    .woocommerce-ordering {
+        width: auto;
+    }
+
+    .woocommerce-ordering .orderby {
+        width: auto;
+        min-width: 220px;
+    }
+}
