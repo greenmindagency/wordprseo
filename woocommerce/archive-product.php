@@ -44,7 +44,7 @@ $row_attrs = '';
                 if ( $ordering_markup ) {
                     $ordering_markup = str_replace(
                         'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering mb-0"',
+                        'class="woocommerce-ordering mb-0 ms-auto"',
                         $ordering_markup
                     );
 
