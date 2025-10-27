@@ -447,8 +447,9 @@ $after_summary_extra = trim( ob_get_clean() );
             <?php endif; ?>
 
             <?php if ( ! empty( $related_products ) ) : ?>
-                <hr class="my-5">
-                <section>
+                
+                <section class="container py-spacer">
+				<hr class="my-5">
                     <h2 class="mb-4 text-center text-md-start"><?php esc_html_e( 'Explore Related Products', 'woocommerce' ); ?></h2>
                     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
                         <?php foreach ( $related_products as $related_product ) : ?>
