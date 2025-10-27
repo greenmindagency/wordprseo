@@ -58,8 +58,9 @@ if ( ! function_exists( 'wordprseo_render_header_customer_tools' ) ) {
         $account_page_id = get_option( 'woocommerce_myaccount_page_id' );
         $account_url     = $account_page_id ? get_permalink( $account_page_id ) : '';
         $account_label   = '';
+        $is_logged_in    = is_user_logged_in();
 
-        if ( is_user_logged_in() ) {
+        if ( $is_logged_in ) {
             $current_user = wp_get_current_user();
             $display_name = $current_user instanceof WP_User ? $current_user->display_name : '';
 
@@ -68,33 +69,32 @@ if ( ! function_exists( 'wordprseo_render_header_customer_tools' ) ) {
             }
 
             if ( ! empty( $display_name ) ) {
-                $account_label = sprintf(
-                    '<span class="small fw-semibold mt-1">%s</span>',
-                    esc_html( $display_name )
-                );
+                $account_label = $display_name;
             }
         } elseif ( $account_url ) {
-            $account_label = sprintf(
-                '<a class="small text-decoration-none text-dark mt-1" href="%s">%s</a>',
-                esc_url( $account_url ),
-                esc_html__( 'Sign in', 'woocommerce' )
-            );
+            $account_label = esc_html__( 'Sign in', 'woocommerce' );
         }
 
         ob_start();
         ?>
-        <div class="woocommerce-header-tools d-flex align-items-center ms-3 p-2 bg-white border shadow-sm">
-            <div class="p-2 me-4 text-dark d-flex flex-column align-items-start">
+        <div class="woocommerce-header-tools d-flex align-items-center p-2 bg-white border shadow-sm">
+            <div class="p-2 me-4 text-dark">
                 <i class="fa-regular fa-user fa-xl" aria-hidden="true"></i>
                 <?php if ( ! empty( $account_label ) ) : ?>
-                    <?php echo $account_label; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <?php if ( $is_logged_in ) : ?>
+                        <span class="d-block small fw-semibold mt-1 text-dark"><?php echo esc_html( $account_label ); ?></span>
+                    <?php elseif ( $account_url ) : ?>
+                        <a class="d-block small text-decoration-none text-dark mt-1" href="<?php echo esc_url( $account_url ); ?>">
+                            <?php echo esc_html( $account_label ); ?>
+                        </a>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
             <div class="p-2">
                 <a class="btn btn-warning text-dark fw-bold fs-5 p-2 rounded-0 d-flex align-items-center shadow-none" href="<?php echo esc_url( wc_get_cart_url() ); ?>">
-                    <span class="me-3">
+                    <div class="me-3">
                         <i class="fa-solid fa-bag-shopping fa-xl text-dark" aria-hidden="true"></i>
-                    </span>
+                    </div>
                     <span class="text-dark"><?php echo esc_html( $cart_total ); ?></span>
                     <span class="badge rounded-pill bg-light text-dark ms-2 border border-dark">
                         <?php echo esc_html( (string) $cart_count ); ?>
