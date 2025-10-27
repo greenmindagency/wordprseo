@@ -34,32 +34,89 @@ $row_attrs = '';
             <h1 class="page-title fs-3 fw-bold text-dark mb-0"><?php echo esc_html( $archive_title ); ?></h1>
         <?php endif; ?>
 
-        <?php if ( function_exists( 'woocommerce_catalog_ordering' ) ) : ?>
-            <div>
-                <?php
-                ob_start();
-                woocommerce_catalog_ordering();
-                $ordering_markup = ob_get_clean();
+        <?php
+        $can_show_ordering = true;
 
-                if ( $ordering_markup ) {
-                    $ordering_markup = str_replace(
-                        'class="woocommerce-ordering"',
-                        'class="woocommerce-ordering mb-0 ms-auto"',
-                        $ordering_markup
-                    );
+        if ( function_exists( 'wc_get_loop_prop' ) ) {
+            $is_paginated = wc_get_loop_prop( 'is_paginated' );
 
-                    $ordering_markup = str_replace(
-                        'class="orderby"',
-                        'class="orderby form-select w-auto shadow-sm rounded-0"',
-                        $ordering_markup
-                    );
+            if ( null !== $is_paginated ) {
+                $can_show_ordering = (bool) $is_paginated;
+            }
+        }
 
-                    echo $ordering_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                }
-                ?>
+        if ( function_exists( 'woocommerce_products_will_display' ) ) {
+            $can_show_ordering = $can_show_ordering && woocommerce_products_will_display();
+        }
+
+        if ( $can_show_ordering && function_exists( 'wc_clean' ) && function_exists( 'wc_query_string_form_fields' ) ) :
+            $show_default_orderby = 'menu_order' === apply_filters( 'woocommerce_default_catalog_orderby', get_option( 'woocommerce_default_catalog_orderby', 'menu_order' ) );
+
+            $catalog_orderby_options = apply_filters(
+                'woocommerce_catalog_orderby',
+                array(
+                    'menu_order' => __( 'Default sorting', 'woocommerce' ),
+                    'popularity' => __( 'Sort by popularity', 'woocommerce' ),
+                    'rating'     => __( 'Sort by average rating', 'woocommerce' ),
+                    'date'       => __( 'Sort by latest', 'woocommerce' ),
+                    'price'      => __( 'Sort by price: low to high', 'woocommerce' ),
+                    'price-desc' => __( 'Sort by price: high to low', 'woocommerce' ),
+                )
+            );
+
+            $default_orderby = function_exists( 'wc_get_loop_prop' ) && wc_get_loop_prop( 'is_search' )
+                ? 'relevance'
+                : apply_filters( 'woocommerce_default_catalog_orderby', get_option( 'woocommerce_default_catalog_orderby', '' ) );
+
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $orderby = isset( $_GET['orderby'] ) ? wc_clean( wp_unslash( $_GET['orderby'] ) ) : $default_orderby;
+
+            if ( function_exists( 'wc_get_loop_prop' ) && wc_get_loop_prop( 'is_search' ) ) {
+                $catalog_orderby_options = array_merge( array( 'relevance' => __( 'Relevance', 'woocommerce' ) ), $catalog_orderby_options );
+                unset( $catalog_orderby_options['menu_order'] );
+            }
+
+            if ( ! $show_default_orderby ) {
+                unset( $catalog_orderby_options['menu_order'] );
+            }
+
+            if ( function_exists( 'wc_review_ratings_enabled' ) && ! wc_review_ratings_enabled() ) {
+                unset( $catalog_orderby_options['rating'] );
+            }
+
+            if ( is_array( $orderby ) ) {
+                $orderby = current( array_intersect( $orderby, array_keys( $catalog_orderby_options ) ) );
+            }
+
+            if ( ! array_key_exists( $orderby, $catalog_orderby_options ) ) {
+                $orderby = current( array_keys( $catalog_orderby_options ) );
+            }
+
+            $ordering_field_id = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'woocommerce-ordering-' ) : uniqid( 'woocommerce-ordering-' );
+            ?>
+            <div class="ms-auto">
+                <form class="woocommerce-ordering mb-0" method="get">
+                    <label class="visually-hidden" for="<?php echo esc_attr( $ordering_field_id ); ?>"><?php esc_html_e( 'Sort products', 'woocommerce' ); ?></label>
+                    <select
+                        name="orderby"
+                        id="<?php echo esc_attr( $ordering_field_id ); ?>"
+                        class="orderby form-select w-auto shadow-sm rounded-0"
+                        aria-label="<?php esc_attr_e( 'Shop order', 'woocommerce' ); ?>"
+                    >
+                        <?php foreach ( $catalog_orderby_options as $id => $name ) : ?>
+                            <option value="<?php echo esc_attr( $id ); ?>" <?php selected( $orderby, $id ); ?>><?php echo esc_html( $name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="hidden" name="paged" value="1" />
+                    <?php wc_query_string_form_fields( null, array( 'orderby', 'submit', 'paged', 'product-page' ) ); ?>
+                </form>
             </div>
         <?php endif; ?>
-    </div>
+        </div>
+
+    <?php if ( $archive_description ) : ?>
+        <div class="text-muted mb-4 lead"><?php echo wp_kses_post( $archive_description ); ?></div>
+    <?php endif; ?>
 
     <?php if ( $archive_description ) : ?>
         <div class="text-muted mb-4 lead"><?php echo wp_kses_post( $archive_description ); ?></div>
