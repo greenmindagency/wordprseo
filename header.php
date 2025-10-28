@@ -91,10 +91,27 @@ $bodycode = get_sub_field('body_code');
 // Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
 
-// --- FIX START: Consolidated WooCommerce page detection to force 'white' menu ---
+// --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
-    // Check for all core WooCommerce pages (Shop, Single Product, Category, Cart, Checkout)
-    if ( is_shop() || is_product() || is_product_taxonomy() || is_cart() || is_checkout() ) {
+    // 1. Check for standard WC pages (Shop, Product, Category)
+    $is_standard_wc = is_shop() || is_product() || is_product_taxonomy();
+
+    // 2. Check for Cart/Checkout using WooCommerce functions
+    $is_cart_or_checkout = is_cart() || is_checkout();
+    
+    // 3. Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
+    $is_wc_page_by_id = false;
+    if ( function_exists( 'wc_get_page_id' ) && is_page() ) {
+        $cart_id = wc_get_page_id( 'cart' );
+        $checkout_id = wc_get_page_id( 'checkout' );
+        $current_id = get_the_ID();
+        
+        if ( $current_id == $cart_id || $current_id == $checkout_id ) {
+            $is_wc_page_by_id = true;
+        }
+    }
+
+    if ( $is_standard_wc || $is_cart_or_checkout || $is_wc_page_by_id ) {
         $menu_color = 'white';
     }
 }
