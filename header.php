@@ -93,11 +93,11 @@ $menu_color = get_field('menu_color',2); // Get from current page/post
 
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
-    $force_white = true;
+    $force_white = false;
 
     // 1. Check for standard WC pages (Shop, Product, Category)
     if (is_shop() || is_product() || is_product_taxonomy()) {
-        $force_white = true;
+        $force_white = false;
     }
     
     // 2. Check for Cart/Checkout using WooCommerce functions
