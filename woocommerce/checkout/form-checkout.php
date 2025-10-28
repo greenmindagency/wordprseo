@@ -5,20 +5,30 @@
  * @package WordPrSEO
  *
  * @see https://docs.woocommerce.com/document/template-structure/
- * @version 8.6.0
+ * @version8.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Ensure default WooCommerce breadcrumb is not rendered on checkout
+if ( function_exists( 'remove_action' ) ) {
+ remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb',20 );
+}
 
 woocommerce_output_all_notices();
 
 do_action( 'woocommerce_before_checkout_form', $checkout );
 
 if ( ! $checkout || ( ! $checkout->is_registration_enabled() && $checkout->is_registration_required() && ! is_user_logged_in() ) ) {
-return;
+ return;
 }
 ?>
 <div class="container my-5">
+ <!-- Header (match shop page style, no breadcrumb) -->
+ <div class="d-flex justify-content-between align-items-center mb-4">
+ <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Checkout', 'woocommerce' ); ?></h1>
+ </div>
+
 <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data">
 <div class="row g-4">
 <?php if ( $checkout->get_checkout_fields() ) : ?>

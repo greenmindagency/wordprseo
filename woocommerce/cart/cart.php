@@ -5,10 +5,15 @@
  * @package WordPrSEO
  *
  * @see https://docs.woocommerce.com/document/template-structure/
- * @version 8.6.0
+ * @version8.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Ensure the default WooCommerce breadcrumb is not rendered on this page.
+if ( function_exists( 'remove_action' ) ) {
+ remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb',20 );
+}
 
 $cart_url = wc_get_cart_url();
 
@@ -17,6 +22,11 @@ woocommerce_output_all_notices();
 do_action( 'woocommerce_before_cart' );
 ?>
 <div class="container my-5">
+ <!-- Header (match shop page style, no breadcrumb) -->
+ <div class="d-flex justify-content-between align-items-center mb-4">
+ <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Cart', 'woocommerce' ); ?></h1>
+ </div>
+
 <form class="woocommerce-cart-form" action="<?php echo esc_url( $cart_url ); ?>" method="post">
 <?php do_action( 'woocommerce_before_cart_table' ); ?>
 
@@ -41,12 +51,12 @@ do_action( 'woocommerce_before_cart' );
 
 <?php foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) : ?>
 <?php
-if ( empty( $cart_item['data'] ) || ! $cart_item['data']->exists() || $cart_item['quantity'] <= 0 ) {
+if ( empty( $cart_item['data'] ) || ! $cart_item['data']->exists() || $cart_item['quantity'] <=0 ) {
 continue;
 }
 
-$product          = $cart_item['data'];
-$product_id       = $cart_item['product_id'];
+$product = $cart_item['data'];
+$product_id = $cart_item['product_id'];
 $product_permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
 ?>
 <tr class="woocommerce-cart-form__cart-item <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?>">
@@ -107,10 +117,10 @@ echo '1';
 } else {
 echo woocommerce_quantity_input( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 array(
-'input_name'  => "cart[{$cart_item_key}][qty]",
+'input_name' => "cart[{$cart_item_key}][qty]",
 'input_value' => $cart_item['quantity'],
-'classes'     => array( 'input-text', 'qty', 'form-control', 'text-end' ),
-'inputmode'   => 'numeric',
+'classes' => array( 'input-text', 'qty', 'form-control', 'text-end' ),
+'inputmode' => 'numeric',
 ),
 $product,
 false
