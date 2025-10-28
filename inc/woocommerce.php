@@ -324,6 +324,7 @@ if ( wordprseo_is_woocommerce_active() ) {
     add_action( 'admin_notices', 'wordprseo_maybe_display_woocommerce_notice' );
     add_filter( 'woocommerce_product_single_add_to_cart_html', 'wordprseo_bootstrap_single_add_to_cart_html', 10, 2 );
     add_action( 'pre_get_posts', 'wordprseo_show_all_products_on_archives', 20 );
+    add_filter( 'render_block', 'wordprseo_wrap_cart_checkout_blocks', 10, 2 );
 
     // Remove the default WooCommerce catalog ordering dropdown from all archive/shop pages.
     // WooCommerce registers the catalog ordering markup via the 'woocommerce_catalog_ordering' function
@@ -367,6 +368,54 @@ if ( ! function_exists( 'wordprseo_register_woocommerce_support' ) ) {
         add_theme_support( 'wc-product-gallery-zoom' );
         add_theme_support( 'wc-product-gallery-lightbox' );
         add_theme_support( 'wc-product-gallery-slider' );
+    }
+}
+
+if ( ! function_exists( 'wordprseo_wrap_cart_checkout_blocks' ) ) {
+    /**
+     * Wraps the cart and checkout blocks with the theme container spacing classes.
+     *
+     * Ensures the block-based cart and checkout pages share the same layout spacing as
+     * the classic templates by surrounding their rendered markup with the
+     * `container py-spacer-2` wrapper used throughout the theme.
+     *
+     * @param string $block_content The block HTML.
+     * @param array  $block         The block data.
+     *
+     * @return string
+     */
+    function wordprseo_wrap_cart_checkout_blocks( $block_content, $block ) {
+        if ( is_admin() && ! wp_doing_ajax() ) {
+            return $block_content;
+        }
+
+        if ( empty( $block['blockName'] ) ) {
+            return $block_content;
+        }
+
+        $target_blocks = array(
+            'woocommerce/cart',
+            'woocommerce/checkout',
+        );
+
+        if ( ! in_array( $block['blockName'], $target_blocks, true ) ) {
+            return $block_content;
+        }
+
+        $trimmed_content = trim( $block_content );
+
+        if ( '' === $trimmed_content ) {
+            return $block_content;
+        }
+
+        if ( false !== strpos( $trimmed_content, 'container py-spacer-2' ) ) {
+            return $block_content;
+        }
+
+        return sprintf(
+            '<div class="container py-spacer-2">%s</div>',
+            $trimmed_content
+        );
     }
 }
 
