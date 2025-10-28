@@ -3386,7 +3386,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-placeholder-empty { font-size:12px; color:#666; }
                 .theme-leads-bulk-form { margin-bottom:16px; }
                 .theme-leads-bulk-fieldset { border:1px solid #dcdcde; border-radius:4px; padding:12px 16px; margin:0; background:#fff; display:flex; flex-direction:column; gap:12px; }
-                .theme-leads-bulk-fieldset legend { font-size:12px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; padding:0 4px; }
+                .theme-leads-bulk-fieldset legend { font-size:12px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; padding:0 10px; margin-left:16px; background:#fff; }
                 .theme-leads-bulk-groups { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
                 .theme-leads-bulk-group { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
                 .theme-leads-bulk-group label { font-weight:600; }
@@ -3399,8 +3399,8 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-columns-list { display:flex; flex-direction:column; gap:8px; margin:0; }
                 .theme-leads-columns-option { display:flex; align-items:center; gap:8px; font-weight:500; }
                 .theme-leads-columns-option input { margin:0; }
-                .theme-leads-table .check-column { width:36px; }
-                .theme-leads-table .check-column input[type="checkbox"] { margin:0; }
+                .theme-leads-table .check-column { width:40px; padding:0; text-align:center; vertical-align:middle; }
+                .theme-leads-table .check-column input[type="checkbox"] { margin:0 auto; display:block; }
                 .theme-leads-template-context { display:none; }
                 @keyframes themeLeadsSpin { to { transform:rotate(360deg); } }
             </style>';
