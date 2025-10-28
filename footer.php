@@ -1107,16 +1107,26 @@ blockquote p {margin:1rem 0}
 	
 </style>
    
-<?php if ( is_user_logged_in() ) { // Fixes the top bar position for logged-in users ?>
-   
-  <style>
-    
-    .navbar { margin-top: 30px; }
-    #wpadminbar { height: 30px !important; min-width: auto !important; position: fixed !important;  }
-#wpadminbar a {color: white !important;}
-  </style>
+<?php
+// Get the current logged-in user object
+$current_user = wp_get_current_user();
 
-<?php } ?> 
+// Define the roles that should see the styling
+$allowed_roles = array( 'administrator', 'editor' );
+
+// Check if the user is logged in AND has one of the allowed roles
+if ( is_user_logged_in() && array_intersect( $allowed_roles, (array) $current_user->roles ) ) {
+    // If the condition is true, output the styling
+?>
+    <style>
+        .navbar { margin-top: 30px; }
+        #wpadminbar { height: 30px !important; min-width: auto !important; position: fixed !important; }
+        #wpadminbar a { color: white !important; }
+    </style>
+
+<?php
+}
+?>
 
   
 <!-- fonts and icons -->
