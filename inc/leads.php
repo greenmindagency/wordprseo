@@ -41,6 +41,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'admin_menu', array( $this, 'register_menu' ) );
                 add_action( 'admin_post_theme_leads_update', array( $this, 'handle_status_update' ) );
                 add_action( 'admin_post_theme_leads_delete', array( $this, 'handle_delete' ) );
+                add_action( 'admin_post_theme_leads_bulk', array( $this, 'handle_bulk_action' ) );
                 add_action( 'admin_post_theme_leads_template_save', array( $this, 'handle_template_save' ) );
                 add_action( 'admin_post_theme_leads_template_delete', array( $this, 'handle_template_delete' ) );
                 add_action( 'admin_post_theme_leads_statuses_save', array( $this, 'handle_statuses_save' ) );
@@ -1819,6 +1820,50 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
         /**
          * Handle admin deletion of a lead entry.
          */
+        public function handle_bulk_action() {
+            if ( ! current_user_can( $this->get_required_capability() ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
+            }
+
+            check_admin_referer( 'theme_leads_bulk' );
+
+            $form_slug = isset( $_POST['form_slug'] ) ? sanitize_key( wp_unslash( $_POST['form_slug'] ) ) : '';
+            $action    = isset( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
+            $lead_ids  = isset( $_POST['selected_leads'] ) ? wp_parse_id_list( wp_unslash( $_POST['selected_leads'] ) ) : array();
+
+            if ( '' === $form_slug || empty( $lead_ids ) ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=theme-leads' ) );
+                exit;
+            }
+
+            $redirect = admin_url( 'admin.php?page=theme-leads&form=' . $form_slug );
+
+            if ( 'delete' === $action ) {
+                $this->bulk_delete_leads( $form_slug, $lead_ids );
+                wp_safe_redirect( $redirect );
+                exit;
+            }
+
+            if ( 'status' === $action ) {
+                $status_input = isset( $_POST['bulk_status'] ) ? wp_unslash( $_POST['bulk_status'] ) : '';
+                $status_slug  = sanitize_title_with_dashes( $status_input );
+                $labels_map   = $this->get_status_labels_map( null, $form_slug );
+
+                if ( '' === $status_slug || ! isset( $labels_map[ $status_slug ] ) ) {
+                    wp_safe_redirect( $redirect );
+                    exit;
+                }
+
+                $this->bulk_update_lead_statuses( $form_slug, $lead_ids, $status_slug );
+            }
+
+            wp_safe_redirect( $redirect );
+            exit;
+        }
+
+        /**
+         * Handle admin deletion of a lead entry.
+         */
         public function handle_delete() {
             if ( ! current_user_can( $this->get_required_capability() ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this page.', 'wordprseo' ) );
@@ -1834,23 +1879,91 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 exit;
             }
 
-            global $wpdb;
-
-            $table = $this->resolve_table_name_for_slug( $form_slug );
-
-            if ( ! empty( $table ) && $this->table_exists( $table ) ) {
-                $lead = $wpdb->get_row( $wpdb->prepare( "SELECT payload FROM {$table} WHERE id = %d", $lead_id ) );
-
-                if ( $lead && isset( $lead->payload ) ) {
-                    $payload = $this->normalise_payload( $lead->payload );
-                    $this->delete_uploaded_files_from_payload( $payload );
-                }
-
-                $wpdb->delete( $table, array( 'id' => $lead_id ), array( '%d' ) );
-            }
+            $this->bulk_delete_leads( $form_slug, array( $lead_id ) );
 
             wp_safe_redirect( admin_url( 'admin.php?page=theme-leads&form=' . $form_slug ) );
             exit;
+        }
+
+        /**
+         * Delete one or more leads associated with a form slug.
+         *
+         * @param string $form_slug Form slug.
+         * @param array  $lead_ids  Lead IDs to delete.
+         */
+        protected function bulk_delete_leads( $form_slug, $lead_ids ) {
+            global $wpdb;
+
+            $form_slug = sanitize_key( $form_slug );
+            $lead_ids  = wp_parse_id_list( $lead_ids );
+
+            if ( empty( $form_slug ) || empty( $lead_ids ) ) {
+                return;
+            }
+
+            $table = $this->resolve_table_name_for_slug( $form_slug );
+
+            if ( empty( $table ) || ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $this->maybe_create_table( $table, $form_slug );
+
+            $placeholders = implode( ',', array_fill( 0, count( $lead_ids ), '%d' ) );
+
+            $select_query = $wpdb->prepare( "SELECT id, payload FROM {$table} WHERE id IN ({$placeholders})", $lead_ids );
+            $results      = $select_query ? $wpdb->get_results( $select_query ) : array();
+
+            if ( ! empty( $results ) ) {
+                foreach ( $results as $lead ) {
+                    if ( isset( $lead->payload ) ) {
+                        $payload = $this->normalise_payload( $lead->payload );
+                        $this->delete_uploaded_files_from_payload( $payload );
+                    }
+                }
+            }
+
+            $delete_query = $wpdb->prepare( "DELETE FROM {$table} WHERE id IN ({$placeholders})", $lead_ids );
+
+            if ( $delete_query ) {
+                $wpdb->query( $delete_query );
+            }
+        }
+
+        /**
+         * Bulk update lead statuses for a form slug.
+         *
+         * @param string $form_slug Form slug.
+         * @param array  $lead_ids  Lead IDs to update.
+         * @param string $status    Status slug to apply.
+         */
+        protected function bulk_update_lead_statuses( $form_slug, $lead_ids, $status ) {
+            global $wpdb;
+
+            $form_slug = sanitize_key( $form_slug );
+            $status    = sanitize_title_with_dashes( $status );
+            $lead_ids  = wp_parse_id_list( $lead_ids );
+
+            if ( empty( $form_slug ) || empty( $lead_ids ) || '' === $status ) {
+                return;
+            }
+
+            $table = $this->resolve_table_name_for_slug( $form_slug );
+
+            if ( empty( $table ) || ! $this->table_exists( $table ) ) {
+                return;
+            }
+
+            $this->maybe_create_table( $table, $form_slug );
+
+            $placeholders = implode( ',', array_fill( 0, count( $lead_ids ), '%d' ) );
+            $params       = array_merge( array( $status ), $lead_ids );
+
+            $update_query = $wpdb->prepare( "UPDATE {$table} SET status = %s WHERE id IN ({$placeholders})", $params );
+
+            if ( $update_query ) {
+                $wpdb->query( $update_query );
+            }
         }
 
         /**
@@ -2904,8 +3017,38 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             } elseif ( empty( $leads ) ) {
                 echo '<p>' . esc_html__( 'No leads found for this form.', 'wordprseo' ) . '</p>';
             } else {
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="theme-leads-bulk-form" class="theme-leads-bulk-form">';
+                wp_nonce_field( 'theme_leads_bulk' );
+                echo '<input type="hidden" name="action" value="theme_leads_bulk" />';
+                echo '<input type="hidden" name="form_slug" value="' . esc_attr( $form_slug ) . '" />';
+                echo '<fieldset class="theme-leads-bulk-fieldset">';
+                echo '<legend>' . esc_html__( 'Bulk actions', 'wordprseo' ) . '</legend>';
+                echo '<div class="theme-leads-bulk-groups">';
+                echo '<div class="theme-leads-bulk-group">';
+                echo '<label for="theme-leads-bulk-status">' . esc_html__( 'Change status to', 'wordprseo' ) . '</label>';
+                echo '<select name="bulk_status" id="theme-leads-bulk-status" class="theme-leads-no-toggle">';
+                echo '<option value="">' . esc_html__( 'Select status', 'wordprseo' ) . '</option>';
+                foreach ( $statuses as $status_definition ) {
+                    $status_slug  = isset( $status_definition['slug'] ) ? $status_definition['slug'] : '';
+                    $status_label = isset( $status_definition['label'] ) ? $status_definition['label'] : $status_slug;
+                    if ( '' === $status_slug ) {
+                        continue;
+                    }
+                    printf( '<option value="%1$s">%2$s</option>', esc_attr( $status_slug ), esc_html( $status_label ) );
+                }
+                echo '</select>';
+                echo '<button type="submit" class="button button-primary" name="bulk_action" value="status" disabled>' . esc_html__( 'Update status', 'wordprseo' ) . '</button>';
+                echo '</div>';
+                echo '<div class="theme-leads-bulk-group">';
+                echo '<button type="submit" class="button button-secondary theme-leads-bulk-delete" name="bulk_action" value="delete" disabled>' . esc_html__( 'Delete selected', 'wordprseo' ) . '</button>';
+                echo '</div>';
+                echo '</div>';
+                echo '</fieldset>';
+                echo '</form>';
+
                 echo '<table class="widefat fixed striped theme-leads-table">';
                 echo '<thead><tr>';
+                echo '<th scope="col" class="manage-column check-column"><label class="screen-reader-text theme-leads-no-toggle" for="theme-leads-select-all">' . esc_html__( 'Select all leads', 'wordprseo' ) . '</label><input type="checkbox" id="theme-leads-select-all" class="theme-leads-no-toggle" form="theme-leads-bulk-form" /></th>';
                 echo '<th>' . esc_html__( 'Submitted', 'wordprseo' ) . '</th>';
                 foreach ( $selected_table_columns as $column_key ) {
                     echo '<th>' . esc_html( $this->get_table_column_header_label( $column_key ) ) . '</th>';
@@ -2966,6 +3109,11 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 $history_markup = $this->get_response_history_markup( $lead );
 
                 echo '<tr class="theme-leads-summary" data-lead="' . absint( $lead->id ) . '">';
+                $checkbox_id = 'theme-leads-select-' . absint( $lead->id );
+                echo '<th scope="row" class="check-column">';
+                echo '<label class="screen-reader-text theme-leads-no-toggle" for="' . esc_attr( $checkbox_id ) . '">' . esc_html__( 'Select this lead', 'wordprseo' ) . '</label>';
+                echo '<input type="checkbox" id="' . esc_attr( $checkbox_id ) . '" class="theme-leads-select theme-leads-no-toggle" name="selected_leads[]" value="' . absint( $lead->id ) . '" form="theme-leads-bulk-form" />';
+                echo '</th>';
                 echo '<td class="theme-leads-summary-submitted">';
                 echo '<button type="button" class="theme-leads-toggle-button" aria-expanded="false" aria-controls="' . esc_attr( $detail_id ) . '"><span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Toggle lead details', 'wordprseo' ) . '</span></button>';
                 echo '<span class="theme-leads-submitted-text">' . esc_html( $formatted_at ) . '</span>';
@@ -3025,6 +3173,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 echo '</tr>';
 
                 echo '<tr class="theme-leads-details" id="' . esc_attr( $detail_id ) . '" data-lead="' . absint( $lead->id ) . '" aria-hidden="true">';
+                echo '<td class="check-column theme-leads-no-toggle"></td>';
                 echo '<td colspan="' . absint( $summary_column_count ) . '">';
                 echo '<div class="theme-leads-details-inner">';
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="theme-leads-detail-form">';
@@ -3235,12 +3384,23 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 .theme-leads-placeholder-button { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; border:1px solid #ccd0d4; background:#f6f7f7; cursor:pointer; font-size:12px; line-height:1.4; color:#1d2327; transition:all .2s ease; font-family:inherit; }
                 .theme-leads-placeholder-button:hover, .theme-leads-placeholder-button:focus { background:#2271b1; border-color:#2271b1; color:#fff; outline:0; }
                 .theme-leads-placeholder-empty { font-size:12px; color:#666; }
+                .theme-leads-bulk-form { margin-bottom:16px; }
+                .theme-leads-bulk-fieldset { border:1px solid #dcdcde; border-radius:4px; padding:12px 16px; margin:0; background:#fff; display:flex; flex-direction:column; gap:12px; }
+                .theme-leads-bulk-fieldset legend { font-size:12px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; padding:0 4px; }
+                .theme-leads-bulk-groups { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+                .theme-leads-bulk-group { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+                .theme-leads-bulk-group label { font-weight:600; }
+                .theme-leads-bulk-group select { min-width:200px; }
+                .theme-leads-bulk-delete { color:#dc3232; border-color:#dc3232; }
+                .theme-leads-bulk-delete:disabled { color:#a7aaad; border-color:#dcdcde; }
                 .theme-leads-columns-options { display:flex; flex-direction:column; gap:16px; }
                 .theme-leads-columns-fieldset { border:1px solid #e2e4e7; border-radius:4px; padding:12px 16px; margin:0; background:#f9fafb; }
                 .theme-leads-columns-fieldset legend { font-size:12px; font-weight:600; text-transform:uppercase; color:#4f5969; letter-spacing:0.04em; padding:0 4px; }
                 .theme-leads-columns-list { display:flex; flex-direction:column; gap:8px; margin:0; }
                 .theme-leads-columns-option { display:flex; align-items:center; gap:8px; font-weight:500; }
                 .theme-leads-columns-option input { margin:0; }
+                .theme-leads-table .check-column { width:36px; }
+                .theme-leads-table .check-column input[type="checkbox"] { margin:0; }
                 .theme-leads-template-context { display:none; }
                 @keyframes themeLeadsSpin { to { transform:rotate(360deg); } }
             </style>';
@@ -3300,6 +3460,19 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
             $columns_saved_label_json         = wp_json_encode( __( 'Table columns saved. Reloading…', 'wordprseo' ) );
             $columns_error_label_json         = wp_json_encode( __( 'Unable to save the table columns. Please try again.', 'wordprseo' ) );
             $columns_missing_label_json       = wp_json_encode( __( 'Select at least one column.', 'wordprseo' ) );
+            $bulk_no_selection_label_json     = wp_json_encode( __( 'Select at least one lead to continue.', 'wordprseo' ) );
+            $bulk_delete_confirm_label_json   = wp_json_encode( __( 'Delete the selected leads permanently?', 'wordprseo' ) );
+            $system_placeholder_definitions   = array(
+                '%name%'       => __( 'Client name', 'wordprseo' ),
+                '%brand%'      => __( 'Brand name', 'wordprseo' ),
+                '%link%'       => __( 'Website URL', 'wordprseo' ),
+                '%status%'     => __( 'Status label', 'wordprseo' ),
+                '%site_title%' => __( 'Site title', 'wordprseo' ),
+            );
+            $system_placeholder_definitions_json = wp_json_encode( $system_placeholder_definitions );
+            if ( false === $system_placeholder_definitions_json ) {
+                $system_placeholder_definitions_json = '{}';
+            }
             $email_split_pattern_json         = wp_json_encode( '[\\r\\n,;]+' );
             if ( false === $email_split_pattern_json ) {
                 $email_split_pattern_json = '"[\\\\r\\\\n,;]+"';
@@ -3413,6 +3586,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const columnsSavedMessage = {$columns_saved_label_json};
     const columnsErrorMessage = {$columns_error_label_json};
     const columnsMissingMessage = {$columns_missing_label_json};
+    const bulkNoSelectionMessage = {$bulk_no_selection_label_json} || "";
+    const bulkDeleteConfirmMessage = {$bulk_delete_confirm_label_json} || "";
+    let systemPlaceholderDefinitions = {$system_placeholder_definitions_json};
+    if (!systemPlaceholderDefinitions || typeof systemPlaceholderDefinitions !== "object") {
+        systemPlaceholderDefinitions = {};
+    }
     const emailSplitRegex = new RegExp({$email_split_pattern_json});
 
     const formSelect = document.getElementById("theme-leads-form");
@@ -4137,6 +4316,86 @@ document.addEventListener("DOMContentLoaded", function() {
             toggleLeadRow(leadId, button);
         });
     });
+
+    const bulkForm = document.getElementById("theme-leads-bulk-form");
+    const bulkSelectAll = document.getElementById("theme-leads-select-all");
+    const bulkStatusSelect = document.getElementById("theme-leads-bulk-status");
+
+    function getBulkCheckboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll(".theme-leads-select"));
+    }
+
+    function updateBulkActionState() {
+        if (!bulkForm) {
+            return;
+        }
+
+        const checkboxes = getBulkCheckboxes();
+        const selected = checkboxes.filter(function(box) { return box.checked; });
+        const hasSelection = selected.length > 0;
+
+        const statusButton = bulkForm.querySelector("button[name='bulk_action'][value='status']");
+        const deleteButton = bulkForm.querySelector("button[name='bulk_action'][value='delete']");
+
+        if (statusButton) {
+            const statusValue = bulkStatusSelect && typeof bulkStatusSelect.value === "string" ? bulkStatusSelect.value : "";
+            statusButton.disabled = !hasSelection || !statusValue;
+        }
+
+        if (deleteButton) {
+            deleteButton.disabled = !hasSelection;
+        }
+
+        if (bulkSelectAll) {
+            const total = checkboxes.length;
+            bulkSelectAll.indeterminate = hasSelection && selected.length < total;
+            bulkSelectAll.checked = hasSelection && selected.length === total;
+        }
+    }
+
+    function bindBulkCheckboxes() {
+        getBulkCheckboxes().forEach(function(checkbox) {
+            checkbox.addEventListener("change", updateBulkActionState);
+        });
+    }
+
+    bindBulkCheckboxes();
+    updateBulkActionState();
+
+    if (bulkSelectAll) {
+        bulkSelectAll.addEventListener("change", function() {
+            const checkboxes = getBulkCheckboxes();
+            checkboxes.forEach(function(box) {
+                box.checked = bulkSelectAll.checked;
+            });
+            updateBulkActionState();
+        });
+    }
+
+    if (bulkStatusSelect) {
+        bulkStatusSelect.addEventListener("change", updateBulkActionState);
+    }
+
+    if (bulkForm) {
+        bulkForm.addEventListener("submit", function(event) {
+            const submitter = event.submitter || null;
+            const selected = getBulkCheckboxes().filter(function(box) { return box.checked; });
+
+            if (!selected.length) {
+                event.preventDefault();
+                if (bulkNoSelectionMessage) {
+                    window.alert(bulkNoSelectionMessage);
+                }
+                return;
+            }
+
+            if (submitter && submitter.name === "bulk_action" && submitter.value === "delete") {
+                if (bulkDeleteConfirmMessage && !window.confirm(bulkDeleteConfirmMessage)) {
+                    event.preventDefault();
+                }
+            }
+        });
+    }
 
     document.querySelectorAll(".theme-leads-status-select").forEach(function(select) {
         const form = select.closest("form");
@@ -4884,7 +5143,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function gatherPlaceholderTokens() {
         const defaultSystemTokens = ['%name%', '%email%', '%phone%', '%brand%', '%link%', '%status%', '%status_slug%', '%date%', '%date_short%', '%form_title%', '%site_name%', '%site_title%', '%recipient%', '%cc%', '%default_cc%'];
-        const displaySystemTokens = ['%brand%', '%link%', '%status%', '%site_title%'];
+        const displaySystemTokens = ['%name%', '%brand%', '%link%', '%status%', '%site_title%'];
         const systemTokens = new Set(defaultSystemTokens);
         const formTokens = new Set();
 
@@ -4939,9 +5198,18 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
         const sections = [];
-        const systemList = displaySystemTokens.filter(function(token) {
-            return systemTokens.has(token);
-        });
+        const systemList = displaySystemTokens.reduce(function(list, token) {
+            if (!systemTokens.has(token)) {
+                return list;
+            }
+
+            const definition = systemPlaceholderDefinitions && Object.prototype.hasOwnProperty.call(systemPlaceholderDefinitions, token)
+                ? systemPlaceholderDefinitions[token]
+                : '';
+
+            list.push({ token: token, label: definition || token });
+            return list;
+        }, []);
         if (systemList.length) {
             sections.push({ id: "system", label: systemPlaceholdersLabel, tokens: systemList });
         }
@@ -4993,11 +5261,23 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (!token) {
                         return;
                     }
+                    let tokenValue = token;
+                    let tokenLabel = token;
+                    if (token && typeof token === "object") {
+                        tokenValue = token.token || "";
+                        tokenLabel = token.label || tokenValue;
+                    }
+                    if (!tokenValue) {
+                        return;
+                    }
                     const button = document.createElement("button");
                     button.type = "button";
                     button.className = "theme-leads-placeholder-button";
-                    button.dataset.placeholder = token;
-                    button.textContent = token;
+                    button.dataset.placeholder = tokenValue;
+                    button.textContent = tokenLabel;
+                    if (tokenLabel !== tokenValue) {
+                        button.title = tokenValue;
+                    }
                     listEl.appendChild(button);
                 });
 
