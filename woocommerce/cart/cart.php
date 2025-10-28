@@ -10,20 +10,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
-remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cross_sell_display' );
-remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cart_totals', 10 );
-
 $cart_url = wc_get_cart_url();
 
-wc_print_notices();
+woocommerce_output_all_notices();
 
 do_action( 'woocommerce_before_cart' );
 ?>
+<div class="container my-5">
 <form class="woocommerce-cart-form" action="<?php echo esc_url( $cart_url ); ?>" method="post">
 <?php do_action( 'woocommerce_before_cart_table' ); ?>
 
+<div class="row g-4">
+<div class="col-12 col-lg-8">
+<div class="card border-0 shadow-sm h-100">
+<div class="card-body p-0">
 <div class="table-responsive">
-<table class="shop_table shop_table_responsive cart table align-middle mb-4">
+<table class="shop_table shop_table_responsive cart table align-middle mb-0">
 <thead class="table-light">
 <tr>
 <th class="product-remove text-center">&nbsp;</th>
@@ -43,8 +45,8 @@ if ( empty( $cart_item['data'] ) || ! $cart_item['data']->exists() || $cart_item
 continue;
 }
 
-$product        = $cart_item['data'];
-$product_id     = $cart_item['product_id'];
+$product          = $cart_item['data'];
+$product_id       = $cart_item['product_id'];
 $product_permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
 ?>
 <tr class="woocommerce-cart-form__cart-item <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?>">
@@ -105,10 +107,10 @@ echo '1';
 } else {
 echo woocommerce_quantity_input( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 array(
-'input_name'   => "cart[{$cart_item_key}][qty]",
-'input_value'  => $cart_item['quantity'],
-'classes'      => array( 'input-text', 'qty', 'form-control', 'text-end' ),
-'inputmode'    => 'numeric',
+'input_name'  => "cart[{$cart_item_key}][qty]",
+'input_value' => $cart_item['quantity'],
+'classes'     => array( 'input-text', 'qty', 'form-control', 'text-end' ),
+'inputmode'   => 'numeric',
 ),
 $product,
 false
@@ -127,6 +129,7 @@ false
 
 <tr>
 <td colspan="6" class="actions">
+<div class="border-top p-4">
 <div class="row g-3 justify-content-between align-items-center">
 <?php if ( wc_coupons_enabled() ) : ?>
 <div class="col-12 col-md-6">
@@ -140,11 +143,10 @@ false
 <?php endif; ?>
 
 <div class="col-12 col-md-auto text-md-end">
-<button type="submit" class="btn btn-primary" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'woocommerce' ); ?>">
-<?php esc_html_e( 'Update cart', 'woocommerce' ); ?>
-</button>
+<button type="submit" class="btn btn-primary" name="update_cart" value="<?php esc_attr_e( 'Update cart', 'woocommerce' ); ?>"><?php esc_html_e( 'Update cart', 'woocommerce' ); ?></button>
 <?php do_action( 'woocommerce_cart_actions' ); ?>
 <?php wp_nonce_field( 'woocommerce-cart', 'woocommerce-cart-nonce' ); ?>
+</div>
 </div>
 </div>
 </td>
@@ -154,21 +156,35 @@ false
 </tbody>
 </table>
 </div>
+</div>
+</div>
 
 <?php do_action( 'woocommerce_after_cart_table' ); ?>
-</form>
-
-<div class="cart-collaterals">
-<div class="row g-4">
-<div class="col-12 col-lg-7">
-<?php woocommerce_cross_sell_display(); ?>
 </div>
-<div class="col-12 col-lg-5">
+
+<div class="col-12 col-lg-4">
+<div class="card border-0 shadow-sm h-100">
+<div class="card-body">
+<h2 class="h5 mb-4"><?php esc_html_e( 'Cart totals', 'woocommerce' ); ?></h2>
+<?php do_action( 'woocommerce_before_cart_collaterals' ); ?>
+<div class="woocommerce-cart-collaterals">
 <?php woocommerce_cart_totals(); ?>
 </div>
+<?php do_action( 'woocommerce_after_cart_collaterals' ); ?>
 </div>
+</div>
+</div>
+</div>
+</form>
 
-<?php do_action( 'woocommerce_cart_collaterals' ); ?>
+<?php if ( WC()->cart->get_cross_sells() ) : ?>
+<div class="mt-5">
+<h2 class="h4 mb-4"><?php esc_html_e( 'You may also like…', 'woocommerce' ); ?></h2>
+<div class="woocommerce-cart-cross-sells">
+<?php woocommerce_cross_sell_display(); ?>
+</div>
+</div>
+<?php endif; ?>
 </div>
 
 <?php do_action( 'woocommerce_after_cart' ); ?>

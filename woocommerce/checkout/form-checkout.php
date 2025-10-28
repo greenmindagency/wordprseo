@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-wc_print_notices();
+woocommerce_output_all_notices();
 
 do_action( 'woocommerce_before_checkout_form', $checkout );
 
@@ -18,6 +18,7 @@ if ( ! $checkout || ( ! $checkout->is_registration_enabled() && $checkout->is_re
 return;
 }
 ?>
+<div class="container my-5">
 <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data">
 <div class="row g-4">
 <?php if ( $checkout->get_checkout_fields() ) : ?>
@@ -25,6 +26,9 @@ return;
 <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
 <div id="customer_details" class="card border-0 shadow-sm">
+<div class="card-header bg-transparent border-bottom py-3">
+<h2 class="h5 mb-0"><?php esc_html_e( 'Billing &amp; Shipping', 'woocommerce' ); ?></h2>
+</div>
 <div class="card-body">
 <?php do_action( 'woocommerce_checkout_billing' ); ?>
 <hr class="my-4" />
@@ -37,18 +41,23 @@ return;
 <?php endif; ?>
 
 <div class="col-12 col-lg-5">
-<h3 class="h4 mb-3"><?php esc_html_e( 'Your order', 'woocommerce' ); ?></h3>
+<div class="card border-0 shadow-sm">
+<div class="card-header bg-transparent border-bottom py-3">
+<h2 class="h5 mb-0"><?php esc_html_e( 'Your order', 'woocommerce' ); ?></h2>
+</div>
+<div class="card-body">
 <?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
 
-<div id="order_review" class="woocommerce-checkout-review-order card border-0 shadow-sm">
-<div class="card-body">
+<div id="order_review" class="woocommerce-checkout-review-order">
 <?php do_action( 'woocommerce_checkout_order_review' ); ?>
-</div>
 </div>
 
 <?php do_action( 'woocommerce_checkout_after_order_review' ); ?>
 </div>
 </div>
+</div>
+</div>
 </form>
+</div>
 
 <?php do_action( 'woocommerce_after_checkout_form', $checkout ); ?>
