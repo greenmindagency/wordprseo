@@ -93,25 +93,40 @@ $menu_color = get_field('menu_color',2); // Get from current page/post
 
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
-    // 1. Check for standard WC pages (Shop, Product, Category)
-    $is_standard_wc = is_shop() || is_product() || is_product_taxonomy();
+    $force_white = false;
 
+    // 1. Check for standard WC pages (Shop, Product, Category)
+    if (is_shop() || is_product() || is_product_taxonomy()) {
+        $force_white = true;
+    }
+    
     // 2. Check for Cart/Checkout using WooCommerce functions
-    $is_cart_or_checkout = is_cart() || is_checkout();
+    if (is_cart() || is_checkout()) {
+        $force_white = true;
+    }
     
     // 3. Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
-    $is_wc_page_by_id = false;
-    if ( function_exists( 'wc_get_page_id' ) && is_page() ) {
+    if (function_exists( 'wc_get_page_id' ) && is_page() ) {
         $cart_id = wc_get_page_id( 'cart' );
         $checkout_id = wc_get_page_id( 'checkout' );
         $current_id = get_the_ID();
         
-        if ( $current_id == $cart_id || $current_id == $checkout_id ) {
-            $is_wc_page_by_id = true;
+        if ($current_id == $cart_id || $current_id == $checkout_id) {
+            $force_white = true;
+        }
+    }
+    
+    // 4. ULTIMATE FALLBACK: Check the URL/query for /cart/ or /checkout/ slugs (most reliable if hooks are failing)
+    global $wp_query;
+    if (isset($wp_query->query['pagename'])) {
+        $page_name = $wp_query->query['pagename'];
+        if (strpos($page_name, 'cart') !== false || strpos($page_name, 'checkout') !== false) {
+             $force_white = true;
         }
     }
 
-    if ( $is_standard_wc || $is_cart_or_checkout || $is_wc_page_by_id ) {
+
+    if ($force_white) {
         $menu_color = 'white';
     }
 }
