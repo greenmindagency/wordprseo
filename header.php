@@ -21,6 +21,7 @@
 
 
 
+
 <?php if (have_rows('map_locations',2)) : ?>
  <?php while (have_rows('map_locations',2)) : the_row(); ?>
  <?php 
@@ -34,14 +35,16 @@
 ?>
  
 		
-				
+		
+		
+		
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"<?php bloginfo('name'); ?>","url":"<?php echo esc_url(get_home_url()); ?>/","logo":"<?php $image = get_field('logo' ,2); if( !empty($image) ): echo $image['sizes']['large']; endif; ?>","contactPoint":{"@type":"ContactPoint","telephone":"<?php echo esc_html($telephone); ?>","contactType":"Customer Service"},"address":{"@type":"PostalAddress","streetAddress":"<?php echo esc_html($street_address); ?>","addressLocality":"<?php echo esc_html($city); ?>","addressRegion":"<?php echo esc_html($region); ?>"}, "sameAs":[<?php if( have_rows('social_media',2) ) : $links = []; while( have_rows('social_media',2) ) : the_row(); $links[] = get_sub_field('link'); endwhile; echo '"' . implode('", "', $links) . '"'; endif; ?>]}</script>
 
 
  
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"LocalBusiness","name":"<?php bloginfo('name'); ?>","image":"<?php $image = get_field('logo' ,2); if( !empty($image) ): echo $image['sizes']['large']; endif; ?>","telephone":"<?php echo esc_html($telephone); ?>","priceRange":"<?php echo esc_html($price_range); ?>","address":{"@type":"PostalAddress","streetAddress":"<?php echo esc_html($street_address); ?>","addressLocality":"<?php echo esc_html($city); ?>","addressRegion":"<?php echo esc_html($region); ?>"}}]}</script>
 		
- 
+		
  <?php endwhile; ?>
 <?php endif; ?>
 
@@ -83,55 +86,24 @@ $bodycode = get_sub_field('body_code');
 <?php endwhile; else : endif; //get the tracking repeater ?>
 
  	
- 	 
- 	 
+	
+ 
+ 
 <nav class="navbar fixed-top navbar-expand-lg 
 
 <?php 
-// Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
 
-// If WooCommerce functions are available, force white menu on product/shop/product taxonomy pages
 if ( function_exists( 'is_product' ) && is_product() ) {
  $menu_color = 'white';
 } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
  $menu_color = 'white';
 } elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
  $menu_color = 'white';
-} else {
- // Cart detection: try is_cart(), then fallback to checking the WC cart page ID option
- $is_cart_page = ( function_exists( 'is_cart' ) && is_cart() );
- if ( ! $is_cart_page && function_exists( 'wc_get_page_id' ) ) {
- $cart_id = wc_get_page_id( 'cart' );
- if ( $cart_id && is_page( $cart_id ) ) {
- $is_cart_page = true;
- }
- }
- if ( ! $is_cart_page ) {
- $opt_cart = get_option( 'woocommerce_cart_page_id' );
- if ( $opt_cart && is_page( $opt_cart ) ) {
- $is_cart_page = true;
- }
- }
-
- // Checkout detection: try is_checkout(), then fallback to checking the WC checkout page ID option
- $is_checkout_page = ( function_exists( 'is_checkout' ) && is_checkout() );
- if ( ! $is_checkout_page && function_exists( 'wc_get_page_id' ) ) {
- $checkout_id = wc_get_page_id( 'checkout' );
- if ( $checkout_id && is_page( $checkout_id ) ) {
- $is_checkout_page = true;
- }
- }
- if ( ! $is_checkout_page ) {
- $opt_checkout = get_option( 'woocommerce_checkout_page_id' );
- if ( $opt_checkout && is_page( $opt_checkout ) ) {
- $is_checkout_page = true;
- }
- }
-
- if ( $is_cart_page || $is_checkout_page ) {
+} elseif ( function_exists( 'is_cart' ) && is_cart() ) {
  $menu_color = 'white';
- }
+} elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
+ $menu_color = 'white';
 }
 
 if ($menu_color == 'black') { 
@@ -145,8 +117,13 @@ if ($menu_color == 'black') {
 }
 ?>">
 
-	 	 	 	 	 
- 	<div class="container-fluid">
+	 
+	 
+	 
+	 
+	 
+	 
+ <div class="container-fluid">
  <a class="me-5 navbar-brand my-2" href="<?php bloginfo( 'url' ); ?>">
  
  
@@ -179,11 +156,24 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 ?>
 
 
+
 <?php 
 
-// Use the already-computed $menu_color instead of recalculating
+ $menu_color = get_field('menu_color',2); // Retrieve the value of the 'menu_color' field
 
-if ($menu_color == 'black') { ?>
+ if ( function_exists( 'is_product' ) && is_product() ) {
+ $menu_color = 'white';
+ } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
+ $menu_color = 'white';
+ } elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
+ $menu_color = 'white';
+ } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
+ $menu_color = 'white';
+ } elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
+ $menu_color = 'white';
+ }
+
+ if ($menu_color == 'black') { ?>
  
 <img class="logo d-inline-block align-top" src="<?php echo $logolight['sizes']['medium']; ?>" width="<?php echo esc_attr($new_width); ?>" height="<?php echo esc_attr($fixed_height); ?>" title="<?php bloginfo('name'); ?> Logo" alt="<?php bloginfo('name'); ?> Logo" />
 
@@ -197,6 +187,7 @@ if ($menu_color == 'black') { ?>
  
  
  <?php } ?>
+
 
 
  
@@ -219,7 +210,7 @@ if ($menu_color == 'black') { ?>
  'fallback_cb' => 'WP_Bootstrap_Navwalker::fallback',
  'walker' => new WP_Bootstrap_Navwalker(),
 ) ); ?>
-	 
+	
 	 
  <?php
  $display_alt_language_link = get_field('language',2);
@@ -244,6 +235,7 @@ if ($menu_color == 'black') { ?>
  
  
  
+ 
  <!-- shorten url -->
 <a class="btn copy-to-clipboard btn-outline-primary bg-light" data-clipboard-text='<?php
 function tiny_url($url){
@@ -253,6 +245,7 @@ $url = "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 echo tiny_url($url);
 ?>'><i class=" text-dark fa fa-link"></i></a>
 <!-- shorten url -->
+
 
 
  <?php if (function_exists('wordprseo_render_header_customer_tools')) : ?>
