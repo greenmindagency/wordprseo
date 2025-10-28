@@ -122,7 +122,7 @@ $small_title = function_exists( 'get_field' ) ? get_field( 'title', $post->ID ) 
 <!-- jarallax image -->
 
 <?php if ( function_exists( 'qt_should_display_breadcrumbs' ) && qt_should_display_breadcrumbs() ) : ?>
- <div class="border-bottom container-fluid bg-light p-0">
+ <div class="container-fluid p-0">
  <div class="container">
  <div class="row">
  <div class="col">
