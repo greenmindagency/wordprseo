@@ -93,42 +93,51 @@ $menu_color = get_field('menu_color',2); // Get from current page/post
 
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
-    $force_white = false;
+ $force_white = false;
 
-    // 1. Check for standard WC pages (Shop, Product, Category)
-    if (is_shop() || is_product() || is_product_taxonomy()) {
-        $force_white = true;
-    }
-    
-    // 2. Check for Cart/Checkout using WooCommerce functions
-    if (is_cart() || is_checkout()) {
-        $force_white = true;
-    }
-    
-    // 3. Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
-    if (function_exists( 'wc_get_page_id' ) && is_page() ) {
-        $cart_id = wc_get_page_id( 'cart' );
-        $checkout_id = wc_get_page_id( 'checkout' );
-        $current_id = get_the_ID();
-        
-        if ($current_id == $cart_id || $current_id == $checkout_id) {
-            $force_white = true;
-        }
-    }
-    
-    // 4. ULTIMATE FALLBACK: Check the URL/query for /cart/ or /checkout/ slugs (most reliable if hooks are failing)
-    global $wp_query;
-    if (isset($wp_query->query['pagename'])) {
-        $page_name = $wp_query->query['pagename'];
-        if (strpos($page_name, 'cart') !== false || strpos($page_name, 'checkout') !== false) {
-             $force_white = true;
-        }
-    }
+ // Shop/Product detection (use safe function checks)
+ if ( function_exists('is_shop') && is_shop() ) {
+ $force_white = true;
+ }
+ if ( function_exists('is_product') && is_product() ) {
+ $force_white = true;
+ }
+ if ( function_exists('is_product_category') && is_product_category() ) {
+ $force_white = true;
+ }
+ if ( function_exists('is_product_tag') && is_product_tag() ) {
+ $force_white = true;
+ }
+
+ // Cart/Checkout detection
+ if ( function_exists('is_cart') && is_cart() ) {
+ $force_white = true;
+ }
+ if ( function_exists('is_checkout') && is_checkout() ) {
+ $force_white = true;
+ }
+
+ // Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
+ if ( function_exists( 'wc_get_page_id' ) && is_page() ) {
+ $cart_id = wc_get_page_id( 'cart' );
+ $checkout_id = wc_get_page_id( 'checkout' );
+ $current_id = get_the_ID();
+
+ if ($current_id == $cart_id || $current_id == $checkout_id) {
+ $force_white = true;
+ }
+ }
+
+ // ULTIMATE FALLBACK: Check the request URI for /cart/ or /checkout/ slugs
+ $request_uri = isset($_SERVER['REQUEST_URI']) ? strtolower($_SERVER['REQUEST_URI']) : '';
+ if ( strpos($request_uri, '/cart') !== false || strpos($request_uri, '/checkout') !== false ) {
+ $force_white = true;
+ }
 
 
-    if ($force_white) {
-        $menu_color = 'white';
-    }
+ if ($force_white) {
+ $menu_color = 'white';
+ }
 }
 // --- FIX END ---
 
