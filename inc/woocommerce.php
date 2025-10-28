@@ -77,7 +77,7 @@ if ( ! function_exists( 'wordprseo_render_header_customer_tools' ) ) {
 
         ob_start();
         ?>
-        <div class="woocommerce-header-tools d-flex align-items-center ms-3 bg-light px-2 ">
+        <div class="woocommerce-header-tools d-flex align-items-center me-3 bg-light pe-1 ps-2">
             <span class="woocommerce-header-account d-flex align-items-center text-dark small me-3">
                 <i class="fa-regular fa-user me-2" aria-hidden="true"></i>
                 <?php if ( $is_logged_in && ! empty( $account_label ) ) : ?>
