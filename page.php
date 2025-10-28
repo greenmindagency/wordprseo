@@ -1,6 +1,19 @@
 <?php get_header(); // This fxn gets the header.php file and renders it ?>
 
-<?php get_template_part( 'template-parts/page/hero' ); ?>
+<?php
+// Don't render the page hero on WooCommerce cart or checkout pages so those pages
+// can use their tailored headers/style (matching the shop/product pages).
+$render_hero = true;
+if ( function_exists( 'is_cart' ) && is_cart() ) {
+ $render_hero = false;
+}
+if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+ $render_hero = false;
+}
+if ( $render_hero ) {
+ get_template_part( 'template-parts/page/hero' );
+}
+?>
 
 <!-- flexible content -->
 
@@ -13,7 +26,7 @@ if ( is_object( $queried ) && isset( $queried->ID ) ) {
  $post_id = $queried->ID;
 } else {
  $post_id = $queried;
- }
+}
 
 // If ACF is available and the flexible content exists for this object, use it.
 if ( function_exists( 'have_rows' ) && have_rows( 'body', $post_id ) ) : ?>
@@ -31,7 +44,7 @@ if ( function_exists( 'have_rows' ) && have_rows( 'body', $post_id ) ) : ?>
 <!-- Fallback: output the normal page content (this will render WooCommerce shortcodes like [woocommerce_cart]) -->
 <article class="blog-post">
  <?php if ( have_posts() ) : while ( have_posts() ) : the_post(); ?>
- <div class="container entry-content">
+ <div class="entry-content">
  <?php the_content(); ?>
  </div>
  <?php endwhile; endif; ?>

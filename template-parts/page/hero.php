@@ -9,6 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  exit;
 }
 
+// Bail early on WooCommerce pages so the hero (jarallax + breadcrumbs) is not shown
+// for shop/product/cart/checkout pages. This ensures those pages use the simplified
+// shop-style header (no jarallax or breadcrumb) and keeps the menu color light.
+if ( ( function_exists( 'is_cart' ) && is_cart() )
+ || ( function_exists( 'is_checkout' ) && is_checkout() )
+ || ( function_exists( 'is_shop' ) && is_shop() )
+ || ( function_exists( 'is_product' ) && is_product() )
+ || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) ) {
+ return;
+}
+
 global $post;
 
 if ( ! ( $post instanceof WP_Post ) ) {
@@ -160,7 +171,6 @@ $small_title = function_exists( 'get_field' ) ? get_field( 'title', $post->ID ) 
  </div>
  </div>
  </nav>
- </div>
  </div>
  </div>
  </div>
