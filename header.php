@@ -21,7 +21,6 @@
 
 
 
-
 <?php if (have_rows('map_locations',2)) : ?>
  <?php while (have_rows('map_locations',2)) : the_row(); ?>
  <?php 
@@ -35,16 +34,14 @@
 ?>
  
 		
-		
-		
-		
+				
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"<?php bloginfo('name'); ?>","url":"<?php echo esc_url(get_home_url()); ?>/","logo":"<?php $image = get_field('logo' ,2); if( !empty($image) ): echo $image['sizes']['large']; endif; ?>","contactPoint":{"@type":"ContactPoint","telephone":"<?php echo esc_html($telephone); ?>","contactType":"Customer Service"},"address":{"@type":"PostalAddress","streetAddress":"<?php echo esc_html($street_address); ?>","addressLocality":"<?php echo esc_html($city); ?>","addressRegion":"<?php echo esc_html($region); ?>"}, "sameAs":[<?php if( have_rows('social_media',2) ) : $links = []; while( have_rows('social_media',2) ) : the_row(); $links[] = get_sub_field('link'); endwhile; echo '"' . implode('", "', $links) . '"'; endif; ?>]}</script>
 
 
  
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"LocalBusiness","name":"<?php bloginfo('name'); ?>","image":"<?php $image = get_field('logo' ,2); if( !empty($image) ): echo $image['sizes']['large']; endif; ?>","telephone":"<?php echo esc_html($telephone); ?>","priceRange":"<?php echo esc_html($price_range); ?>","address":{"@type":"PostalAddress","streetAddress":"<?php echo esc_html($street_address); ?>","addressLocality":"<?php echo esc_html($city); ?>","addressRegion":"<?php echo esc_html($region); ?>"}}]}</script>
 		
-		
+ 
  <?php endwhile; ?>
 <?php endif; ?>
 
@@ -65,7 +62,7 @@ $bodycode = get_sub_field('body_code');
 
 
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
 
 
 
@@ -86,25 +83,22 @@ $bodycode = get_sub_field('body_code');
 <?php endwhile; else : endif; //get the tracking repeater ?>
 
  	
-	
- 
- 
+ 	 
+ 	 
 <nav class="navbar fixed-top navbar-expand-lg 
 
 <?php 
+// Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
 
-if ( function_exists( 'is_product' ) && is_product() ) {
- $menu_color = 'white';
-} elseif ( function_exists( 'is_shop' ) && is_shop() ) {
- $menu_color = 'white';
-} elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
- $menu_color = 'white';
-} elseif ( function_exists( 'is_cart' ) && is_cart() ) {
- $menu_color = 'white';
-} elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
- $menu_color = 'white';
+// --- FIX START: Consolidated WooCommerce page detection to force 'white' menu ---
+if ( function_exists( 'is_woocommerce' ) ) {
+    // Check for all core WooCommerce pages (Shop, Single Product, Category, Cart, Checkout)
+    if ( is_shop() || is_product() || is_product_taxonomy() || is_cart() || is_checkout() ) {
+        $menu_color = 'white';
+    }
 }
+// --- FIX END ---
 
 if ($menu_color == 'black') { 
  echo 'menu-dynamic bg-dark text-white';
@@ -117,13 +111,8 @@ if ($menu_color == 'black') {
 }
 ?>">
 
-	 
-	 
-	 
-	 
-	 
-	 
- <div class="container-fluid">
+	 	 	 	 	 
+ 	<div class="container-fluid">
  <a class="me-5 navbar-brand my-2" href="<?php bloginfo( 'url' ); ?>">
  
  
@@ -156,24 +145,11 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 ?>
 
 
-
 <?php 
 
- $menu_color = get_field('menu_color',2); // Retrieve the value of the 'menu_color' field
+// Use the already-computed $menu_color instead of recalculating
 
- if ( function_exists( 'is_product' ) && is_product() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
- $menu_color = 'white';
- }
-
- if ($menu_color == 'black') { ?>
+if ($menu_color == 'black') { ?>
  
 <img class="logo d-inline-block align-top" src="<?php echo $logolight['sizes']['medium']; ?>" width="<?php echo esc_attr($new_width); ?>" height="<?php echo esc_attr($fixed_height); ?>" title="<?php bloginfo('name'); ?> Logo" alt="<?php bloginfo('name'); ?> Logo" />
 
@@ -187,7 +163,6 @@ if (!empty($image) && isset($image['sizes'][$size])) {
  
  
  <?php } ?>
-
 
 
  
@@ -210,7 +185,7 @@ if (!empty($image) && isset($image['sizes'][$size])) {
  'fallback_cb' => 'WP_Bootstrap_Navwalker::fallback',
  'walker' => new WP_Bootstrap_Navwalker(),
 ) ); ?>
-	
+	 
 	 
  <?php
  $display_alt_language_link = get_field('language',2);
@@ -235,7 +210,6 @@ if (!empty($image) && isset($image['sizes'][$size])) {
  
  
  
- 
  <!-- shorten url -->
 <a class="btn copy-to-clipboard btn-outline-primary bg-light" data-clipboard-text='<?php
 function tiny_url($url){
@@ -245,7 +219,6 @@ $url = "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 echo tiny_url($url);
 ?>'><i class=" text-dark fa fa-link"></i></a>
 <!-- shorten url -->
-
 
 
  <?php if (function_exists('wordprseo_render_header_customer_tools')) : ?>
