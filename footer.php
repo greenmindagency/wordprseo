@@ -1543,10 +1543,15 @@ jQuery(document).ready(function($) {
     $is_product_page   = function_exists('is_product') && is_product();
     $is_shop_page      = function_exists('is_shop') && is_shop();
     $is_product_tax    = function_exists('is_product_taxonomy') && is_product_taxonomy();
+    
+    // NEW: Check for Cart or Checkout pages to exclude them from dynamic menu logic
+    $is_cart_page      = function_exists('is_cart') && is_cart();
+    $is_checkout_page  = function_exists('is_checkout') && is_checkout();
 
-    if ( $menu_color == 'transparent' && ! ( $is_product_page || $is_shop_page || $is_product_tax ) ) {
+    // The dynamic menu JS should ONLY run if the ACF color is transparent 
+    // AND it's NOT a WooCommerce page that requires a static white header (Shop, Product, Tax, Cart, or Checkout).
+    if ( $menu_color == 'transparent' && ! ( $is_product_page || $is_shop_page || $is_product_tax || $is_cart_page || $is_checkout_page ) ) {
 ?>
-
 
 document.addEventListener('DOMContentLoaded', function () {
     const navbar = document.querySelector('.navbar');
@@ -1562,6 +1567,9 @@ document.addEventListener('DOMContentLoaded', function () {
     lightLogoImg.src = lightLogoSrc;
 
     const blackLogoImg = new Image();
+    blackLogoImg.src = blackLogoImg.src; // Correction: Use blackLogoSrc
+
+    // Preload the images using a consistent source variable name for safety
     blackLogoImg.src = blackLogoSrc;
 
     // Add smooth transition for navbar only
@@ -1654,13 +1662,9 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-
-
 <?php
     } // End of 'transparent' condition
-
 ?>
-
 /*--------------------------------------------------------------
 # Transparent Navbar Highlight
 --------------------------------------------------------------*/
