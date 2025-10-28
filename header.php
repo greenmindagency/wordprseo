@@ -91,6 +91,9 @@ $bodycode = get_sub_field('body_code');
 // Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
 
+// New variable for console debugging
+$debug_message = '';
+
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
     $force_white = false;
@@ -98,30 +101,37 @@ if ( function_exists( 'is_woocommerce' ) ) {
     // 1. Check for standard WC pages (Shop, Product, Category)
     if (is_shop() || is_product() || is_product_taxonomy()) {
         $force_white = true;
+        $debug_message = 'WooCommerce Menu: Forced White (Standard Shop Page)';
     }
     
     // 2. Check for Cart/Checkout using WooCommerce functions
-    if (is_cart() || is_checkout()) {
+    // Only proceed if a white header hasn't been forced yet
+    if (!$force_white && (is_cart() || is_checkout())) {
         $force_white = true;
+        $debug_message = 'WooCommerce Menu: Forced White (is_cart() or is_checkout() function)';
     }
     
     // 3. Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
-    if (function_exists( 'wc_get_page_id' ) && is_page() ) {
+    // Only proceed if a white header hasn't been forced yet
+    if (!$force_white && function_exists( 'wc_get_page_id' ) && is_page() ) {
         $cart_id = wc_get_page_id( 'cart' );
         $checkout_id = wc_get_page_id( 'checkout' );
         $current_id = get_the_ID();
         
         if ($current_id == $cart_id || $current_id == $checkout_id) {
             $force_white = true;
+            $debug_message = 'WooCommerce Menu: Forced White (WC Page ID Match)';
         }
     }
     
     // 4. ULTIMATE FALLBACK: Check the URL/query for /cart/ or /checkout/ slugs (most reliable if hooks are failing)
+    // Only proceed if a white header hasn't been forced yet
     global $wp_query;
-    if (isset($wp_query->query['pagename'])) {
+    if (!$force_white && isset($wp_query->query['pagename'])) {
         $page_name = $wp_query->query['pagename'];
         if (strpos($page_name, 'cart') !== false || strpos($page_name, 'checkout') !== false) {
              $force_white = true;
+             $debug_message = 'WooCommerce Menu: Forced White (URL Slug Detection)';
         }
     }
 
@@ -131,6 +141,13 @@ if ( function_exists( 'is_woocommerce' ) ) {
     }
 }
 // --- FIX END ---
+
+// START DEBUG LOGGING: Output console warning if a WooCommerce condition was met.
+if (!empty($debug_message)) {
+    // Escaping ensures the PHP variable can be safely used within JavaScript.
+    echo '<script>console.warn("' . esc_js($debug_message) . '");</script>';
+}
+// END DEBUG LOGGING
 
 if ($menu_color == 'black') { 
  echo 'menu-dynamic bg-dark text-white';
