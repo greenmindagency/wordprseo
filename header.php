@@ -62,7 +62,7 @@ $bodycode = get_sub_field('body_code');
 
 
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.bundle.min.css" rel="stylesheet" xintegrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
 
 
 
@@ -85,15 +85,11 @@ $bodycode = get_sub_field('body_code');
  	
  	 
  	 
+<nav class="navbar fixed-top navbar-expand-lg 
+
 <?php 
 // Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
-
-// New variables for classes, styles, and console debugging
-$debug_message = '';
-$nav_classes = '';
-$nav_style = '';
-$is_wc_white_page = 'false'; // JS variable for footer
 
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
@@ -102,69 +98,50 @@ if ( function_exists( 'is_woocommerce' ) ) {
     // 1. Check for standard WC pages (Shop, Product, Category)
     if (is_shop() || is_product() || is_product_taxonomy()) {
         $force_white = true;
-        $debug_message = 'WC Menu: Forced White (Standard Shop/Product/Taxonomy)';
     }
     
     // 2. Check for Cart/Checkout using WooCommerce functions
-    if (!$force_white && (is_cart() || is_checkout())) {
+    if (is_cart() || is_checkout()) {
         $force_white = true;
-        $debug_message = 'WC Menu: Forced White (is_cart() or is_checkout() function)';
     }
     
     // 3. Robust fallback: Check if the current page ID matches the Cart or Checkout page IDs set in WooCommerce settings.
-    if (!$force_white && function_exists( 'wc_get_page_id' ) && is_page() ) {
+    if (function_exists( 'wc_get_page_id' ) && is_page() ) {
         $cart_id = wc_get_page_id( 'cart' );
         $checkout_id = wc_get_page_id( 'checkout' );
         $current_id = get_the_ID();
         
         if ($current_id == $cart_id || $current_id == $checkout_id) {
             $force_white = true;
-            $debug_message = 'WC Menu: Forced White (WC Page ID Match)';
         }
     }
     
-    // 4. ULTIMATE FALLBACK: Check the server request URI for /cart/ or /checkout/ slugs.
-    // This is the most reliable check as it bypasses potential WordPress query issues.
-    if (!$force_white) {
-        $request_uri = strtolower( esc_url_raw( $_SERVER['REQUEST_URI'] ) );
-        if (strpos($request_uri, '/cart/') !== false || strpos($request_uri, '/checkout/') !== false) {
+    // 4. ULTIMATE FALLBACK: Check the URL/query for /cart/ or /checkout/ slugs (most reliable if hooks are failing)
+    global $wp_query;
+    if (isset($wp_query->query['pagename'])) {
+        $page_name = $wp_query->query['pagename'];
+        if (strpos($page_name, 'cart') !== false || strpos($page_name, 'checkout') !== false) {
              $force_white = true;
-             $debug_message = 'WC Menu: Forced White (REQUEST_URI Slug Check)';
         }
     }
 
 
     if ($force_white) {
         $menu_color = 'white';
-        $is_wc_white_page = 'true'; // Set JS variable here
     }
 }
 // --- FIX END ---
 
-// Map $menu_color to final classes and styles
 if ($menu_color == 'black') { 
- $nav_classes = 'menu-dynamic bg-dark text-white';
+ echo 'menu-dynamic bg-dark text-white';
 } elseif ($menu_color == 'transparent') { 
- $nav_classes = 'menu-dynamic bg-transparent text-white';
+ echo 'menu-dynamic bg-transparent text-white';
 } elseif ($menu_color == 'white') { 
- $nav_classes = 'menu-dynamic shadow bg-light';
- $nav_style = 'style="background-color: #fff !important;"'; // Hard background color override to fix transparency issues
+ echo 'menu-dynamic shadow bg-light';
 } else { 
- $nav_classes = '';
+ echo '';
 }
-
-// START DEBUG LOGGING & JS VARIABLE DEFINITION
-echo '<script>';
-// Define global flag for footer script
-echo 'const isWcWhitePage = ' . $is_wc_white_page . ';';
-if (!empty($debug_message)) {
-    // Escaping ensures the PHP variable can be safely used within JavaScript.
-    echo 'console.warn("[Header Debug] ' . esc_js($debug_message) . '");';
-}
-echo '</script>';
-// END DEBUG LOGGING
-?>
-<nav class="navbar fixed-top navbar-expand-lg <?php echo $nav_classes; ?>" <?php echo $nav_style; ?>>
+?>">
 
 	 	 	 	 	 
  	<div class="container-fluid">
@@ -264,16 +241,6 @@ if ($menu_color == 'black') { ?>
  
  
  
- 
- <!-- shorten url -->
-<a class="btn copy-to-clipboard btn-outline-primary bg-light" data-clipboard-text='<?php
-function tiny_url($url){
- return file_get_contents("https://tinyurl.com/api-create.php?url=" . $url);
-}
-$url = "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
-echo tiny_url($url);
-?>'><i class=" text-dark fa fa-link"></i></a>
-<!-- shorten url -->
 
 
  <?php if (function_exists('wordprseo_render_header_customer_tools')) : ?>
