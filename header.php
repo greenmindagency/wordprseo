@@ -97,7 +97,7 @@ if ( function_exists( 'is_woocommerce' ) ) {
 
     // 1. Check for standard WC pages (Shop, Product, Category)
     if (is_shop() || is_product() || is_product_taxonomy()) {
-        $force_white = false;
+        $force_white = true;
     }
     
     // 2. Check for Cart/Checkout using WooCommerce functions
