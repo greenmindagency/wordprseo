@@ -15,19 +15,28 @@ if ( function_exists( 'remove_action' ) ) {
  remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb',20 );
 }
 
+ob_start();
 woocommerce_output_all_notices();
+$notices_output = ob_get_clean();
 
+ob_start();
 do_action( 'woocommerce_before_checkout_form', $checkout );
+$before_checkout_output = ob_get_clean();
 
 if ( ! $checkout || ( ! $checkout->is_registration_enabled() && $checkout->is_registration_required() && ! is_user_logged_in() ) ) {
- return;
+    echo '<div class="container py-spacer-2">' . $notices_output . $before_checkout_output . '</div>';
+    return;
 }
 ?>
-<div class="container my-5">
- <!-- Header (match shop page style, no breadcrumb) -->
- <div class="d-flex justify-content-between align-items-center mb-4">
- <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Checkout', 'woocommerce' ); ?></h1>
- </div>
+<div class="container py-spacer-2">
+    <?php
+    echo $notices_output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    echo $before_checkout_output; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    ?>
+    <!-- Header (match shop page style, no breadcrumb) -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Checkout', 'woocommerce' ); ?></h1>
+    </div>
 
 <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data">
 <div class="row g-4">
@@ -68,6 +77,6 @@ if ( ! $checkout || ( ! $checkout->is_registration_enabled() && $checkout->is_re
 </div>
 </div>
 </form>
-</div>
 
 <?php do_action( 'woocommerce_after_checkout_form', $checkout ); ?>
+</div>

@@ -17,20 +17,23 @@ if ( function_exists( 'remove_action' ) ) {
 
 $cart_url = wc_get_cart_url();
 
-woocommerce_output_all_notices();
-
-do_action( 'woocommerce_before_cart' );
 ?>
-<div class="container my-5">
- <!-- Header (match shop page style, no breadcrumb) -->
- <div class="d-flex justify-content-between align-items-center mb-4">
- <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Cart', 'woocommerce' ); ?></h1>
- </div>
+<div class="container py-spacer-2">
+    <?php
+    woocommerce_output_all_notices();
 
-<form class="woocommerce-cart-form" action="<?php echo esc_url( $cart_url ); ?>" method="post">
-<?php do_action( 'woocommerce_before_cart_table' ); ?>
+    do_action( 'woocommerce_before_cart' );
+    ?>
 
-<div class="row g-4">
+    <!-- Header (match shop page style, no breadcrumb) -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fs-3 fw-bold text-dark"><?php esc_html_e( 'Cart', 'woocommerce' ); ?></h1>
+    </div>
+
+    <form class="woocommerce-cart-form" action="<?php echo esc_url( $cart_url ); ?>" method="post">
+        <?php do_action( 'woocommerce_before_cart_table' ); ?>
+
+        <div class="row g-4">
 <div class="col-12 col-lg-8">
 <div class="card border-0 shadow-sm h-100">
 <div class="card-body p-0">
@@ -188,13 +191,13 @@ false
 </form>
 
 <?php if ( WC()->cart->get_cross_sells() ) : ?>
-<div class="mt-5">
-<h2 class="h4 mb-4"><?php esc_html_e( 'You may also like…', 'woocommerce' ); ?></h2>
-<div class="woocommerce-cart-cross-sells">
-<?php woocommerce_cross_sell_display(); ?>
-</div>
-</div>
+    <div class="mt-5">
+        <h2 class="h4 mb-4"><?php esc_html_e( 'You may also like…', 'woocommerce' ); ?></h2>
+        <div class="woocommerce-cart-cross-sells">
+            <?php woocommerce_cross_sell_display(); ?>
+        </div>
+    </div>
 <?php endif; ?>
-</div>
 
 <?php do_action( 'woocommerce_after_cart' ); ?>
+</div>
