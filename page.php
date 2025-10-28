@@ -31,7 +31,7 @@ if ( function_exists( 'have_rows' ) && have_rows( 'body', $post_id ) ) : ?>
 <!-- Fallback: output the normal page content (this will render WooCommerce shortcodes like [woocommerce_cart]) -->
 <article class="blog-post">
  <?php if ( have_posts() ) : while ( have_posts() ) : the_post(); ?>
- <div class="entry-content">
+ <div class="container entry-content">
  <?php the_content(); ?>
  </div>
  <?php endwhile; endif; ?>
