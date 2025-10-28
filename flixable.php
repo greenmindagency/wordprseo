@@ -2735,52 +2735,112 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
                 $image    = $image_id ? wp_get_attachment_image_src( $image_id, $imagesize ) : false;
         ?>
 
-        <div class="pb-4 col-md-<?php echo intval(12 / $columns); ?><?php if($sameheight) echo ' d-flex'; ?>" data-aos="fade-up" data-aos-delay="<?php echo esc_attr( $delay ); ?>">
-          <div class="shadow card d-flex flex-column<?php if($sameheight) echo ' h-100'; ?>">
+        <div class="pb-4 col-md-<?php echo intval( 12 / $columns ); ?><?php if ( $sameheight ) echo ' d-flex'; ?>" data-aos="fade-up" data-aos-delay="<?php echo esc_attr( $delay ); ?>">
+          <?php
+          $image_html = '';
 
-            <?php if ( $image ) :
-                $svg_placeholder = 'data:image/svg+xml;base64,' . base64_encode(
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="' . intval( $image[1] ) . '" height="' . intval( $image[2] ) . '" viewBox="0 0 ' . intval( $image[1] ) . ' ' . intval( $image[2] ) . '"><rect width="100%" height="100%" fill="#f8f9fb"/></svg>'
-                );
-            ?>
-              <a href="<?php the_permalink(); ?>">
-                <img
-                  src="<?php echo esc_url( $svg_placeholder ); ?>"
-                  data-src="<?php echo esc_url( $image[0] ); ?>"
-                  class="border-bottom m-0 img-fluid card-img-top lazyload"
-                  alt="<?php the_title_attribute(); ?>"
-                  width="<?php echo intval( $image[1] ); ?>"
-                  height="<?php echo intval( $image[2] ); ?>"
-                >
+          if ( $image_id ) {
+              $image_html = wp_get_attachment_image(
+                  $image_id,
+                  $imagesize,
+                  false,
+                  array(
+                      'class'   => 'card-img-top img-fluid rounded-0',
+                      'alt'     => get_the_title(),
+                      'loading' => 'lazy',
+                  )
+              );
+          } elseif ( function_exists( 'wc_placeholder_img_src' ) ) {
+              $image_html = sprintf(
+                  '<img src="%1$s" alt="%2$s" class="card-img-top img-fluid rounded-0" loading="lazy" />',
+                  esc_url( wc_placeholder_img_src( $imagesize ) ),
+                  esc_attr( get_the_title() )
+              );
+          }
+
+          if ( ! $image_html ) {
+              $image_html = '<div class="card-img-top img-fluid rounded-0 bg-light"></div>';
+          }
+
+          $category_list = function_exists( 'wc_get_product_category_list' ) ? wc_get_product_category_list( get_the_ID(), ', ' ) : '';
+          $category_text = $category_list ? wp_strip_all_tags( $category_list ) : '';
+          $rating_count  = $product->get_rating_count();
+          $rating_value  = floatval( $product->get_average_rating() );
+
+          $star_icons = '<span class="text-warning me-1 fa-lg">';
+
+          for ( $i = 1; $i <= 5; $i++ ) {
+              if ( $rating_value >= $i ) {
+                  $star_icons .= '<i class="fas fa-star" aria-hidden="true"></i>';
+              } elseif ( $rating_value >= ( $i - 0.5 ) ) {
+                  $star_icons .= '<i class="fas fa-star-half-alt" aria-hidden="true"></i>';
+              } else {
+                  $star_icons .= '<i class="far fa-star" aria-hidden="true"></i>';
+              }
+          }
+
+          $star_icons .= '</span>';
+
+          if ( $rating_value <= 0 ) {
+              $rating_count = 0;
+          }
+
+          $price_markup = '';
+
+          if ( $product->is_type( array( 'simple', 'variation' ) ) ) {
+              $regular_price = $product->get_regular_price();
+              $sale_price    = $product->get_sale_price();
+              $display_price = $product->get_price();
+
+              if ( $product->is_on_sale() && '' !== $sale_price && '' !== $regular_price ) {
+                  $regular_display = wc_price( wc_get_price_to_display( $product, array( 'price' => (float) $regular_price ) ) );
+                  $sale_display    = wc_price( wc_get_price_to_display( $product, array( 'price' => (float) $sale_price ) ) );
+
+                  $price_markup  = '<span class="text-muted text-decoration-line-through me-2 fw-normal fs-6">' . wp_kses_post( $regular_display ) . '</span>';
+                  $price_markup .= '<span class="text-danger">' . wp_kses_post( $sale_display ) . '</span>';
+              } elseif ( '' !== $display_price ) {
+                  $display_value = wc_price( wc_get_price_to_display( $product ) );
+                  $price_markup  = '<span>' . wp_kses_post( $display_value ) . '</span>';
+              }
+          }
+
+          if ( ! $price_markup ) {
+              $price_markup = wp_kses_post( $product->get_price_html() );
+          }
+          ?>
+          <div class="card border-0 shadow-sm bg-light rounded-0 d-flex flex-column<?php if ( $sameheight ) echo ' h-100'; ?>">
+            <div class="position-relative">
+              <a class="d-block" href="<?php the_permalink(); ?>">
+                <?php echo $image_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </a>
-            <?php endif; ?>
 
-            <div class="card-body pb-4 d-flex flex-column flex-grow-1">
-              <small class="lh-lg text-muted"><?php echo wp_kses_post( wc_get_product_category_list( get_the_ID(), ', ' ) ); ?></small>
+              <?php if ( $product->is_on_sale() ) : ?>
+                <span class="position-absolute top-0 start-0 m-3 badge text-bg-danger fw-semibold rounded-0"><?php esc_html_e( 'Sale!', 'woocommerce' ); ?></span>
+              <?php endif; ?>
+            </div>
 
-              <a href="<?php the_permalink(); ?>" class="text-decoration-none"><p class="h3 fw-bold mt-2 text-dark card-title"><?php the_title(); ?></p></a>
+            <div class="card-body p-4 d-flex flex-column flex-grow-1">
+              <?php if ( $category_text ) : ?>
+                <p class="text-uppercase text-muted fw-semibold mb-1 small"><?php echo esc_html( $category_text ); ?></p>
+              <?php endif; ?>
+
+              <a href="<?php the_permalink(); ?>" class="text-decoration-none text-dark">
+                <h3 class="fs-5 fw-semibold text-dark mb-2"><?php the_title(); ?></h3>
+              </a>
 
               <?php if ( wc_review_ratings_enabled() ) : ?>
-                <div class="mb-2">
-                  <?php echo wc_get_rating_html( $product->get_average_rating(), $product->get_rating_count() ); ?>
+                <div class="d-flex align-items-center small mb-2">
+                  <?php echo wp_kses_post( $star_icons ); ?>
+                  <span class="text-muted">(<?php echo esc_html( number_format_i18n( max( $rating_count, 0 ) ) ); ?>)</span>
                 </div>
               <?php endif; ?>
 
-              <p class="h5 fw-bold text-primary mb-3"><?php echo wp_kses_post( $product->get_price_html() ); ?></p>
-
-              <?php
-              $short_description = $product->get_short_description();
-              if ( empty( $short_description ) ) {
-                  $short_description = get_the_excerpt();
-              }
-
-              if ( $short_description ) :
-              ?>
-                <p class="card-text"><?php echo wp_kses_post( wp_trim_words( $short_description, 24, '&hellip;' ) ); ?></p>
-              <?php endif; ?>
+              <div class="fs-5 fw-bold text-dark mt-2 product-price">
+                <?php echo wp_kses_post( $price_markup ); ?>
+              </div>
 
               <?php $cta_classes = $sameheight ? 'mt-auto pt-3' : 'mt-3'; ?>
-              <div class="<?php echo esc_attr($cta_classes); ?>">
+              <div class="<?php echo esc_attr( $cta_classes ); ?>">
                 <?php woocommerce_template_loop_add_to_cart(); ?>
               </div>
             </div>
