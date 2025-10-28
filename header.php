@@ -237,13 +237,19 @@ if ($menu_color == 'black') { ?>
  
  
 
+ 
+ 
+ 
+ 
+
+
  <?php if (function_exists('wordprseo_render_header_customer_tools')) : ?>
  <?php echo wordprseo_render_header_customer_tools(); ?>
- <?php endif; 
- 
- 
- 
- <form class="is-search-form is-ajax-search me-3" action="<?php echo esc_url(home_url('/')); ?>" method="get" role="search">
+ <?php endif; ?>
+
+
+
+<form class="is-search-form is-ajax-search me-3" action="<?php echo esc_url(home_url('/')); ?>" method="get" role="search">
  <div class="input-group">
  <input type="search" name="s" class="form-control p-1 ps-3 is-search-input" placeholder="Search" autocomplete="on">
  <button type="submit" class="btn btn-secondary">
