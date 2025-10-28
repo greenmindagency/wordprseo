@@ -2537,32 +2537,6 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
                     </p>
                   </div>
 
-                  <div class="d-flex justify-content-end mb-4">
-                    <form class="d-flex gap-2" method="get">
-                      <?php
-                      foreach ( $_GET as $key => $value ) {
-                          if ( in_array( $key, array( 'product_sort', 'paged', 'page' ), true ) ) {
-                              continue;
-                          }
-
-                          if ( is_array( $value ) ) {
-                              continue;
-                          }
-
-                          echo '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( wp_unslash( $value ) ) . '" />';
-                      }
-                      ?>
-                      <label class="visually-hidden" for="product_sort_select"><?php esc_html_e( 'Sort products', 'wordprseo' ); ?></label>
-                      <select id="product_sort_select" name="product_sort" class="form-select" onchange="this.form.submit()">
-                        <?php foreach ( $sort_options as $sort_key => $label ) : ?>
-                          <option value="<?php echo esc_attr( $sort_key ); ?>" <?php selected( $current_sort, $sort_key ); ?>><?php echo esc_html( $label ); ?></option>
-                        <?php endforeach; ?>
-                      </select>
-                      <noscript>
-                        <button type="submit" class="btn btn-primary"><?php esc_html_e( 'Apply', 'wordprseo' ); ?></button>
-                      </noscript>
-                    </form>
-                  </div>
 
                   <div class="container-fluid p-0">
                     <div class="row p-0">
@@ -2716,32 +2690,7 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
         <p class="mt-4 mb-5"><?php $subtitle = get_sub_field('subtitle'); if ($subtitle) echo esc_html($subtitle); ?></p>
         </div>
 
-        <div class="d-flex justify-content-end mb-4">
-          <form class="d-flex gap-2" method="get">
-            <?php
-            foreach ( $_GET as $key => $value ) {
-                if ( in_array( $key, array( 'product_sort', 'paged', 'page' ), true ) ) {
-                    continue;
-                }
-
-                if ( is_array( $value ) ) {
-                    continue;
-                }
-
-                echo '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( wp_unslash( $value ) ) . '" />';
-            }
-            ?>
-            <label class="visually-hidden" for="product_sort_select_static"><?php esc_html_e( 'Sort products', 'wordprseo' ); ?></label>
-            <select id="product_sort_select_static" name="product_sort" class="form-select" onchange="this.form.submit()">
-              <?php foreach ( $sort_options as $sort_key => $label ) : ?>
-                <option value="<?php echo esc_attr( $sort_key ); ?>" <?php selected( $current_sort, $sort_key ); ?>><?php echo esc_html( $label ); ?></option>
-              <?php endforeach; ?>
-            </select>
-            <noscript>
-              <button type="submit" class="btn btn-primary"><?php esc_html_e( 'Apply', 'wordprseo' ); ?></button>
-            </noscript>
-          </form>
-        </div>
+        
 
         <div class="row mt-3<?php if($sameheight) echo ' align-items-stretch'; ?>" <?php if(!$sameheight) echo "data-masonry='{\"percentPosition\": true }'"; ?>>
 
@@ -2860,8 +2809,7 @@ if ( ! function_exists( 'wordprseo_is_woocommerce_active' ) || ! wordprseo_is_wo
         <div class="my-4 justify-content-center text-center">
             <a class="btn btn-primary" href="<?php echo esc_url( get_term_link( $term_object ) ); ?>">
                 <?php
-                /* translators: %s: product category name */
-                printf( esc_html__( 'Full List Of %s', 'wordprseo' ), esc_html( $term_object->name ) );
+                esc_html_e( 'Full List of Products', 'wordprseo' );
                 ?>
             </a>
         </div>
