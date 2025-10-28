@@ -324,6 +324,7 @@ if ( wordprseo_is_woocommerce_active() ) {
     add_action( 'admin_notices', 'wordprseo_maybe_display_woocommerce_notice' );
     add_filter( 'woocommerce_product_single_add_to_cart_html', 'wordprseo_bootstrap_single_add_to_cart_html', 10, 2 );
     add_action( 'pre_get_posts', 'wordprseo_show_all_products_on_archives', 20 );
+    add_filter( 'pre_option_woocommerce_enable_myaccount_registration', 'wordprseo_enable_myaccount_registration' );
     add_filter( 'render_block', 'wordprseo_wrap_cart_checkout_blocks', 10, 2 );
 
     // Remove the default WooCommerce catalog ordering dropdown from all archive/shop pages.
@@ -544,5 +545,18 @@ if ( ! function_exists( 'wordprseo_maybe_display_woocommerce_notice' ) ) {
         }
 
         echo '<div class="notice notice-warning"><p>' . wp_kses_post( __( 'WooCommerce is active, but your store setup is not finished yet. Please add at least one published product and one product category before the WordPrSEO theme displays the storefront.', 'wordprseo' ) ) . '</p></div>';
+    }
+}
+
+if ( ! function_exists( 'wordprseo_enable_myaccount_registration' ) ) {
+    /**
+     * Ensures the customer registration form is available on the My Account page.
+     *
+     * @param mixed $value Original option value.
+     *
+     * @return string
+     */
+    function wordprseo_enable_myaccount_registration( $value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+        return 'yes';
     }
 }
