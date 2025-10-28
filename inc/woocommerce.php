@@ -408,13 +408,54 @@ if ( ! function_exists( 'wordprseo_wrap_cart_checkout_blocks' ) ) {
             return $block_content;
         }
 
-        if ( false !== strpos( $trimmed_content, 'container py-spacer-2' ) ) {
-            return $block_content;
+        $titles = array(
+            'woocommerce/cart'     => __( 'Cart', 'woocommerce' ),
+            'woocommerce/checkout' => __( 'Checkout', 'woocommerce' ),
+        );
+
+        $heading_markup = '';
+
+        if ( isset( $titles[ $block['blockName'] ] ) && false === strpos( $trimmed_content, '<h1' ) ) {
+            $heading_markup = sprintf(
+                '<h1 class="fs-3 fw-bold text-dark mb-4">%s</h1>',
+                esc_html( $titles[ $block['blockName'] ] )
+            );
+        }
+
+        $has_wrapper          = false !== strpos( $trimmed_content, 'container py-spacer-2' );
+        $content_with_heading = $trimmed_content;
+
+        if ( '' !== $heading_markup ) {
+            if ( $has_wrapper ) {
+                $wrapper_start = strpos( $trimmed_content, 'container py-spacer-2' );
+                $insert_after  = false;
+
+                if ( false !== $wrapper_start ) {
+                    $insert_after = strpos( $trimmed_content, '>', $wrapper_start );
+                }
+
+                if ( false !== $insert_after ) {
+                    $content_with_heading = substr_replace(
+                        $trimmed_content,
+                        $heading_markup,
+                        $insert_after + 1,
+                        0
+                    );
+                } else {
+                    $content_with_heading = $heading_markup . $trimmed_content;
+                }
+            } else {
+                $content_with_heading = $heading_markup . $trimmed_content;
+            }
+        }
+
+        if ( $has_wrapper ) {
+            return $content_with_heading;
         }
 
         return sprintf(
             '<div class="container py-spacer-2">%s</div>',
-            $trimmed_content
+            $content_with_heading
         );
     }
 }

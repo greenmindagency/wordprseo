@@ -89,31 +89,32 @@ $bodycode = get_sub_field('body_code');
 	
  
  
-<nav class="navbar fixed-top navbar-expand-lg 
+<nav class="navbar fixed-top navbar-expand-lg
 
-<?php 
-$menu_color = get_field('menu_color',2); // Get from current page/post
+<?php
+$menu_color_setting = get_field('menu_color',2); // Get from current page/post
+$menu_color = is_string( $menu_color_setting ) ? $menu_color_setting : '';
 
 if ( function_exists( 'is_product' ) && is_product() ) {
- $menu_color = 'white';
+    $menu_color = 'white';
 } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
- $menu_color = 'white';
+    $menu_color = 'white';
 } elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
- $menu_color = 'white';
+    $menu_color = 'white';
 } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
- $menu_color = 'white';
+    $menu_color = 'white';
 } elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
- $menu_color = 'white';
+    $menu_color = 'white';
 }
 
-if ($menu_color == 'black') { 
- echo 'menu-dynamic bg-dark text-white';
-} elseif ($menu_color == 'transparent') { 
- echo 'menu-dynamic bg-transparent text-white';
-} elseif ($menu_color == 'white') { 
- echo 'menu-dynamic shadow bg-light';
-} else { 
- echo '';
+if ($menu_color == 'black') {
+    echo 'menu-dynamic bg-dark text-white';
+} elseif ($menu_color == 'transparent') {
+    echo 'menu-dynamic bg-transparent text-white';
+} elseif ($menu_color == 'white') {
+    echo 'menu-dynamic shadow bg-light';
+} else {
+    echo '';
 }
 ?>">
 
@@ -157,24 +158,10 @@ if (!empty($image) && isset($image['sizes'][$size])) {
 
 
 
-<?php 
-
- $menu_color = get_field('menu_color',2); // Retrieve the value of the 'menu_color' field
-
- if ( function_exists( 'is_product' ) && is_product() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_shop' ) && is_shop() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_cart' ) && is_cart() ) {
- $menu_color = 'white';
- } elseif ( function_exists( 'is_checkout' ) && is_checkout() ) {
- $menu_color = 'white';
- }
+<?php
 
  if ($menu_color == 'black') { ?>
- 
+
 <img class="logo d-inline-block align-top" src="<?php echo $logolight['sizes']['medium']; ?>" width="<?php echo esc_attr($new_width); ?>" height="<?php echo esc_attr($fixed_height); ?>" title="<?php bloginfo('name'); ?> Logo" alt="<?php bloginfo('name'); ?> Logo" />
 
  <?php } elseif ($menu_color == 'transparent') { ?>
