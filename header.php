@@ -91,6 +91,20 @@ $bodycode = get_sub_field('body_code');
 // Compute menu_color once and make cart/checkout detection more robust using WC page IDs as fallback.
 $menu_color = get_field('menu_color',2); // Get from current page/post
 
+
+
+if ($menu_color == 'black') { 
+ echo 'menu-dynamic bg-dark text-white';
+} elseif ($menu_color == 'transparent') { 
+ echo 'menu-dynamic bg-transparent text-white';
+} elseif ($menu_color == 'white') { 
+ echo 'menu-dynamic shadow bg-light';
+} else { 
+ echo '';
+}
+
+
+
 // --- FIX START: Consolidated and hardened WooCommerce page detection to force 'white' menu ---
 if ( function_exists( 'is_woocommerce' ) ) {
     $force_white = false;
@@ -132,15 +146,7 @@ if ( function_exists( 'is_woocommerce' ) ) {
 }
 // --- FIX END ---
 
-if ($menu_color == 'black') { 
- echo 'menu-dynamic bg-dark text-white';
-} elseif ($menu_color == 'transparent') { 
- echo 'menu-dynamic bg-transparent text-white';
-} elseif ($menu_color == 'white') { 
- echo 'menu-dynamic shadow bg-light';
-} else { 
- echo '';
-}
+
 ?>">
 
 	 	 	 	 	 
