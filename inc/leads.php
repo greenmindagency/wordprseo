@@ -11,6 +11,16 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
     class Theme_Leads_Manager {
 
         /**
+         * Current database schema version for shared lead tables.
+         */
+        const SCHEMA_VERSION = '1.0.0';
+
+        /**
+         * Option storing the installed shared lead table schema version.
+         */
+        const SCHEMA_VERSION_OPTION = 'theme_leads_schema_version';
+
+        /**
          * Mailer settings currently being applied to PHPMailer.
          *
          * @var array|null
@@ -32,8 +42,7 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 return;
             }
 
-            $this->maybe_create_templates_table();
-            $this->maybe_create_options_table();
+            $this->maybe_upgrade_shared_tables();
 
             add_action( 'wpcf7_before_send_mail', array( $this, 'capture_submission' ), 10, 3 );
 
@@ -60,6 +69,22 @@ if ( ! class_exists( 'Theme_Leads_Manager' ) ) {
                 add_action( 'wp_ajax_theme_leads_default_cc_save', array( $this, 'handle_ajax_default_cc_save' ) );
                 add_action( 'wp_ajax_theme_leads_mailer_save', array( $this, 'handle_ajax_mailer_settings_save' ) );
             }
+        }
+
+        /**
+         * Ensure shared lead tables are created or upgraded once per schema version.
+         */
+        protected function maybe_upgrade_shared_tables() {
+            $installed_version = get_option( self::SCHEMA_VERSION_OPTION, '' );
+
+            if ( self::SCHEMA_VERSION === $installed_version ) {
+                return;
+            }
+
+            $this->maybe_create_templates_table();
+            $this->maybe_create_options_table();
+
+            update_option( self::SCHEMA_VERSION_OPTION, self::SCHEMA_VERSION, false );
         }
 
         /**
